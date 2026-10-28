@@ -24,11 +24,16 @@ final class NetworkWords {
         return validated ? State.ONLINE : State.NO_INTERNET;
     }
 
-    /** The SSID WifiInfo reports, without its quotes; null for the placeholders firmware returns when it can't tell. */
+    /** What WifiInfo.getSSID() returns when the name can't be read (no location permission, or not connected). */
+    static final String UNKNOWN_SSID = "<unknown ssid>";
+
+    /** The SSID WifiInfo reports, without its quotes; null for the placeholders firmware returns when it can't tell.
+     *  Only the exact placeholders: a real network may well be named "unknown-network". */
     static String ssid(String raw) {
         if (raw == null) return null;
-        String s = raw.replace("\"", "").trim();
-        if (s.isEmpty() || s.contains("unknown") || s.equals("0x")) return null;
-        return s;
+        String s = raw.trim();
+        if (s.equalsIgnoreCase(UNKNOWN_SSID) || s.equals("0x")) return null;
+        if (s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")) s = s.substring(1, s.length() - 1);
+        return s.trim().isEmpty() ? null : s;
     }
 }

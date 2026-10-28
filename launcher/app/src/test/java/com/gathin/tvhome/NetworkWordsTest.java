@@ -33,4 +33,12 @@ public class NetworkWordsTest {
         assertNull(NetworkWords.ssid("\"\""));
         assertNull(NetworkWords.ssid(null));
     }
+
+    @Test
+    public void realNamesThatLookLikePlaceholdersAreKept() {
+        assertEquals("unknown-network", NetworkWords.ssid("\"unknown-network\""));
+        assertEquals("The Unknown", NetworkWords.ssid("\"The Unknown\""));
+        assertEquals("\"quoted\" name", NetworkWords.ssid("\"\"quoted\" name\""));
+        assertEquals("0x", NetworkWords.ssid("\"0x\""));
+    }
 }
