@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -19,6 +20,7 @@ import java.util.List;
  * Pressing Settings again closes the panel.
  */
 public final class QuickSettingsActivity extends Activity {
+    private View panel;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -36,6 +38,7 @@ public final class QuickSettingsActivity extends Activity {
             row.action.run();
             finish();
         });
+        this.panel = panel;
         // Under the nav's Settings icon: the device controls end 6 px inside the title-safe edge, 112 px down.
         root.addView(panel, MenuPanel.hang(Ui.px(126), Ui.px(Ui.SAFE_X + 6)));
         setContentView(root);
@@ -43,6 +46,36 @@ public final class QuickSettingsActivity extends Activity {
         // This panel uses Android's own focus: a single column, where it moves exactly as the D-pad expects.
         View first = Focus.all(panel).isEmpty() ? null : Focus.all(panel).get(0);
         if (first != null) first.requestFocus();
+    }
+
+    /** A D-pad move past the panel's edge closes it, like the dropdowns on Home. */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int dir = focusDirection(event.getKeyCode());
+        if (dir != 0 && event.getAction() == KeyEvent.ACTION_DOWN && panel != null) {
+            View focused = getCurrentFocus();
+            View next = focused == null ? null : focused.focusSearch(dir);
+            if (next == null || !Focus.isInside(panel, next)) {
+                finish();
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private static int focusDirection(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_UP:
+                return View.FOCUS_UP;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                return View.FOCUS_DOWN;
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                return View.FOCUS_LEFT;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                return View.FOCUS_RIGHT;
+            default:
+                return 0;
+        }
     }
 
     /** Settings pressed again while the panel is up. */

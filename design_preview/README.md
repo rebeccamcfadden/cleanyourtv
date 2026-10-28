@@ -139,8 +139,10 @@ From [AGENTS.md](../AGENTS.md) and the design:
 
 ### Top-bar dropdowns
 
-All three hang under their button, grow inward from the right, and close on Back, on OK on a row, or on a click
-outside. Focus returns to the button.
+All three hang under their button, grow inward from the right, and close on Back, on OK on a row, on a click
+outside, or when the D-pad moves past the menu's edge. Focus returns to the button; a move past the left, right or
+bottom edge carries on one step from the button, so → in the Wi-Fi menu lands on Inputs. (Closing on the D-pad was
+decided after the first run on a real TV: closing with Back alone felt clunky.)
 
 | Opened by | Rows |
 |---|---|

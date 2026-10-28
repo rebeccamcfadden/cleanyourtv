@@ -213,7 +213,8 @@ class App {
     this.listeners.forEach((fn) => fn());
   }
 
-  private move(dir: Dir) {
+  /** A D-pad move on the top screen, as if the key had been pressed: the screen sees it first. */
+  move(dir: Dir) {
     const s = this.top();
     if (!s) return;
     if (!this.focused || !this.focused.isConnected || !s.el.contains(this.focused)) {

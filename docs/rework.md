@@ -58,6 +58,7 @@ Settled with the project lead on 2026-10-28.
 | Launcher settings | The old `LauncherSettingsActivity` stays, without its grid, dock and wallpaper rows, until the new page is designed. |
 | Pull requests | Every PR asks the Copilot reviewer for a review. |
 | Settings key over apps | `QuickSettingsActivity` draws the same dropdown as Home (`MenuPanel`), so the remote's Settings key looks the same everywhere. |
+| Dropdowns and the D-pad | Decided after the first run on the TV (2026-10-29): a D-pad move past a dropdown's edge closes it and returns focus to its button; past the left, right or bottom edge it carries on one step, so → in the Wi-Fi menu lands on Inputs. Closing with Back alone felt clunky. The prototype and its README changed with it. |
 
 ## Open questions
 

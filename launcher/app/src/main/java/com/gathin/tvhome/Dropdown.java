@@ -8,7 +8,9 @@ import java.util.List;
 
 /**
  * A top-bar dropdown on the Shell's stack (dialog layer): it hangs under its button, grows inward from the right,
- * and closes on Back, on OK on a row, or on a click outside it. Focus then returns to the button.
+ * and closes on Back, on OK on a row, on a click outside it, or when the D-pad moves past its edge. Focus then
+ * returns to the button; a move past the left, right or bottom edge carries on one step from the button, so
+ * Right in the Wi-Fi menu lands on Inputs (decided on the TV, 2026-10-29).
  */
 final class Dropdown {
     private Dropdown() {}
@@ -45,6 +47,17 @@ final class Dropdown {
                 if (shown) return;
                 shown = true;
                 MenuPanel.dropIn(panel);
+            }
+
+            @Override
+            boolean onKey(Key key, View focused) {
+                SpatialNav.Dir dir = Shell.dirOf(key);
+                if (dir == null) return false;
+                if (shell.moveWithin(panel, dir)) return true;
+                shell.pop();
+                if (anchor != null && anchor.isAttachedToWindow() && anchor.isShown()) shell.focus(anchor);
+                if (dir != SpatialNav.Dir.UP) shell.move(dir);
+                return true;
             }
         };
     }

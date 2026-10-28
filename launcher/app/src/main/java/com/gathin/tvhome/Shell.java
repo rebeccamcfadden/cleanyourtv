@@ -281,7 +281,24 @@ final class Shell {
         }
     }
 
-    private void move(SpatialNav.Dir dir) {
+    /** The direction of a D-pad key, or null for OK and Back. */
+    static SpatialNav.Dir dirOf(Screen.Key key) {
+        switch (key) {
+            case UP:
+                return SpatialNav.Dir.UP;
+            case DOWN:
+                return SpatialNav.Dir.DOWN;
+            case LEFT:
+                return SpatialNav.Dir.LEFT;
+            case RIGHT:
+                return SpatialNav.Dir.RIGHT;
+            default:
+                return null;
+        }
+    }
+
+    /** A D-pad move on the top screen, as if the key had been pressed: the screen sees it first. */
+    void move(SpatialNav.Dir dir) {
         Screen s = top();
         if (s == null) return;
         if (focused == null || !focused.isAttachedToWindow() || !Focus.isInside(s.view, focused)) {

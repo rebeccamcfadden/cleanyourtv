@@ -90,6 +90,9 @@ From the old launcher; not in V1 by decision.
   tint by state (`wifi_status_color`, `wifi_status_warnings`); not designed for the new nav.
 - **Generated counts:** `tools/gen_tables.py` now writes "1 languages" in the README; `docs/card.jpg` and
   `docs/stats.png` still say 25 (M1b).
+- **Cold start:** Home took 2.8 s (`am start -W`, TotalTime) after a force stop on the TCL BeyondTV, 0.3 s for the
+  activity itself. Measure it against 2.7 with `tools/bench.py` ([perf-ab](docs/workflows/perf-ab.md)) before M2
+  adds the real Home page.
 
 ## Not designed yet
 
