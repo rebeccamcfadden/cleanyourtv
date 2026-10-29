@@ -2,6 +2,28 @@ plugins {
     id 'com.android.application'
 }
 
+// The TV's build settings (docs/rework.md): launcher/tv.properties, gitignored, or the committed example while it is
+// missing. Checked here so a typo fails the build instead of giving the TV weather for nowhere.
+def tvPropsFile = rootProject.file('tv.properties')
+if (!tvPropsFile.exists()) tvPropsFile = rootProject.file('tv.properties.example')
+def tvProps = new Properties()
+tvPropsFile.withInputStream { tvProps.load(it) }
+def tvSetting = { String key ->
+    def value = tvProps.getProperty(key)?.trim()
+    if (!value) throw new GradleException("${tvPropsFile.name}: ${key} is missing")
+    return value
+}
+def weatherLatitude = tvSetting('latitude')
+def weatherLongitude = tvSetting('longitude')
+def temperatureUnit = tvSetting('temperature_unit').toUpperCase(Locale.ROOT)
+if (!weatherLatitude.isDouble() || Math.abs(weatherLatitude.toDouble()) > 90) {
+    throw new GradleException("${tvPropsFile.name}: latitude must be a number from -90 to 90")
+}
+if (!weatherLongitude.isDouble() || Math.abs(weatherLongitude.toDouble()) > 180) {
+    throw new GradleException("${tvPropsFile.name}: longitude must be a number from -180 to 180")
+}
+if (!(temperatureUnit in ['C', 'F'])) throw new GradleException("${tvPropsFile.name}: temperature_unit must be C or F")
+
 android {
     namespace 'com.gathin.tvhome'
     compileSdk 34
@@ -13,6 +35,14 @@ android {
         targetSdk 34
         versionCode 8
         versionName '2.7'
+
+        buildConfigField 'double', 'WEATHER_LATITUDE', weatherLatitude
+        buildConfigField 'double', 'WEATHER_LONGITUDE', weatherLongitude
+        buildConfigField 'boolean', 'FAHRENHEIT', String.valueOf(temperatureUnit == 'F')
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
@@ -45,4 +75,6 @@ dependencies {
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     // Test only (never in the APK): plain JVM tests for the module card validators, src/test.
     testImplementation 'junit:junit:4.13.2'
+    // Android's own org.json is a stub on the JVM; the weather parser's tests need a real one.
+    testImplementation 'org.json:json:20240303'
 }
