@@ -49,6 +49,7 @@ final class Shell {
     private boolean okHeld;
     /** The key whose character a screen took as typing, so its key-up is taken too (M6). */
     private int typedKey = KeyEvent.KEYCODE_UNKNOWN;
+    private boolean delWentBack;
 
     Shell(FrameLayout stage, Pages pages) {
         this.stage = stage;
@@ -269,12 +270,20 @@ final class Shell {
         }
         // M6: typing from a hardware keyboard or a remote with keys (app.ts onKeyDown). Backspace deletes on a
         // screen that has something typed and is Back everywhere else; held down it keeps deleting, but never
-        // turns into Back part-way through.
+        // turns into Back part-way through, and a press that went Back doesn't delete on the screen underneath.
         if (code == KeyEvent.KEYCODE_DEL) {
             if (down) {
-                Screen s = top();
-                boolean used = s != null && s.onKey(Screen.Key.DELETE, focused);
-                if (!used && e.getRepeatCount() == 0) back();
+                if (e.getRepeatCount() == 0) delWentBack = false;
+                if (!delWentBack) {
+                    Screen s = top();
+                    boolean used = s != null && s.onKey(Screen.Key.DELETE, focused);
+                    if (!used && e.getRepeatCount() == 0) {
+                        delWentBack = true;
+                        back();
+                    }
+                }
+            } else {
+                delWentBack = false;
             }
             return true;
         }

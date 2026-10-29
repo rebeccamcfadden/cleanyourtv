@@ -328,6 +328,8 @@ final class HomePage extends Screen {
     @Override
     boolean onKey(Key key, View focused) {
         if (moving == null) return steer(key, focused);
+        // Backspace isn't taken, so Shell turns it into Back, which puts the tile down.
+        if (key == Key.DELETE) return false;
         switch (key) {
             case LEFT:
                 step(-1);
