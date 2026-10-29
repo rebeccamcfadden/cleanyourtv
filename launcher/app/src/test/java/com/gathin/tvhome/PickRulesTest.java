@@ -14,6 +14,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /** Pick for me's rules against design_preview/src/screens/pick.ts and its reference shots (pick-01, pick-02). */
@@ -248,6 +249,20 @@ public class PickRulesTest {
         assertTrue(test(PickRules.AVAIL, 1, sub));
         assertFalse(PickRules.test(PickRules.AVAIL, 1, sub, EMPTY, NONE));
         assertTrue(PickRules.test(PickRules.AVAIL, 1, free, EMPTY, NONE));
+        // "Included + paid" needs an included, rent or buy offer: a SUB on a service the TV doesn't have is neither.
+        Title otherSub = movie("other", 100, "PG", 8, Collections.singletonList("Drama"),
+                Collections.singletonList(new Offer(ServiceId.APPLETVPLUS, OfferType.SUB, 0, null)), ListId.HOUSEHOLD);
+        Set<ServiceId> netflixOnly = EnumSet.of(ServiceId.NETFLIX);
+        assertTrue(PickRules.test(PickRules.AVAIL, 0, otherSub, EMPTY, SUBS));
+        assertFalse(PickRules.test(PickRules.AVAIL, 0, otherSub, EMPTY, netflixOnly));
+        assertTrue(PickRules.test(PickRules.AVAIL, 0, rentOnly, EMPTY, NONE));
+        assertFalse(PickRules.test(PickRules.AVAIL, 0, movie("none", 100), EMPTY, SUBS));
+        // CODA is only on Apple TV+: on a Netflix-only TV it is no pick, so no pick ends up "Unavailable".
+        PickRules.State any = PickRules.defaults(Kind.MOVIE);
+        assertTrue(ids(PickRules.matches(any, catalog.all(), household, SUBS)).contains("coda"));
+        List<Title> netflix = PickRules.matches(any, catalog.all(), household, netflixOnly);
+        assertFalse(ids(netflix).contains("coda"));
+        for (Title t : netflix) assertNotNull(t.id, Offers.bestOffer(t, netflixOnly));
         // Moon is rent or buy only: it leaves the default set with "Included only".
         PickRules.State s = PickRules.defaults(Kind.MOVIE);
         s.step(PickRules.AVAIL);

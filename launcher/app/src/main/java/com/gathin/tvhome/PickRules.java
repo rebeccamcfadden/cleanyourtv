@@ -140,7 +140,9 @@ final class PickRules {
             case WATCH:
                 return i == 1 || !h.isSeen(t.id);
             default:
-                return i == 0 || Offers.isIncluded(t, subscribed);
+                // "Included + paid" still needs a way to watch: in the prototype every SUB service is subscribed, so
+                // no title lacks one; here a SUB offer on a service the TV doesn't have is neither.
+                return i == 0 ? Offers.bestOffer(t, subscribed) != null : Offers.isIncluded(t, subscribed);
         }
     }
 
