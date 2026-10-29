@@ -235,10 +235,14 @@ final class TitlePreview extends Screen {
         router.shell().push(RentDialog.create(ctx, router, t, s));
     }
 
-    /** A Where to watch card: open an included or free service, or ask before renting or buying. */
+    /**
+     * A Where to watch card: open an included or free service, or ask before renting or buying. A subscription the
+     * household doesn't have has nothing to rent or buy: open its app (or the Router's "not installed" toast).
+     */
     private void openService(ServiceOffers s) {
         if (s.watchable()) router.watch(t, PreviewRules.includedOffer(t, s.service, subscribed));
-        else purchase(s);
+        else if (s.rent != null || s.buy != null) purchase(s);
+        else router.watch(t, PreviewRules.subscriptionOffer(t, s.service));
     }
 
     /** My list, Mark seen and Favorite: an icon until focused, an on state, and a toast saying what changed. */

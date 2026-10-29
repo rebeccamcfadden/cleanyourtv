@@ -112,14 +112,24 @@ final class PreviewRules {
         return s.included ? "Included" : null;
     }
 
-    /** The card's offer line: "With your subscription", "Free with ads" or "Rent $3.99 · Buy $9.99". */
+    /**
+     * The card's offer line: "With your subscription", "Free with ads", "Rent $3.99 · Buy $9.99", or "Subscription"
+     * for a service the household doesn't subscribe to that has nothing to rent or buy (the prototype assumes every
+     * service is subscribed, so it never shows this).
+     */
     static String serviceOffer(ServiceOffers s) {
         if (s.included) return "With your subscription";
         if (s.free) return "Free with ads";
         List<String> parts = new ArrayList<>(2);
         if (s.rent != null) parts.add("Rent " + Offers.price(s.rent.price));
         if (s.buy != null) parts.add("Buy " + Offers.price(s.buy.price));
-        return String.join(" · ", parts);
+        return parts.isEmpty() ? "Subscription" : String.join(" · ", parts);
+    }
+
+    /** The title's subscription offer on that service, or null. */
+    static Offer subscriptionOffer(Title t, ServiceId service) {
+        for (Offer o : t.offers) if (o.service == service && o.type == OfferType.SUB) return o;
+        return null;
     }
 
     /** That service's merged offers for the title, or null. */

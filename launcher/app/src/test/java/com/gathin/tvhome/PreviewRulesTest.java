@@ -40,6 +40,21 @@ public class PreviewRulesTest {
         return t;
     }
 
+    /** A subscription the household doesn't have, with nothing to rent or buy: the card says so, and OK opens the
+     *  app (Router.watch with the subscription offer) instead of an empty rent/buy dialog. */
+    @Test
+    public void unsubscribedServiceWithNoStoreOffersSaysSubscription() {
+        Title mitchells = t("mitchells");
+        ServiceOffers netflix = PreviewRules.forService(mitchells, ServiceId.NETFLIX, NONE);
+        assertNotNull(netflix);
+        org.junit.Assert.assertFalse(netflix.watchable());
+        org.junit.Assert.assertEquals("Subscription", PreviewRules.serviceOffer(netflix));
+        Offer sub = PreviewRules.subscriptionOffer(mitchells, ServiceId.NETFLIX);
+        assertNotNull(sub);
+        org.junit.Assert.assertEquals(OfferType.SUB, sub.type);
+        org.junit.Assert.assertNull(PreviewRules.subscriptionOffer(mitchells, ServiceId.PRIME));
+    }
+
     private static List<String[]> rows(String resource) throws Exception {
         List<String[]> out = new ArrayList<>();
         try (InputStream in = PreviewRulesTest.class.getResourceAsStream(resource);
