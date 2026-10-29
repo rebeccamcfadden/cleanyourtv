@@ -74,11 +74,7 @@ final class PickResultsPage extends Screen {
                 v -> router.shell().pop());
         head.addView(adjust, PickSetupPage.wrap());
         reroll = Kit.button(ctx, PickRules.rerollLabel(0), R.drawable.ic_ui_shuffle, Kit.SMALL, false, null, "reroll",
-                false, v -> {
-                    roll();
-                    View first = firstTile();
-                    router.shell().focus(first != null ? first : adjust);
-                });
+                false, v -> roll());
         LinearLayout.LayoutParams rlp = PickSetupPage.wrap();
         rlp.leftMargin = Ui.px(14);
         head.addView(reroll, rlp);
@@ -133,6 +129,19 @@ final class PickResultsPage extends Screen {
     View defaultFocus() {
         View first = firstTile();
         return first != null ? first : adjust;
+    }
+
+    /** Up from a pick reaches Adjust filters or Reroll, whichever is nearer, before the nav. */
+    @Override
+    boolean onKey(Key key, View focused) {
+        if (key != Key.UP || focused == null || !GROUP_PICKS.equals(Focus.group(focused))) return false;
+        float[] f = Focus.rectIn(focused, view);
+        float[] a = Focus.rectIn(adjust, view);
+        float[] r = Focus.rectIn(reroll, view);
+        float mid = (f[0] + f[2]) / 2;
+        boolean toAdjust = Math.abs((a[0] + a[2]) / 2 - mid) < Math.abs((r[0] + r[2]) / 2 - mid);
+        router.shell().focus(toAdjust ? adjust : reroll);
+        return true;
     }
 
     /** The bar follows the focused pick. */
