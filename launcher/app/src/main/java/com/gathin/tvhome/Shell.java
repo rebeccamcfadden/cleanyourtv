@@ -305,11 +305,30 @@ final class Shell {
             focus(restoreTarget(s));
             return;
         }
+        // Left and Right on the top bar stay on it, to the nearest item, whatever the page below holds and whichever
+        // section was used last: ← from Wi-Fi is always Search (project lead, 2026-10-29). Past either end, nothing.
+        View bar = navBarOf(focused, s.view);
+        if (bar != null && (dir == SpatialNav.Dir.LEFT || dir == SpatialNav.Dir.RIGHT)) {
+            View next = nearestIn(bar, focused, dir);
+            if (next != null) {
+                focus(next);
+                stage.playSoundEffect(soundFor(dir));
+            }
+            return;
+        }
         if (s.onKey(Screen.Key.valueOf(dir.name()), focused)) return;
         View next = findNext(s.view, focused, dir, s.memory);
         if (next == null) return;
         focus(next);
         stage.playSoundEffect(soundFor(dir));
+    }
+
+    /** The top bar v sits in, below root; null when v isn't on it. */
+    private static View navBarOf(View v, View root) {
+        for (View c = v; c != null && c != root; c = c.getParent() instanceof View ? (View) c.getParent() : null) {
+            if (c.getTag(R.id.ui_nav) != null) return c;
+        }
+        return null;
     }
 
     private static int soundFor(SpatialNav.Dir dir) {
@@ -329,6 +348,16 @@ final class Shell {
         Screen s = top();
         if (s == null || s.onKey(Screen.Key.OK, focused)) return;
         if (focused != null && focused.isAttachedToWindow() && focused.hasOnClickListeners()) focused.performClick();
+    }
+
+    /** The nearest item in dir under root, with no row memory or default: the next item along the top bar. */
+    private static View nearestIn(View root, View from, SpatialNav.Dir dir) {
+        List<View> list = Focus.candidates(root);
+        list.remove(from);
+        List<float[]> rects = new ArrayList<>(list.size());
+        for (View v : list) rects.add(Focus.rectIn(v, root));
+        int i = SpatialNav.nearest(Focus.rectIn(from, root), rects, dir);
+        return i < 0 ? null : list.get(i);
     }
 
     /** The nearest item in dir; entering another row or grid returns to the item it remembers, else its default. */

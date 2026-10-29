@@ -1,5 +1,5 @@
 import { h } from './dom';
-import { type Dir, ensureVisible, findNext, handlerOf } from './focus';
+import { type Dir, ensureVisible, findNext, handlerOf, nearest } from './focus';
 
 export type TabId = 'home' | 'movies' | 'tv' | 'music' | 'search';
 
@@ -219,6 +219,14 @@ class App {
     if (!s) return;
     if (!this.focused || !this.focused.isConnected || !s.el.contains(this.focused)) {
       this.focus(this.restoreTarget(s));
+      return;
+    }
+    // Left and Right on the nav stay on it, to the nearest item, whatever the page holds and whichever section was
+    // used last: ← from Wi-Fi is always Search. Past either end, nothing.
+    const bar = this.focused.closest('.nav');
+    if (bar && (dir === 'left' || dir === 'right')) {
+      const n = nearest(bar, this.focused, dir);
+      if (n) this.focus(n);
       return;
     }
     if (s.onKey?.(dir, this.focused)) return;

@@ -131,6 +131,8 @@ From [AGENTS.md](../AGENTS.md) and the design:
 ### Nav
 
 - Order: Home, Movies, TV Shows, Music, then a search icon; on the right, Wi-Fi, Inputs and Settings icons.
+- ←/→ on the nav stay on it and move to the next item: ← from Wi-Fi is always Search, never something on the page
+  below, and past either end nothing happens.
 - Landing on a section highlights it; OK switches to it (OK on the current page's section does nothing). Down
   enters the page. Landing back on the nav from a page puts focus on that page's own section.
 - Switching animates: the new page's content slides 90 px in from the side of the tab you switched towards and fades
