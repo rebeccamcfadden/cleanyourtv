@@ -16,12 +16,16 @@ def tvSetting = { String key ->
 def weatherLatitude = tvSetting('latitude')
 def weatherLongitude = tvSetting('longitude')
 def temperatureUnit = tvSetting('temperature_unit').toUpperCase(Locale.ROOT)
-if (!weatherLatitude.isDouble() || Math.abs(weatherLatitude.toDouble()) > 90) {
-    throw new GradleException("${tvPropsFile.name}: latitude must be a number from -90 to 90")
+// Parsed to doubles and written back with Double.toString, never copied verbatim: Java would read "010" as octal.
+def coordinate = { String key, String value, double limit ->
+    def number = value.isDouble() ? value.toDouble() : Double.NaN
+    if (number.isNaN() || number.isInfinite() || Math.abs(number) > limit) {
+        throw new GradleException("${tvPropsFile.name}: ${key} must be a number from -${(int) limit} to ${(int) limit}")
+    }
+    return Double.toString(number)
 }
-if (!weatherLongitude.isDouble() || Math.abs(weatherLongitude.toDouble()) > 180) {
-    throw new GradleException("${tvPropsFile.name}: longitude must be a number from -180 to 180")
-}
+weatherLatitude = coordinate('latitude', weatherLatitude, 90)
+weatherLongitude = coordinate('longitude', weatherLongitude, 180)
 if (!(temperatureUnit in ['C', 'F'])) throw new GradleException("${tvPropsFile.name}: temperature_unit must be C or F")
 
 android {
