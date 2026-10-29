@@ -532,6 +532,7 @@ final class HomePage extends Screen {
         List<String> labels = new ArrayList<>();
         for (MenuPanel.Row r : rows) labels.add(r.label.toString());
         inputRows = rows;
+        inputsBox.setVisibility(rows.isEmpty() ? View.GONE : View.VISIBLE);
         if (labels.equals(shownInputs) && inputsRow.getChildCount() == rows.size()) {
             for (int i = 0; i < rows.size(); i++) describeInput(inputsRow.getChildAt(i), rows.get(i));
             return;
@@ -546,7 +547,6 @@ final class HomePage extends Screen {
             describeInput(t, r);
             addTile(inputsRow, t);
         }
-        inputsBox.setVisibility(rows.isEmpty() ? View.GONE : View.VISIBLE);
         shell.refocus();
     }
 
