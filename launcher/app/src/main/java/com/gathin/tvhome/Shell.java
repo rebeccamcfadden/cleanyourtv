@@ -47,6 +47,8 @@ final class Shell {
     private View okTarget;
     private boolean okLongTried;
     private boolean okHeld;
+    /** The key whose character a screen took as typing, so its key-up is taken too (M6). */
+    private int typedKey = KeyEvent.KEYCODE_UNKNOWN;
 
     Shell(FrameLayout stage, Pages pages) {
         this.stage = stage;
@@ -231,7 +233,7 @@ final class Shell {
 
     // ---- Keys --------------------------------------------------------------------------------------------------
 
-    /** The D-pad, OK and Back. Returns false for every other key. */
+    /** The D-pad, OK, Back, Backspace and typing (M6). Returns false for every other key. */
     boolean dispatch(KeyEvent e) {
         int code = e.getKeyCode();
         boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
@@ -263,6 +265,31 @@ final class Shell {
         }
         if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE || code == KeyEvent.KEYCODE_BUTTON_B) {
             if (!down && !e.isCanceled()) back();
+            return true;
+        }
+        // M6: typing from a hardware keyboard or a remote with keys (app.ts onKeyDown). Backspace deletes on a
+        // screen that has something typed and is Back everywhere else; held down it keeps deleting, but never
+        // turns into Back part-way through.
+        if (code == KeyEvent.KEYCODE_DEL) {
+            if (down) {
+                Screen s = top();
+                boolean used = s != null && s.onKey(Screen.Key.DELETE, focused);
+                if (!used && e.getRepeatCount() == 0) back();
+            }
+            return true;
+        }
+        // A printable character goes to the top screen; only a screen that types (Search) takes it, and then its
+        // key-up is taken too. Characters with Ctrl, Alt or Meta are shortcuts, not typing.
+        if (down) {
+            int u = e.getUnicodeChar();
+            Screen s = top();
+            if (u > 0 && !Character.isISOControl(u) && Character.isBmpCodePoint(u) && !e.isCtrlPressed()
+                    && !e.isAltPressed() && !e.isMetaPressed() && s != null && s.onText((char) u)) {
+                typedKey = code;
+                return true;
+            }
+        } else if (code == typedKey) {
+            typedKey = KeyEvent.KEYCODE_UNKNOWN;
             return true;
         }
         return false;

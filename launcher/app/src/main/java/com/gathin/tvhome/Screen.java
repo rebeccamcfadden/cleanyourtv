@@ -16,7 +16,8 @@ class Screen {
     /** The nav's sections, in the order the page transition reads as left to right. */
     enum Tab { HOME, MOVIES, TV, MUSIC, SEARCH }
 
-    enum Key { UP, DOWN, LEFT, RIGHT, OK, BACK }
+    /** DELETE is a keyboard's Backspace (KEYCODE_DEL): a screen that edits text takes it, otherwise it acts as Back. */
+    enum Key { UP, DOWN, LEFT, RIGHT, OK, BACK, DELETE }
 
     final String label;
     final View view;
@@ -41,6 +42,14 @@ class Screen {
 
     /** Return true to stop the Shell's own handling of the key. */
     boolean onKey(Key key, View focused) {
+        return false;
+    }
+
+    /**
+     * A character typed on a hardware keyboard or a remote with keys (app.ts onText). Return true when used; Search
+     * types it into its bar. Other screens ignore typing.
+     */
+    boolean onText(char c) {
         return false;
     }
 
