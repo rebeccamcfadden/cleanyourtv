@@ -59,10 +59,12 @@ final class PersonPage {
         LinearLayout.LayoutParams tlp = wrap();
         tlp.topMargin = Ui.px(6);
         words.addView(title, tlp);
-        LinearLayout.LayoutParams wlp = wrap();
+        // The column takes the rest of the row: wrapped, it took the name's width and cut the longer eyebrow short.
+        LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         wlp.leftMargin = Ui.px(36);
         hero.addView(words, wlp);
-        LinearLayout.LayoutParams hlp = wrap();
+        LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
         hlp.topMargin = Ui.px(40);
         col.addView(hero, hlp);
 
