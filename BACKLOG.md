@@ -163,8 +163,6 @@ From the old launcher; not in V1 by decision.
 - **Search source:** V1 searches the mock catalogue on the TV (`Fuzzy` and `SearchIndex`, ported from the
   prototype and tested against its results). Wanted: TMDB search behind the same
   results once the real catalogue lands (Real catalogue), with the local matching kept for what is cached offline.
-- **Title and person results:** OK opens them through the Router, which shows a toast until M5 builds the title
-  preview and the person page. The query is saved to Recent searches either way.
 - **Genre suggestions:** OK searches for the genre's name, as the prototype does, and a genre that matches well
   adds its titles to the results. There is no genre page or genre filter chip.
 - **Typing from a keyboard:** a hardware keyboard or a remote with keys types a–z, 0–9, space and `- : ' ’ & . ! ?`
