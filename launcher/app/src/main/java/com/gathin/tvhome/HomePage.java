@@ -357,6 +357,16 @@ final class HomePage extends Screen {
             shell.moveWithin(appRow, Shell.dirOf(key));
             return true;
         }
+        if (sideways && GROUP_INPUTS.equals(group)) {
+            // A tile scrolled out of the clip sits under Shortcuts, where All Apps can be nearer than the next input:
+            // step along the row, and cross to Shortcuts only past its last input.
+            int at = inputsRow.indexOfChild(focused);
+            int next = at + (key == Key.RIGHT ? 1 : -1);
+            if (at >= 0 && next >= 0 && next < inputsRow.getChildCount()) {
+                shell.focus(inputsRow.getChildAt(next));
+                return true;
+            }
+        }
         if (sideways && (GROUP_INPUTS.equals(group) || GROUP_SHORTCUTS.equals(group))) {
             shell.moveWithin(lower, Shell.dirOf(key));
             return true;
