@@ -16,6 +16,8 @@ The launcher stays small on purpose, so pick the smallest home that fits:
 | A whole new launcher, a heavy restyle, a port to another platform | Your own repo, plus one row in [`SHOWCASE.md`](SHOWCASE.md) (section 4) |
 
 Everything merged into `themes/` and `addons/` shows up on [cleanyour.tv/addons](https://cleanyour.tv/addons).
+In this fork the reworked launcher reads neither themes nor module cards; both folders wait for V2
+([docs/rework.md](docs/rework.md)).
 
 ## 1. Add your TV model
 
@@ -59,10 +61,13 @@ override it, and a pull request that names them comes back for a rework.
 ## 2. Improve the launcher
 
 The launcher lives in `launcher/` and is deliberately small: plain Java, AndroidX RecyclerView and
-DynamicAnimation, no Kotlin, no Compose, no network. It targets TVs with 1 GB of RAM. A new switch follows
-[`docs/workflows/launcher-switch.md`](docs/workflows/launcher-switch.md), a new language
-[`docs/workflows/translation.md`](docs/workflows/translation.md), and a speed-up or slow-down is measured with
-[`docs/workflows/perf-ab.md`](docs/workflows/perf-ab.md). In every change:
+DynamicAnimation, no Kotlin, no Compose, no network. It targets TVs with 1 GB of RAM. A speed-up or slow-down
+is measured with [`docs/workflows/perf-ab.md`](docs/workflows/perf-ab.md). The switch, translation, theme and
+add-on workflows were retired with the old launcher in this fork; V2 may take them back from upstream
+([launcher-switch.md](https://github.com/Gathin23/cleanyourtv/blob/main/docs/workflows/launcher-switch.md),
+[translation.md](https://github.com/Gathin23/cleanyourtv/blob/main/docs/workflows/translation.md),
+[theme.md](https://github.com/Gathin23/cleanyourtv/blob/main/docs/workflows/theme.md),
+[addon.md](https://github.com/Gathin23/cleanyourtv/blob/main/docs/workflows/addon.md)). In every change:
 
 - No blur, no video backgrounds, no polling, no background services.
 - Anything that depends on a specific TV goes in `app/src/main/res/values/config.xml`, not in code.
