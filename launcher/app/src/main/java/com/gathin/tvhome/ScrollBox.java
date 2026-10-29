@@ -100,6 +100,9 @@ final class ScrollBox {
 
         @Override
         public void reveal(View d) {
+            // A newer reveal always wins, even when its target is already in view: a scroll still running for the
+            // previous focus could carry this one off screen.
+            stop();
             float[] r = Focus.rectIn(d, this);
             int dy = delta(r[1], r[3], getHeight(), Ui.px(pad));
             if (dy == 0) return;
@@ -108,11 +111,15 @@ final class ScrollBox {
             int to = Math.max(0, Math.min(max, getScrollY() + dy));
             if (to == getScrollY()) return;
             if (Ui.ms(Ui.SLOW_MS) == 0) {
-                if (anim != null) anim.cancel();
                 scrollTo(getScrollX(), to);
                 return;
             }
-            anim = scroll(anim, getScrollY(), to, a -> scrollTo(getScrollX(), (Integer) a.getAnimatedValue()));
+            anim = scroll(null, getScrollY(), to, a -> scrollTo(getScrollX(), (Integer) a.getAnimatedValue()));
+        }
+
+        private void stop() {
+            if (anim != null) anim.cancel();
+            anim = null;
         }
 
         /** Android's own scroll-to-focus is off: Shell reveals the focused view. */
@@ -135,6 +142,7 @@ final class ScrollBox {
 
         @Override
         public void reveal(View d) {
+            stop();
             float[] r = Focus.rectIn(d, this);
             int dx = delta(r[0], r[2], getWidth(), Ui.px(pad));
             if (dx == 0) return;
@@ -143,11 +151,15 @@ final class ScrollBox {
             int to = Math.max(0, Math.min(max, getScrollX() + dx));
             if (to == getScrollX()) return;
             if (Ui.ms(Ui.SLOW_MS) == 0) {
-                if (anim != null) anim.cancel();
                 scrollTo(to, getScrollY());
                 return;
             }
-            anim = scroll(anim, getScrollX(), to, a -> scrollTo((Integer) a.getAnimatedValue(), getScrollY()));
+            anim = scroll(null, getScrollX(), to, a -> scrollTo((Integer) a.getAnimatedValue(), getScrollY()));
+        }
+
+        private void stop() {
+            if (anim != null) anim.cancel();
+            anim = null;
         }
 
         @Override
