@@ -633,7 +633,11 @@ final class TitlePreview extends Screen {
 
         card.content().addView(col, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        card.setContentDescription(e.name);
+        // Everything the card shows, so TalkBack can tell watched episodes and the next one apart.
+        StringBuilder said = new StringBuilder().append(number.getText()).append(", ").append(e.name);
+        if (next) said.append(", ").append(ctx.getString(R.string.preview_up_next));
+        said.append(", ").append(meta.getText());
+        card.setContentDescription(said);
         return ringCard(card, G_EPISODES, "ep-" + season + "-" + e.n, PreviewRules.isDefaultEpisode(t, season, e.n),
                 v -> watch());
     }
@@ -676,7 +680,11 @@ final class TitlePreview extends Screen {
         card.content().addView(col, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         card.setLayoutParams(new ViewGroup.LayoutParams(Ui.px(376), ViewGroup.LayoutParams.WRAP_CONTENT));
-        card.setContentDescription(name.getText());
+        StringBuilder said = new StringBuilder(name.getText());
+        if (badge != null) said.append(", ").append(badge);
+        said.append(", ").append(line.getText());
+        if (s.quality != null && !s.quality.isEmpty()) said.append(", ").append(s.quality);
+        card.setContentDescription(said);
         return ringCard(card, G_WHERE, "svc-" + s.service.id, isDefault, v -> openService(s));
     }
 
