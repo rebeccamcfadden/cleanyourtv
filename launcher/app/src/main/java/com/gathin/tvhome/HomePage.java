@@ -88,6 +88,7 @@ final class HomePage extends Screen {
     private List<String> full = new ArrayList<>();
     private List<String> shownApps = new ArrayList<>();
     private List<String> shownInputs = new ArrayList<>();
+    private List<MenuPanel.Row> inputRows = new ArrayList<>();
     private AppTile moving;
     private boolean scrolled;
     private boolean visible;
@@ -521,26 +522,44 @@ final class HomePage extends Screen {
 
     // ---- Inputs ------------------------------------------------------------------------------------------------
 
-    /** Live TV first, then the HDMI ports and AV, by the Inputs dropdown's rules; no section when there are none. */
+    /**
+     * Live TV first, then the HDMI ports and AV, by the Inputs dropdown's rules; no section when there are none. The
+     * tiles are rebuilt only when the labels change; otherwise each keeps its place and focus and takes the new row's
+     * action and state (a CEC device back under the same name with a new input id, or one that connected).
+     */
     private void refreshInputs() {
-        List<MenuPanel.Row> rows = activity.inputs().rows(true);
+        List<MenuPanel.Row> rows = activity.inputs().homeRows();
         List<String> labels = new ArrayList<>();
         for (MenuPanel.Row r : rows) labels.add(r.label.toString());
-        if (labels.equals(shownInputs) && inputsRow.getChildCount() == rows.size()) return;
+        inputRows = rows;
+        if (labels.equals(shownInputs) && inputsRow.getChildCount() == rows.size()) {
+            for (int i = 0; i < rows.size(); i++) describeInput(inputsRow.getChildAt(i), rows.get(i));
+            return;
+        }
         shownInputs = labels;
         inputsRow.removeAllViews();
         inputsRow.setTranslationX(0f);
         for (int i = 0; i < rows.size(); i++) {
             MenuPanel.Row r = rows.get(i);
             View t = tile(activity, r.label, R.drawable.ic_ui_tv, TILE_W, GROUP_INPUTS, "in-" + i + "-" + r.label,
-                    i == 0, v -> {
-                        if (r.action != null) r.action.run();
-                    });
-            if (r.status != null) t.setContentDescription(r.label + ", " + r.status);
+                    i == 0, this::openInput);
+            describeInput(t, r);
             addTile(inputsRow, t);
         }
         inputsBox.setVisibility(rows.isEmpty() ? View.GONE : View.VISIBLE);
         shell.refocus();
+    }
+
+    /** OK on an input tile runs the current row at its place, so a rebound row is never stale. */
+    private void openInput(View tile) {
+        int at = inputsRow.indexOfChild(tile);
+        if (at < 0 || at >= inputRows.size()) return;
+        Runnable action = inputRows.get(at).action;
+        if (action != null) action.run();
+    }
+
+    private static void describeInput(View tile, MenuPanel.Row r) {
+        tile.setContentDescription(r.status != null ? r.label + ", " + r.status : r.label);
     }
 
     // ---- Tiles -------------------------------------------------------------------------------------------------

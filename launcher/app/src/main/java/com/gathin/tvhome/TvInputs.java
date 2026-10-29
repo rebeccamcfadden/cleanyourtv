@@ -93,6 +93,17 @@ final class TvInputs {
     }
 
     /**
+     * Home's Inputs row: the dropdown's rows with Live TV first, or, where the source panel is the whole menu
+     * (panelIsTheMenu), one row that opens it rather than ports the TV reports but cannot switch to.
+     */
+    List<MenuPanel.Row> homeRows() {
+        if (!panelIsTheMenu()) return rows(true);
+        List<MenuPanel.Row> rows = new ArrayList<>();
+        rows.add(new MenuPanel.Row(activity.getString(R.string.inputs), R.drawable.ic_ui_input, this::openSourcePanel));
+        return rows;
+    }
+
+    /**
      * The same rows by the same rules; liveTvFirst puts Live TV ahead of the ports, as Home's Inputs row has it
      * (design_preview/src/screens/home.ts), with no divider.
      */
