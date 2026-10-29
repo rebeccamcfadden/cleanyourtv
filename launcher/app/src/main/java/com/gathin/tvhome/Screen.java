@@ -16,8 +16,8 @@ class Screen {
     /** The nav's sections, in the order the page transition reads as left to right. */
     enum Tab { HOME, MOVIES, TV, MUSIC, SEARCH }
 
-    /** DELETE is a keyboard's Backspace (KEYCODE_DEL): a screen that edits text takes it, otherwise it acts as Back. */
-    enum Key { UP, DOWN, LEFT, RIGHT, OK, BACK, DELETE }
+    /** The remote's keys a screen sees. A keyboard's Backspace (KEYCODE_DEL) arrives as BACK, on every screen. */
+    enum Key { UP, DOWN, LEFT, RIGHT, OK, BACK }
 
     final String label;
     final View view;
@@ -60,6 +60,13 @@ class Screen {
 
     /** Each time the screen becomes the top of the stack. */
     void onShow() {
+    }
+
+    /**
+     * When a top-level page stops being the current tab: another tab, Back or Backspace to Home, or the remote's
+     * Home. Not called for a popup or page pushed over it. Search forgets its query here (app.ts goTab).
+     */
+    void onLeave() {
     }
 
     void onFocus(View v) {

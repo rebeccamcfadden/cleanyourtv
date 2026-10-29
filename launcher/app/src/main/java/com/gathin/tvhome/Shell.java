@@ -49,7 +49,6 @@ final class Shell {
     private boolean okHeld;
     /** The key whose character a screen took as typing, so its key-up is taken too (M6). */
     private int typedKey = KeyEvent.KEYCODE_UNKNOWN;
-    private boolean delWentBack;
 
     Shell(FrameLayout stage, Pages pages) {
         this.stage = stage;
@@ -94,6 +93,8 @@ final class Shell {
     void goTab(Screen.Tab id, boolean focusNav) {
         Screen s = tab(id);
         Screen prev = stack.size() == 1 ? stack.get(0) : null;
+        Screen root = stack.isEmpty() ? null : stack.get(0);
+        if (root != null && root != s) root.onLeave();
         endTransition();
         boolean animate = prev != null && prev.tab != null && prev != s && !Ui.reducedMotion();
         if (animate) leaving = prev;
@@ -268,25 +269,13 @@ final class Shell {
             if (!down && !e.isCanceled()) back();
             return true;
         }
-        // M6: typing from a hardware keyboard or a remote with keys (app.ts onKeyDown). Backspace deletes on a
-        // screen that has something typed and is Back everywhere else; held down it keeps deleting, but never
-        // turns into Back part-way through, and a press that went Back doesn't delete on the screen underneath.
+        // A keyboard's Backspace is Back on every screen (app.ts onKeyDown), Search included: only its on-screen
+        // delete key deletes. One press is one Back; its repeats are ignored until the key is let go.
         if (code == KeyEvent.KEYCODE_DEL) {
-            if (down) {
-                if (e.getRepeatCount() == 0) delWentBack = false;
-                if (!delWentBack) {
-                    Screen s = top();
-                    boolean used = s != null && s.onKey(Screen.Key.DELETE, focused);
-                    if (!used && e.getRepeatCount() == 0) {
-                        delWentBack = true;
-                        back();
-                    }
-                }
-            } else {
-                delWentBack = false;
-            }
+            if (down && e.getRepeatCount() == 0) back();
             return true;
         }
+        // M6: typing from a hardware keyboard or a remote with keys (app.ts onKeyDown).
         // A printable character goes to the top screen; only a screen that types (Search) takes it, and then its
         // key-up is taken too. Characters with Ctrl, Alt or Meta are shortcuts, not typing.
         if (down) {

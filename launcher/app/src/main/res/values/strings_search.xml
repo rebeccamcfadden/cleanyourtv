@@ -40,9 +40,4 @@
 
     <string name="search_no_matches">No matches for “%1$s”</string>
     <string name="search_no_matches_tip">Try fewer letters, or search for a person or a genre.</string>
-
-    <string name="search_guide_mock">Illustrative titles, services and prices</string>
-    <string name="search_guide_empty">Type or use the keyboard · ↑ recent searches</string>
-    <string name="search_guide_typing">↑ suggestions · → results</string>
-    <string name="search_guide_results">OK for title details · OK on the search bar to edit</string>
 </resources>

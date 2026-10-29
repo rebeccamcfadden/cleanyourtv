@@ -23,9 +23,11 @@ import java.util.Locale;
  * Search (design_preview/src/screens/search.ts, the Search styles in screens.css; README, Search). One page that
  * grows: the bar under the nav, a 440 px panel with Recent searches or Suggestions over the 6×6 keyboard, and right
  * of it the empty state's rows, the results preview while typing, or No matches. → from the keyboard's right edge
- * slides the panel away and widens the same grid into the full results; OK on the bar, Back, or ← from the first
- * column bring the keyboard back with the query kept. Typing on a hardware keyboard or a remote with keys types
- * into the bar (Shell routes the characters to {@link #onText}). Matching is {@link SearchIndex} over the catalogue.
+ * slides the panel away and widens the same grid into the full results; OK on the bar, Back (or Backspace), or ← from
+ * the first column bring the keyboard back with the query kept. With the keyboard showing, Back and Backspace go
+ * Home; only the on-screen delete key deletes. Leaving for another tab forgets the search. Typing on a hardware
+ * keyboard or a remote with keys types into the bar (Shell routes the characters to {@link #onText}). Matching is
+ * {@link SearchIndex} over the catalogue.
  */
 final class SearchPage extends Screen {
 
@@ -36,9 +38,14 @@ final class SearchPage extends Screen {
     private static final int PANEL_W = 440;
     /** The panel slides this far left as it fades out on the full results. */
     private static final int PANEL_SHIFT = 560;
-    /** The results viewport's left edge beside the panel; on the full results it is the safe margin. */
+    /** The results viewport's left edge beside the panel. */
     private static final int VIEW_LEFT = 584;
     private static final int VIEW_PAD = 8;
+    /**
+     * On the full results the viewport's left edge sits a padding short of the safe margin, so the six-column grid
+     * starts at 96 px, in line with the bar, and ends 98 px short of the right edge: title-safe on both sides.
+     */
+    private static final int VIEW_LEFT_EXPANDED = Ui.SAFE_X - VIEW_PAD;
     private static final int KEY = 56;
     private static final int KEY_GAP = 8;
     private static final int CARD_W = 271;
@@ -80,13 +87,13 @@ final class SearchPage extends Screen {
     private final FrameLayout viewport;
     private final ViewGroup scroll;
     private final LinearLayout body;
-    private View guide;
-    private String guideRight;
 
     private String query = "";
     private boolean expanded;
     /** Whether the panel and viewport are drawn expanded; render() animates when it differs from expanded. */
     private boolean shownExpanded;
+    /** Set when Search was left for another tab: the next render puts the panel back without the slide. */
+    private boolean snap;
     private SearchIndex.Filter filter = SearchIndex.Filter.ALL;
     private SearchIndex.Results results;
     private boolean hasMatches;
@@ -210,13 +217,30 @@ final class SearchPage extends Screen {
 
     @Override
     View defaultFocus() {
-        return keyA;
+        return expanded ? firstResult() : keyA;
     }
 
     /** Coming back from a title or another tab: Recent searches, My list and the offers may have changed. */
     @Override
     void onShow() {
+        if (snap) scroll.scrollTo(0, 0);
         render();
+    }
+
+    /**
+     * Leaving for another tab, or Home, forgets the search: coming back shows the empty page with focus as on the
+     * first visit. Opening a title or a person pushes over Search and keeps it. Drawn on the next onShow, so the
+     * page sliding out keeps its look.
+     */
+    @Override
+    void onLeave() {
+        query = "";
+        filter = SearchIndex.Filter.ALL;
+        expanded = false;
+        snap = true;
+        memory.clear();
+        lastFocus = null;
+        lastFocusKey = null;
     }
 
     @Override
@@ -232,10 +256,6 @@ final class SearchPage extends Screen {
     @Override
     boolean onKey(Key key, View focused) {
         switch (key) {
-            case DELETE:
-                if (query.isEmpty()) return false;
-                setQuery(SearchQuery.delete(query));
-                return true;
             case BACK:
                 if (!expanded) return false;
                 collapse();
@@ -268,6 +288,11 @@ final class SearchPage extends Screen {
         expanded = true;
         render(false);
         scroll.scrollTo(0, 0);
+        shell.focus(firstResult());
+    }
+
+    /** The first card of the full results, else the first thing in them (a filter chip), else the bar. */
+    private View firstResult() {
         View first = null;
         for (View v : Focus.all(body)) {
             if (GROUP_GRID.equals(Focus.group(v))) {
@@ -279,7 +304,7 @@ final class SearchPage extends Screen {
             List<View> all = Focus.all(body);
             first = all.isEmpty() ? null : all.get(0);
         }
-        shell.focus(first != null ? first : bar);
+        return first != null ? first : bar;
     }
 
     private void collapse() {
@@ -396,40 +421,36 @@ final class SearchPage extends Screen {
         setInert(viewport, !query.isEmpty() && hasMatches && !expanded);
         slide();
 
-        int right = expanded ? R.string.search_guide_results
-                : query.isEmpty() ? R.string.search_guide_empty : R.string.search_guide_typing;
-        String rightText = ctx.getString(right);
-        if (!rightText.equals(guideRight)) {
-            if (guide != null) content.removeView(guide);
-            guide = Kit.guide(ctx, ctx.getString(R.string.search_guide_mock), rightText);
-            content.addView(guide);
-            guideRight = rightText;
-        }
         if (!refocus || shell.top() != this) return;
         View f = shell.focused();
-        // A rebuilt list or grid takes its focused item with it; an item that just went inert keeps its view, so
-        // move off it too (the bar, after Backspace emptied the query on the full results).
-        if (!expanded && f != null && Focus.isInside(view, f) && Boolean.FALSE.equals(f.getTag(R.id.ui_focusable))) {
-            shell.focus(keyA);
+        // A rebuilt list or grid takes its focused item with it, and an item that just went inert keeps its view;
+        // either way focus moves on, by key or to defaultFocus(), which on the full results is a result or the bar
+        // and never a key of the hidden keyboard.
+        if (f != null && Focus.isInside(view, f) && !Focus.isFocusable(f)) {
+            shell.focus(defaultFocus());
         } else {
             shell.refocus();
         }
     }
 
     /**
-     * The full results: the panel slides 560 px left as it fades, and the viewport's left edge moves to the safe
+     * The full results: the panel slides 560 px left as it fades, and the viewport's left edge moves out to the safe
      * margin (screens.css .search.is-expanded). The viewport is moved once and its content slid with a translation,
      * so the grid is not laid out again on every frame.
      */
     private void slide() {
-        if (shownExpanded == expanded) return;
+        if (shownExpanded == expanded) {
+            snap = false;
+            return;
+        }
         shownExpanded = expanded;
-        long ms = Ui.ms(Ui.SLOW_MS);
+        long ms = snap ? 0 : Ui.ms(Ui.SLOW_MS);
+        snap = false;
         panel.animate().cancel();
         scroll.animate().cancel();
         float contentLeft = Ui.px(viewLeft) + scroll.getTranslationX();
         if (expanded) {
-            setViewLeft(Ui.SAFE_X);
+            setViewLeft(VIEW_LEFT_EXPANDED);
             if (ms == 0) {
                 panel.setTranslationX(-Ui.px(PANEL_SHIFT));
                 panel.setAlpha(0f);
@@ -437,7 +458,7 @@ final class SearchPage extends Screen {
                 return;
             }
             panel.animate().translationX(-Ui.px(PANEL_SHIFT)).alpha(0f).setDuration(ms).setInterpolator(Ui.EASE).start();
-            scroll.setTranslationX(contentLeft - Ui.px(Ui.SAFE_X));
+            scroll.setTranslationX(contentLeft - Ui.px(VIEW_LEFT_EXPANDED));
             scroll.animate().translationX(0f).setDuration(ms).setInterpolator(Ui.EASE).start();
         } else {
             if (ms == 0) {
