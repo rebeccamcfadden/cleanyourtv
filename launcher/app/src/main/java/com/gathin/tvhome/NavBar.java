@@ -88,7 +88,7 @@ final class NavBar {
         bar.addView(device, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        host.navModel().listen(model -> {
+        NavModel.Listener listener = model -> {
             wifi.setVisibility(model.networkShown ? View.VISIBLE : View.GONE);
             wifi.setImageResource(model.networkIcon);
             inputs.setVisibility(model.inputsShown ? View.VISIBLE : View.GONE);
@@ -98,6 +98,25 @@ final class NavBar {
                 ((LinearLayout.LayoutParams) icons[i].getLayoutParams()).leftMargin = shown++ == 0 ? 0 : Ui.px(8);
             }
             device.requestLayout();
+        };
+        // Listen only while on screen: the model lives as long as the activity, and pages pushed and popped (Pick
+        // for me, the person page) would otherwise stay reachable through it forever. Attaching again catches up.
+        host.navModel().listen(listener);
+        bar.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            private boolean listening = true;
+
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                if (listening) return;
+                listening = true;
+                host.navModel().listen(listener);
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                listening = false;
+                host.navModel().unlisten(listener);
+            }
         });
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.px(72),

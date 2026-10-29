@@ -17,9 +17,15 @@ final class NavModel {
     int networkIcon = R.drawable.ic_ui_wifi;
     private final List<Listener> listeners = new ArrayList<>();
 
+    /** Adds a listener and tells it the current state at once. */
     void listen(Listener l) {
         listeners.add(l);
         l.onNavChanged(this);
+    }
+
+    /** A nav that left the screen stops listening, so a page pushed and popped can be collected. */
+    void unlisten(Listener l) {
+        listeners.remove(l);
     }
 
     void set(boolean inputs, boolean network, int icon) {
@@ -27,12 +33,17 @@ final class NavModel {
         inputsShown = inputs;
         networkShown = network;
         networkIcon = icon;
-        for (Listener l : listeners) l.onNavChanged(this);
+        notifyListeners();
     }
 
     /** An input was added, removed or renamed: listeners that list the inputs (Home's row) refresh, even when
      *  the nav itself shows the same. */
     void inputsChanged() {
-        for (Listener l : listeners) l.onNavChanged(this);
+        notifyListeners();
+    }
+
+    /** Over a copy: a listener may stop listening while it is told (its view leaving the screen). */
+    private void notifyListeners() {
+        for (Listener l : new ArrayList<>(listeners)) l.onNavChanged(this);
     }
 }
