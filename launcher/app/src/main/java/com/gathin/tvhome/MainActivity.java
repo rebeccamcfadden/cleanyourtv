@@ -44,6 +44,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final NavModel nav = new NavModel();
     private Shell shell;
+    private Config config;
     private TvInputs inputs;
     private FrameLayout stage;
     private ImageView backdrop;
@@ -126,6 +127,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
         super.onCreate(savedInstanceState);
         // config.xml, overlaid by config.json from a pushed theme or example (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        config = cfg;
         Ui.init(this, cfg.reducedMotion());
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
         // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
@@ -180,6 +182,16 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
     @Override
     public NavModel navModel() {
         return nav;
+    }
+
+    /** The configuration Home was built with, for the pages (Home's app row reads dock_apps and hidden_apps). */
+    Config config() {
+        return config;
+    }
+
+    /** The TV's inputs, shared by the Inputs dropdown and Home's Inputs row. */
+    TvInputs inputs() {
+        return inputs;
     }
 
     // ---- The top bar --------------------------------------------------------------------------------------------

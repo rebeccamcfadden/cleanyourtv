@@ -89,6 +89,14 @@ final class TvInputs {
 
     /** The Inputs dropdown's rows: HDMI ports and CEC devices with their state, then AV, then Live TV. */
     List<MenuPanel.Row> rows() {
+        return rows(false);
+    }
+
+    /**
+     * The same rows by the same rules; liveTvFirst puts Live TV ahead of the ports, as Home's Inputs row has it
+     * (design_preview/src/screens/home.ts), with no divider.
+     */
+    List<MenuPanel.Row> rows(boolean liveTvFirst) {
         List<MenuPanel.Row> rows = new ArrayList<>();
         TvInputManager tim = manager();
         String tunerId = null;
@@ -202,8 +210,12 @@ final class TvInputs {
             Intent open = liveTv;
             MenuPanel.Row row = new MenuPanel.Row(activity.getString(R.string.live_tv), R.drawable.ic_ui_live_tv,
                     () -> start(open));
-            if (!rows.isEmpty()) row.divider();
-            rows.add(row);
+            if (liveTvFirst) {
+                rows.add(0, row);
+            } else {
+                if (!rows.isEmpty()) row.divider();
+                rows.add(row);
+            }
         }
         return rows;
     }

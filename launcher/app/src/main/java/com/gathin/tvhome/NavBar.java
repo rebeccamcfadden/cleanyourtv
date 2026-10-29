@@ -44,6 +44,8 @@ final class NavBar {
         sections.setOrientation(LinearLayout.HORIZONTAL);
         int pad = Ui.px(6);
         sections.setPadding(pad, pad, pad, pad);
+        // The focused section scales up 5%; clipped to the padding, its outer side was cut flat.
+        sections.setClipToPadding(false);
         sections.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, 1));
         int[] labels = {R.string.nav_home, R.string.nav_movies, R.string.nav_tv, R.string.nav_music};
         Screen.Tab[] ids = {Screen.Tab.HOME, Screen.Tab.MOVIES, Screen.Tab.TV, Screen.Tab.MUSIC};
@@ -71,6 +73,7 @@ final class NavBar {
         LinearLayout device = new LinearLayout(ctx);
         device.setOrientation(LinearLayout.HORIZONTAL);
         device.setPadding(pad, pad, pad, pad);
+        device.setClipToPadding(false);
         device.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, 1));
         ImageView wifi = deviceIcon(ctx, R.drawable.ic_ui_wifi, R.string.wifi, KEY_WIFI, host::openNetwork);
         ImageView inputs = deviceIcon(ctx, R.drawable.ic_ui_input, R.string.inputs, KEY_INPUTS, host::openInputs);
