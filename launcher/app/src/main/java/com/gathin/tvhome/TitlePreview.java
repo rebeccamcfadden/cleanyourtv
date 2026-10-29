@@ -10,6 +10,7 @@ import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -265,6 +266,15 @@ final class TitlePreview extends Screen {
                         paint();
                         router.toast(ctx.getString(now ? toastOn : toastOff));
                     });
+            // Favorite keeps one label in both states, so the on state is told to accessibility services as checked.
+            button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+                @Override
+                public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(host, info);
+                    info.setCheckable(true);
+                    info.setChecked(get.test(t.id));
+                }
+            });
         }
 
         void paint() {
