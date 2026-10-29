@@ -99,8 +99,8 @@ before any scripted check.
 |---|---|
 | Home | Clock follows the TV's 12/24-hour setting; weather for the `tv.properties` location in °C; the app row shows installed apps; hold-OK menu moves and removes a tile; Back and Backspace put a moved tile down |
 | Home, scrolled | Inputs: Live TV and each HDMI open their source, with CEC devices named; Shortcuts open All Apps, Launcher settings and TV Settings; hourly weather |
-| Keys | Home from inside an app returns to Home; Back on Home stays on Home; the Settings key (see Open questions); the Input key, if a helper is on |
-| Nav and dropdowns | Wi-Fi, Inputs and quick settings open on OK and close on a D-pad move past their edge; Settings icon opens the TV's settings |
+| Keys | Home from inside an app returns to Home; Back on Home stays on Home; the Input key, if a helper is on; the Settings key opens the quick-settings dropdown only where it reaches the launcher (`settings_key_panel`). On the TCL it may still go to TCL's handler: note what it does (Open questions) rather than fail it |
+| Nav and dropdowns | The Wi-Fi and Inputs dropdowns open on OK and close on a D-pad move past their edge; the Settings icon opens the TV's settings, with no dropdown |
 | Movies and TV Shows | Chips, the Filters drawer, both empty states; the grid scrolls smoothly with artwork |
 | Title preview | Every tab; Watch opens an installed service (Netflix, Prime Video, YouTube); the rent/buy dialog opens its app; Trailer opens YouTube; My list and Seen update the library |
 | Search | On-screen keyboard; typo tolerance; a Bluetooth or remote keyboard types and Backspace deletes, if one is at hand |
@@ -111,10 +111,10 @@ before any scripted check.
 
 - `tools/bench.py --keys 36 --series 3` with `TV_HOST` set, against the M1 baseline (cold start 2.8 s, 11 MB PSS)
   and the old launcher's 2.7 s. Also PSS after visiting every page, with artwork loaded.
-- `tools/tv.py --screenshot` of each screen, to replace the prototype images in README.md. Blur or crop names,
+- `tools/tv.py --screenshot shots/<screen>.png` for each screen, a different file each time (for example `shots/home.png`, `shots/movies.png`), to replace the prototype images in README.md. Blur or crop names,
   cities and Wi-Fi names first.
 
-**After:** keep or close ADB as the project lead says, and record the results and any new decisions here.
+**After:** close ADB as AGENTS.md requires: USB and network debugging off, authorisations revoked, a reboot, then `tools/adb-closed.py <tv ip>` must report the port closed. Record the results and any new decisions here.
 
 ## Milestones
 
