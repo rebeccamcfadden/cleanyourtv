@@ -161,9 +161,10 @@ final class LibraryPage extends Screen {
      * Two fixes to the prototype's moves for a page that scrolls under the nav, so focus never lands on something
      * hidden (README, Requirements: focus is always visible):
      * <ul>
-     * <li>Up from the grid while the page is scrolled stays in the page, so the chips and the header that scrolled
-     * under the nav are reached (and revealed) before the nav is; otherwise the nav is nearer than the hidden chips
-     * and Up from the grid's top row skips them.</li>
+     * <li>Up from anything in the page while it is scrolled stays in the page, so the chips and the header that
+     * scrolled under the nav are reached (and revealed) one step at a time before the nav is; otherwise the nav is
+     * nearer than the hidden items, and Up from the grid's top row or the chips skipped them. Once the page is back
+     * at the top, or nothing in it is above, Up goes to the nav as usual.</li>
      * <li>From the nav, items of the page scrolled out of sight (under the nav) are not candidates; otherwise Right
      * from Search can land on a Pick for me hidden under the nav, and Up from the nav goes into the page.</li>
      * </ul>
@@ -173,7 +174,7 @@ final class LibraryPage extends Screen {
         SpatialNav.Dir dir = Shell.dirOf(key);
         if (dir == null || focused == null) return false;
         if (Focus.isInside(box, focused)) {
-            if (dir != SpatialNav.Dir.UP || box.getScrollY() <= 0 || !Focus.isInside(grid, focused)) return false;
+            if (dir != SpatialNav.Dir.UP || box.getScrollY() <= 0) return false;
             if (!shell.moveWithin(box, dir)) return false;
         } else {
             View next = nextFromOutside(focused, dir);
