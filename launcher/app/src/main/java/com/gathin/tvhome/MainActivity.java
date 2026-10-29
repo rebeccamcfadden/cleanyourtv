@@ -66,6 +66,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
     private final Runnable refreshInputs = this::refreshInputs;
     /** What the nav last showed, so each kind of event re-reads only its own half. */
     private int networkIcon = R.drawable.ic_ui_wifi;
+    private boolean internet;
     private boolean anyInputs;
     /** The default network's capabilities as last seen: only a change the icon shows refreshes it. */
     private boolean lastValidated, lastWifi, lastEthernet;
@@ -254,15 +255,22 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
     /** Whether there are inputs to list and which network icon to show, on every page's nav. */
     private void refreshNav() {
         if (isDestroyed()) return;
-        networkIcon = NetworkState.read(this).icon();
+        readNetwork();
         anyInputs = showInputs && inputs.any();
         applyNav();
     }
 
     private void refreshNetwork() {
         if (isDestroyed()) return;
-        networkIcon = NetworkState.read(this).icon();
+        readNetwork();
         applyNav();
+    }
+
+    /** The icon, and whether the internet is reachable, which Home's weather needs even when the icon is the same. */
+    private void readNetwork() {
+        NetworkState s = NetworkState.read(this);
+        networkIcon = s.icon();
+        internet = s.validated;
     }
 
     private void refreshInputs() {
@@ -274,7 +282,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
     }
 
     private void applyNav() {
-        nav.set(anyInputs, showNetwork, networkIcon);
+        nav.set(anyInputs, showNetwork, networkIcon, internet);
     }
 
     void start(Intent i) {

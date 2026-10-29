@@ -106,6 +106,15 @@ final class WeatherStore {
         if (loaded) fetchIfStale();
     }
 
+    /**
+     * Whether a change on the nav means the weather should be fetched again now: the internet came back (a network
+     * validated, which the icon does not show) or the network changed. Not on the first state a listener is told.
+     */
+    static boolean networkBack(int lastIcon, int icon, boolean hadInternet, boolean internet) {
+        if (lastIcon == 0) return false;
+        return (internet && !hadInternet) || icon != lastIcon;
+    }
+
     private void fetchIfStale() {
         long now = System.currentTimeMillis();
         boolean fresh = weather != null && now >= fetchedAt && now - fetchedAt < MAX_AGE_MS;

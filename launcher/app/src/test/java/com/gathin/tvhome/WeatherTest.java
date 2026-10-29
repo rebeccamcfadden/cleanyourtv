@@ -196,4 +196,18 @@ public class WeatherTest {
         assertTrue(WeatherStore.query(40.7, -74.0, true).contains("longitude=-74.0000"));
         assertTrue(WeatherStore.query(40.7, -74.0, true).endsWith("&temperature_unit=fahrenheit"));
     }
+
+    @Test
+    public void theWeatherIsTriedAgainWhenTheInternetComesBack() {
+        int wifi = 1, ethernet = 2, off = 3;
+        // The first state a listener is told is not a change.
+        assertFalse(WeatherStore.networkBack(0, wifi, false, true));
+        // The same Wi-Fi network, validated again (a router whose uplink came back): the icon does not change.
+        assertTrue(WeatherStore.networkBack(wifi, wifi, false, true));
+        assertFalse(WeatherStore.networkBack(wifi, wifi, true, true));
+        assertFalse(WeatherStore.networkBack(wifi, wifi, true, false));
+        // Another network, or back from offline.
+        assertTrue(WeatherStore.networkBack(wifi, ethernet, true, true));
+        assertTrue(WeatherStore.networkBack(off, wifi, false, false));
+    }
 }

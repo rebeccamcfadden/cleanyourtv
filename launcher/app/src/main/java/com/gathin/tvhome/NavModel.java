@@ -15,6 +15,9 @@ final class NavModel {
     boolean inputsShown;
     boolean networkShown = true;
     int networkIcon = R.drawable.ic_ui_wifi;
+    /** Android reached the internet (a validated network). The icon stays the same when only this changes, but Home
+     *  fetches the weather again when it comes back. */
+    boolean internet;
     private final List<Listener> listeners = new ArrayList<>();
 
     /** Adds a listener and tells it the current state at once. */
@@ -28,11 +31,12 @@ final class NavModel {
         listeners.remove(l);
     }
 
-    void set(boolean inputs, boolean network, int icon) {
-        if (inputs == inputsShown && network == networkShown && icon == networkIcon) return;
+    void set(boolean inputs, boolean network, int icon, boolean online) {
+        if (inputs == inputsShown && network == networkShown && icon == networkIcon && online == internet) return;
         inputsShown = inputs;
         networkShown = network;
         networkIcon = icon;
+        internet = online;
         notifyListeners();
     }
 

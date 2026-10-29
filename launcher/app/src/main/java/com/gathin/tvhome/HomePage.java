@@ -92,6 +92,9 @@ final class HomePage extends Screen {
     private boolean scrolled;
     private boolean visible;
     private int lastNetworkIcon;
+    private boolean hadInternet;
+    /** The network came back: fetch the weather now rather than after WeatherStore's pause between tries. */
+    private boolean retryWeather;
 
     private final BroadcastReceiver clockReceiver = new BroadcastReceiver() {
         @Override
@@ -276,13 +279,20 @@ final class HomePage extends Screen {
         content.addView(weatherFrame, wlp);
 
         root.page = this;
-        // The nav's model tells Home when the network changes (back online: fetch the weather at once) and when an
-        // input is added, removed or renamed (MainActivity calls NavModel.inputsChanged).
+        // The nav's model tells Home when the network changes (back online, or the internet reachable again on the
+        // same network: fetch the weather at once) and when an input is added, removed or renamed (MainActivity
+        // calls NavModel.inputsChanged). A change while Home is hidden is kept for when it shows again.
         host.navModel().listen(model -> {
-            boolean changed = lastNetworkIcon != 0 && model.networkIcon != lastNetworkIcon;
+            if (WeatherStore.networkBack(lastNetworkIcon, model.networkIcon, hadInternet, model.internet)) {
+                retryWeather = true;
+            }
             lastNetworkIcon = model.networkIcon;
+            hadInternet = model.internet;
             if (!visible) return;
-            if (changed) weatherStore.retry();
+            if (retryWeather) {
+                retryWeather = false;
+                weatherStore.retry();
+            }
             refreshInputs();
         });
         refreshApps(true);
@@ -751,6 +761,10 @@ final class HomePage extends Screen {
             f.addAction(Intent.ACTION_TIMEZONE_CHANGED);
             activity.registerReceiver(clockReceiver, f);
             tick();
+            if (retryWeather) {
+                retryWeather = false;
+                weatherStore.retry();
+            }
             weatherStore.refresh();
             refreshApps(false);
             refreshInputs();
