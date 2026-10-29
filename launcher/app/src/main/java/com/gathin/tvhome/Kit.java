@@ -357,12 +357,15 @@ final class Kit {
     /**
      * {@code .row}: the label (26 px) over the items in a horizontal ScrollBox, 20 px apart, running off the right
      * edge, with the row's 34 px gap below. The box keeps {@link #RING_ROOM} around the items for the focus ring
-     * (and takes it back with negative margins); the views holding the row must not clip it ({@link #unclip}).
+     * (and takes it back with negative margins). The row clips the box to the box's own bounds, as the
+     * prototype's {@code .row-items} does with overflow hidden, so cards scrolled past the left edge don't draw
+     * into the page's gutter; the views holding the row must not clip it ({@link #unclip}), since the box hangs
+     * {@link #RING_ROOM} outside the row.
      */
     static View row(Context ctx, CharSequence label, List<View> items) {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.VERTICAL);
-        row.setClipChildren(false);
+        row.setClipChildren(true);
         row.setClipToPadding(false);
         row.setPadding(0, 0, 0, Ui.px(34));
         TextView title = Ui.line(ctx, Ui.T_H3, Ui.TEXT_1, Ui.REGULAR);
@@ -373,7 +376,9 @@ final class Kit {
         tlp.bottomMargin = Ui.px(16);
         row.addView(title, tlp);
 
-        ViewGroup box = ScrollBox.horizontal(ctx, 0);
+        // The reveal padding equals the box's padding, so coming back to the first card scrolls to 0 and it lines up
+        // with the label again, and the last card stops with its ring inside the box.
+        ViewGroup box = ScrollBox.horizontal(ctx, RING_ROOM);
         int room = Ui.px(RING_ROOM);
         box.setPadding(room, room, room, room);
         LinearLayout strip = new LinearLayout(ctx);

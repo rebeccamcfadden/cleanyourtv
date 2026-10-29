@@ -18,8 +18,9 @@ import android.widget.ScrollView;
  * own: Android's scroll-to-focused-child is switched off, since the D-pad goes through Shell, not focus search.
  *
  * <p>A box does not clip its content to its padding or to the content's bounds, so a focused card's ring and
- * scale-up can use the box's padding; the box's own parent still clips it to the box. Give a box padding for that
- * room (and a matching negative margin) where its items sit at its edge, as Kit.row does.
+ * scale-up can use the box's padding. Whatever holds the box decides whether it is clipped to its own bounds:
+ * Kit.row clips it, as the prototype's rows do. Give a box padding for that room (and a matching negative margin)
+ * where its items sit at its edge, and reveal with the same padding, as Kit.row does.
  */
 final class ScrollBox {
     private ScrollBox() {}
