@@ -114,7 +114,6 @@ final class FiltersDrawer extends Screen {
         row.setPadding(Ui.px(26), 0, Ui.px(18), 0);
         row.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1), null,
                 Ui.round(Ui.ACCENT, Ui.RADIUS_L, Ui.ACCENT, 1)));
-        row.setContentDescription(d.label);
 
         TextView label = Ui.line(ctx, 22, Ui.TEXT_2, Ui.REGULAR);
         label.setText(d.label);
@@ -154,7 +153,9 @@ final class FiltersDrawer extends Screen {
 
     private void update(View row) {
         LibraryFilters.Def d = (LibraryFilters.Def) row.getTag(R.id.filters_def);
-        ((TextView) row.getTag(R.id.kit_label)).setText(filters.valueLabel(d));
+        String value = filters.valueLabel(d);
+        ((TextView) row.getTag(R.id.kit_label)).setText(value);
+        row.setContentDescription(d.label + ", " + value);
     }
 
     private void cycle(View row, int step) {
