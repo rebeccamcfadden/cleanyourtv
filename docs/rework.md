@@ -109,8 +109,10 @@ before any scripted check.
 
 **Scripted, after the project lead's go:**
 
-- `tools/bench.py --keys 36 --series 3` with `TV_HOST` set, against the M1 baseline (cold start 2.8 s, 11 MB PSS)
-  and the old launcher's 2.7 s. Also PSS after visiting every page, with artwork loaded.
+- `tools/bench.py --keys 36 --series 3` with `TV_HOST` set, for key latency, jank and PSS. Its cold start is `am start -W`'s
+  WaitTime, while the M1 baseline (2.8 s) and the old launcher's 2.7 s are TotalTime: compare like with like, by also
+  running `am start -W` after a force stop and reading TotalTime, or by benchmarking the old build the same way.
+  Also PSS after visiting every page, with artwork loaded (M1: 11 MB).
 - `tools/tv.py --screenshot shots/<screen>.png` for each screen, a different file each time (for example `shots/home.png`, `shots/movies.png`), to replace the prototype images in README.md. Blur or crop names,
   cities and Wi-Fi names first.
 
