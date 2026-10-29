@@ -158,6 +158,24 @@ From the old launcher; not in V1 by decision.
 - **More like this:** the prototype's rule (shared genres, same kind, score) over the mock catalogue. Wanted:
   recommendations from the real catalogue.
 
+## From M6
+
+- **Search source:** V1 searches the mock catalogue on the TV (`Fuzzy` and `SearchIndex`, ported from the
+  prototype and tested against its results). Wanted: TMDB search behind the same
+  results once the real catalogue lands (Real catalogue), with the local matching kept for what is cached offline.
+- **Title and person results:** OK opens them through the Router, which shows a toast until M5 builds the title
+  preview and the person page. The query is saved to Recent searches either way.
+- **Genre suggestions:** OK searches for the genre's name, as the prototype does, and a genre that matches well
+  adds its titles to the results. There is no genre page or genre filter chip.
+- **Typing from a keyboard:** a hardware keyboard or a remote with keys types a–z, 0–9, space and `- : ' ’ & . ! ?`
+  (the prototype's set) into the bar, on the Search page only; Backspace deletes, or is Back when nothing is typed,
+  on every screen. Accented letters, the system's on-screen keyboard (IME) and voice input are not used.
+- **Results preview:** while typing, the preview builds only the first three rows of cards (all it can show); the
+  full results build every card. Measured on the emulator: about 15 ms a key press, 30–55 ms to widen "a" (139
+  results). Check it on the TV.
+- **No-matches screenshot:** `work/proto-shots/search-04-no-matches.png` shows Home, so that state was checked
+  against `search.ts` rather than a picture.
+
 ## Not designed yet
 
 From the spec's open questions ([design_preview/README.md](design_preview/README.md)). Each needs a design before
