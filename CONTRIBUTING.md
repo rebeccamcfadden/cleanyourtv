@@ -61,7 +61,10 @@ override it, and a pull request that names them comes back for a rework.
 ## 2. Improve the launcher
 
 The launcher lives in `launcher/` and is deliberately small: plain Java, AndroidX RecyclerView and
-DynamicAnimation, no Kotlin, no Compose, no network. It targets TVs with 1 GB of RAM. A speed-up or slow-down
+DynamicAnimation, no Kotlin, no Compose. It targets TVs with 1 GB of RAM. In this fork it may use the network for
+the features [AGENTS.md](AGENTS.md#this-fork) lists (weather, catalogue search, availability and prices, artwork,
+cast and recommendations), within limits: no analytics or telemetry, no heavy background polling, cache what it
+fetches, never block Home on the network, and keep local content working offline. A speed-up or slow-down
 is measured with [`docs/workflows/perf-ab.md`](docs/workflows/perf-ab.md). The switch, translation, theme and
 add-on workflows were retired with the old launcher in this fork; V2 may take them back from upstream
 ([launcher-switch.md](https://github.com/Gathin23/cleanyourtv/blob/main/docs/workflows/launcher-switch.md),
@@ -138,7 +141,8 @@ points at everything else. The rules for a row are on that page.
 Things that stay in this repo: debloat lists, fixes and small, opt-in features for the reference
 launcher, prompt and tool improvements. A feature that can be its own small app goes in [`addons/`](addons/README.md)
 as a module card. Things that go in the showcase: a second launcher, a
-restyle, a platform port, anything with its own background services or network access.
+restyle, a platform port, anything with its own background services, or network access beyond the limited use
+above.
 
 ## Pull requests
 
