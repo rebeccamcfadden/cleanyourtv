@@ -173,6 +173,14 @@ final class LibraryPage extends Screen {
     boolean onKey(Key key, View focused) {
         SpatialNav.Dir dir = Shell.dirOf(key);
         if (dir == null || focused == null) return false;
+        // The list chips lead to Pick for me: Up from any chip, and Right from the last one (project lead,
+        // 2026-10-29), so it is reached before the nav and instead of the grid.
+        if (Focus.isInside(chips, focused) && (dir == SpatialNav.Dir.UP
+                || (dir == SpatialNav.Dir.RIGHT && isLastChip(focused)))) {
+            shell.focus(pick);
+            box.playSoundEffect(sound(dir));
+            return true;
+        }
         if (Focus.isInside(box, focused)) {
             if (dir != SpatialNav.Dir.UP || box.getScrollY() <= 0) return false;
             if (!shell.moveWithin(box, dir)) return false;
@@ -183,6 +191,11 @@ final class LibraryPage extends Screen {
         }
         box.playSoundEffect(sound(dir));
         return true;
+    }
+
+    private boolean isLastChip(View focused) {
+        List<View> all = Focus.all(chips);
+        return !all.isEmpty() && all.get(all.size() - 1) == focused;
     }
 
     /** Shell's move (nearest, then the entered row's memory or default) over the items not hidden by scrolling. */
