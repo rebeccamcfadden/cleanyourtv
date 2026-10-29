@@ -46,6 +46,8 @@ final class WeatherStore {
     private long fetchedAt;
     private long triedAt;
     private boolean fetching;
+    /** A retry asked for while a fetch was running: fetch again if that one fails. */
+    private boolean retryAfter;
     private boolean loaded;
 
     WeatherStore(Context ctx, Listener listener) {
@@ -90,9 +92,17 @@ final class WeatherStore {
         fetchIfStale();
     }
 
-    /** The network came back: try again now rather than after the retry pause. */
+    /**
+     * The network came back, or the clock was set (a TV that boots at the epoch fails every HTTPS request until
+     * then: the certificates aren't valid yet). Try again now rather than after the retry pause; if a fetch is
+     * running, fetch again once it fails.
+     */
     void retry() {
         triedAt = 0;
+        if (fetching) {
+            retryAfter = true;
+            return;
+        }
         if (loaded) fetchIfStale();
     }
 
@@ -116,7 +126,15 @@ final class WeatherStore {
             Weather result = w;
             main.post(() -> {
                 fetching = false;
-                if (result == null) return;
+                if (result == null) {
+                    if (retryAfter) {
+                        retryAfter = false;
+                        triedAt = 0;
+                        fetchIfStale();
+                    }
+                    return;
+                }
+                retryAfter = false;
                 weather = result;
                 fetchedAt = System.currentTimeMillis();
                 listener.onWeather(weather);

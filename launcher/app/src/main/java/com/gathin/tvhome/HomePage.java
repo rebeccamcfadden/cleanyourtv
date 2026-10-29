@@ -97,6 +97,8 @@ final class HomePage extends Screen {
         @Override
         public void onReceive(Context context, Intent intent) {
             tick();
+            // The clock was set (network time after a boot at the epoch): HTTPS works now, so fetch the weather.
+            if (Intent.ACTION_TIME_CHANGED.equals(intent.getAction())) weatherStore.retry();
         }
     };
 
@@ -274,7 +276,8 @@ final class HomePage extends Screen {
         content.addView(weatherFrame, wlp);
 
         root.page = this;
-        // The nav's model changes when the network or the inputs do: back online, the weather may be fetched at once.
+        // The nav's model tells Home when the network changes (back online: fetch the weather at once) and when an
+        // input is added, removed or renamed (MainActivity calls NavModel.inputsChanged).
         host.navModel().listen(model -> {
             boolean changed = lastNetworkIcon != 0 && model.networkIcon != lastNetworkIcon;
             lastNetworkIcon = model.networkIcon;

@@ -114,6 +114,12 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
         public void onInputRemoved(String inputId) {
             post(refreshInputs);
         }
+
+        /** A CEC device renamed itself, or an input's details changed. */
+        @Override
+        public void onInputUpdated(String inputId) {
+            post(refreshInputs);
+        }
     };
 
     /** A burst of events (a reconnect sends several) collapses into one refresh. */
@@ -263,6 +269,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
         if (isDestroyed()) return;
         anyInputs = showInputs && inputs.any();
         applyNav();
+        // Home's Inputs row shows each port and CEC device, which can change while the nav's icon stays the same.
+        nav.inputsChanged();
     }
 
     private void applyNav() {

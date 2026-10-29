@@ -29,4 +29,10 @@ final class NavModel {
         networkIcon = icon;
         for (Listener l : listeners) l.onNavChanged(this);
     }
+
+    /** An input was added, removed or renamed: listeners that list the inputs (Home's row) refresh, even when
+     *  the nav itself shows the same. */
+    void inputsChanged() {
+        for (Listener l : listeners) l.onNavChanged(this);
+    }
 }
