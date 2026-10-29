@@ -24,11 +24,24 @@ final class NetworkState {
     /** 0 to 4, or -1 when not on Wi-Fi. */
     int level = -1;
 
+    /** The network Android last reported lost; skipped while getAllNetworks() still lists it. */
+    private static volatile Network lostNetwork;
+
+    static void lost(Network n) {
+        lostNetwork = n;
+    }
+
+    static void found(Network n) {
+        if (n != null && n.equals(lostNetwork)) lostNetwork = null;
+    }
+
     static NetworkState read(Context ctx) {
         NetworkState s = new NetworkState();
         try {
             ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network gone = lostNetwork;
             for (Network net : cm != null ? cm.getAllNetworks() : new Network[0]) {
+                if (net.equals(gone)) continue;
                 NetworkCapabilities caps = cm.getNetworkCapabilities(net);
                 if (caps == null) continue;
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {

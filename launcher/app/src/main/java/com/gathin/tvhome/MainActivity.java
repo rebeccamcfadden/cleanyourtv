@@ -61,6 +61,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
 
     private final Runnable refreshNav = this::refreshNav;
     private final Runnable refreshNetwork = this::refreshNetwork;
+    private final Runnable refreshNetworkLater = this::refreshNetwork;
     private final Runnable refreshInputs = this::refreshInputs;
     /** What the nav last showed, so each kind of event re-reads only its own half. */
     private int networkIcon = R.drawable.ic_ui_wifi;
@@ -71,12 +72,21 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages {
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
         public void onAvailable(Network network) {
+            NetworkState.found(network);
             post(refreshNetwork);
         }
 
+        // At onLost the lost network can still be listed by getAllNetworks(), so it is skipped by name, and a second
+        // read follows once Android has dropped it.
         @Override
         public void onLost(Network network) {
+            NetworkState.lost(network);
+            lastValidated = false;
+            lastWifi = false;
+            lastEthernet = false;
             post(refreshNetwork);
+            handler.removeCallbacks(refreshNetworkLater);
+            handler.postDelayed(refreshNetworkLater, 1500);
         }
 
         /** Signal-strength updates land here too, several a minute: those change nothing the nav shows. */

@@ -160,7 +160,9 @@ final class MenuPanel {
         lines.setOrientation(LinearLayout.VERTICAL);
         TextView t = Ui.line(ctx, 28, Ui.TEXT_1, Ui.MEDIUM);
         t.setText(title);
-        lines.addView(t);
+        // Wrap, not the default match-parent: a wrapping column sized itself to the status line and cut the title.
+        lines.addView(t, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         View s = status(ctx, sub, color, Ui.TEXT_2, Ui.TEXT_2);
         LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
