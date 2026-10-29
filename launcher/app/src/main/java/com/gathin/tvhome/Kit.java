@@ -16,6 +16,7 @@ import android.text.style.StyleSpan;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -96,6 +97,7 @@ final class Kit {
             gap(b, Ui.px(12));
         }
         b.setActivated(on);
+        if (on) b.setAccessibilityDelegate(TOGGLE_A11Y);
         Focus.make(b, group, key, isDefault, onOk);
         Ui.scaleOnFocus(b, 1.04f);
         return b;
@@ -119,10 +121,29 @@ final class Kit {
         text.setLayoutParams(lp);
     }
 
-    /** A toggle button's on state (My list, Seen, Favorite). */
+    /** A toggle button's on state (My list, Seen, Favorite), also told to accessibility services as checked. */
     static void setOn(View button, boolean on) {
         button.setActivated(on);
+        button.setAccessibilityDelegate(TOGGLE_A11Y);
     }
+
+    // Chips and toggles keep their state in "activated", which a LinearLayout doesn't report to TalkBack.
+    private static final View.AccessibilityDelegate TOGGLE_A11Y = new View.AccessibilityDelegate() {
+        @Override
+        public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setCheckable(true);
+            info.setChecked(host.isActivated());
+        }
+    };
+
+    private static final View.AccessibilityDelegate CHIP_A11Y = new View.AccessibilityDelegate() {
+        @Override
+        public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setSelected(host.isActivated());
+        }
+    };
 
     /** Changes a button's label, e.g. "My list" to "On My list". */
     static void setLabel(View button, CharSequence label) {
@@ -184,6 +205,7 @@ final class Kit {
         c.setTag(R.id.kit_label, text);
         c.setTag(R.id.kit_check, tick);
         setSelected(c, selected);
+        c.setAccessibilityDelegate(CHIP_A11Y);
         Focus.make(c, group, key, isDefault, onOk);
         Ui.scaleOnFocus(c, 1.05f);
         return c;
