@@ -33,6 +33,15 @@ def tmdbToken = tvProps.getProperty('tmdb_api_key', '').trim()
 if (tmdbToken && !(tmdbToken ==~ /[A-Za-z0-9._\-]+/)) {
     throw new GradleException("${tvPropsFile.name}: tmdb_api_key has characters a TMDB token never has")
 }
+// Optional price keys (BACKLOG.md, Streaming availability and prices): without them the source is skipped. Checked
+// the same way, so a key can't break the generated Java; the message never prints the value.
+def priceKey = { String key ->
+    def value = tvProps.getProperty(key, '').trim()
+    if (value && !(value ==~ /[A-Za-z0-9._\-]+/)) throw new GradleException("${tvPropsFile.name}: ${key} has characters a key never has")
+    return value
+}
+def watchmodeKey = priceKey('watchmode_api_key')
+def streamingAvailabilityKey = priceKey('streaming_availability_api_key')
 
 android {
     namespace 'com.gathin.tvhome'
@@ -50,6 +59,8 @@ android {
         buildConfigField 'double', 'WEATHER_LONGITUDE', weatherLongitude
         buildConfigField 'boolean', 'FAHRENHEIT', String.valueOf(temperatureUnit == 'F')
         buildConfigField 'String', 'TMDB_TOKEN', "\"${tmdbToken}\""
+        buildConfigField 'String', 'WATCHMODE_KEY', "\"${watchmodeKey}\""
+        buildConfigField 'String', 'STREAMING_AVAILABILITY_KEY', "\"${streamingAvailabilityKey}\""
     }
 
     buildFeatures {

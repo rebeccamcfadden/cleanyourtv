@@ -76,6 +76,7 @@ public class WatchProvidersTest {
         ServiceTable services = new ServiceTable();
         for (ServiceId s : ServiceId.values()) {
             WatchProviders.Entry e = table.of(s);
+            // Every service has its entry, so ServiceTable can be made from this table.
             assertNotNull(s.id, e);
             assertEquals(s.id, e.key);
             assertEquals(s, e.service);
@@ -94,7 +95,7 @@ public class WatchProvidersTest {
             for (int id : e.tmdbIds) assertTrue(e.key + " " + id, ids.add(id));
             assertFalse(e.key, e.packages.isEmpty());
             assertTrue(e.key, e.subscription || e.free || e.store);
-            if (e.service == null) assertNull(e.key, ServiceId.parse(e.key));
+            assertEquals(e.key, ServiceId.parse(e.key), e.service);
         }
     }
 

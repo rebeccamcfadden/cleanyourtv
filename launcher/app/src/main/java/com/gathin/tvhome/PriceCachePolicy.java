@@ -39,6 +39,11 @@ final class PriceCachePolicy {
         }
     }
 
+    /** What one request costs against a source's budget: Watchmode charges 2 credits for a TMDB-id lookup. */
+    static int requestCost(String sourceId) {
+        return WatchmodePrices.ID.equals(sourceId) ? 2 : 1;
+    }
+
     /** The least time between two requests to a keyless source: Apple asks for at most about 20 a minute. */
     static long minIntervalMs(String sourceId) {
         return ItunesPrices.ID.equals(sourceId) ? 3_000L : WikidataIds.ID.equals(sourceId) ? 1_000L : 0L;

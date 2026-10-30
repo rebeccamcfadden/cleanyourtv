@@ -55,9 +55,16 @@ final class PricedOffer {
     String priceLabel() {
         Money min = cheapest();
         if (min == null) return null;
+        return isFrom() ? min.formatFrom() : min.format();
+    }
+
+    /** Several prices: qualities that cost different amounts, or per-season prices. */
+    boolean isFrom() {
+        Money min = cheapest();
+        if (min == null) return false;
         boolean several = seasonal;
         for (Money m : prices.values()) several |= !m.equals(min);
-        return several ? min.formatFrom() : min.format();
+        return several;
     }
 
     /** "Rent 49 kr", "Buy from 99 kr", or just "Rent" when no source priced it. SUB and FREE: "". */
@@ -78,14 +85,15 @@ final class PricedOffer {
     }
 
     /**
-     * The launcher's {@link Offer}: the cheapest price in major units and that price's quality ("HD"); price 0 and
-     * no quality when nothing is priced, as for SUB and FREE. Null for a service {@link ServiceId} doesn't know yet.
+     * The launcher's real {@link Offer}: the cheapest price, in major units and as money, with "from" when there are
+     * several, and that price's quality ("HD"); price 0, no money and no quality when nothing is priced, as for SUB
+     * and FREE.
      */
     Offer toOffer() {
-        if (provider.service == null) return null;
         Money min = cheapest();
         Quality q = cheapestQuality();
-        return new Offer(provider.service, type, min == null ? 0 : min.major(), q == null ? null : q.label);
+        return new Offer(provider.service, type, min == null ? 0 : min.major(), q == null ? null : q.label, min,
+                isFrom(), true);
     }
 
     @Override

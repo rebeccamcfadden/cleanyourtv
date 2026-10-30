@@ -117,12 +117,30 @@ public class OfferMergeTest {
     }
 
     @Test
-    public void theLaunchersOffersForKnownServices() throws JSONException {
+    public void theLaunchersOffers() throws JSONException {
         List<Offer> offers = arrival().toOffers();
         List<String> s = new ArrayList<>();
-        for (Offer o : offers) s.add(o.toString());
-        // Viaplay, Rakuten, SF Anytime and Amazon Video have no ServiceId until Stage 2 adds them.
-        assertEquals(Arrays.asList("appletv RENT 39.0 HD", "appletv BUY 79.0 4K", "googletv RENT 45.0 HD"), s);
+        for (Offer o : offers) s.add(o + (o.money != null ? " " + Offers.price(o) : ""));
+        assertEquals(Arrays.asList("appletv RENT 39.0 HD 39 kr", "viaplay RENT", "rakuten RENT",
+                "sfanytime RENT 49.0 HD 49 kr", "amazonvideo RENT 49.0 HD from 49 kr", "appletv BUY 79.0 4K 79 kr",
+                "viaplay BUY 149.0 HD 149 kr", "rakuten BUY", "sfanytime BUY", "amazonvideo BUY 129.0 HD 129 kr",
+                "googletv RENT 45.0 HD 45 kr"), s);
+        for (Offer o : offers) assertTrue(o.real);
+        // A store with no known price reads "Rent", with no amount.
+        assertNull(Offers.price(offers.get(1)));
+        assertEquals("Rent", Offers.paid(offers.get(1)));
+        assertEquals("Rent from 49 kr", Offers.paid(offers.get(4)));
+        assertEquals("49 kr", Offers.amount(offers.get(4)));
+    }
+
+    @Test
+    public void attributionNamesOnlyTheSourcesUsed() throws JSONException {
+        assertEquals("Availability: JustWatch · Prices: Watchmode / Apple",
+                OfferMerge.attribution(true, arrival().priceSources));
+        assertEquals("Availability: JustWatch", OfferMerge.attribution(true, Collections.emptySet()));
+        assertEquals("Availability: JustWatch · Prices: Movie of the Night",
+                OfferMerge.attribution(true, Collections.singleton("streamingavailability")));
+        assertNull(OfferMerge.attribution(false, Collections.singleton("itunes")));
     }
 
     @Test
@@ -135,8 +153,13 @@ public class OfferMergeTest {
         assertEquals(ServiceId.NETFLIX, o.service);
         assertEquals(0, o.price, 0);
         assertNull(o.quality);
+        assertTrue(o.real);
+        assertNull(o.money);
         Map<Quality, Money> one = new EnumMap<>(Quality.class);
         one.put(Quality.HD, new Money(4900, "SEK"));
-        assertNull(new PricedOffer(table.byKey("sfanytime"), OfferType.RENT, one, false).toOffer());
+        Offer sf = new PricedOffer(table.byKey("sfanytime"), OfferType.RENT, one, false).toOffer();
+        assertEquals(ServiceId.SFANYTIME, sf.service);
+        assertEquals("49 kr", Offers.price(sf));
+        assertFalse(sf.from);
     }
 }

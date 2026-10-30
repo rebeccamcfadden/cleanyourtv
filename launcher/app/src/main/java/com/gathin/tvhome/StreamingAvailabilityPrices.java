@@ -60,7 +60,7 @@ final class StreamingAvailabilityPrices implements PriceSource {
     public List<StorePrice> prices(PriceTitle t, HttpGet http) throws IOException {
         if (!configured()) return Collections.emptyList();
         try {
-            return parse(http.get(url(t), headers()), WatchProviders.REGION, new WatchProviders());
+            return parse(http.get(url(t), headers()), WatchProviders.REGION, WatchProviders.SE);
         } catch (JSONException e) {
             throw new IOException("Streaming Availability: unexpected answer", e);
         }

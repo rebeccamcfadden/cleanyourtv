@@ -41,13 +41,10 @@ final class OfferMerge {
             this.priceSources = Collections.unmodifiableSet(priceSources);
         }
 
-        /** The offers on services {@link ServiceId} knows, as the launcher's {@link Offer}s, in the same order. */
+        /** The offers as the launcher's {@link Offer}s, in the same order. */
         List<Offer> toOffers() {
             List<Offer> out = new ArrayList<>(offers.size());
-            for (PricedOffer p : offers) {
-                Offer o = p.toOffer();
-                if (o != null) out.add(o);
-            }
+            for (PricedOffer p : offers) out.add(p.toOffer());
             return Collections.unmodifiableList(out);
         }
     }
@@ -100,6 +97,23 @@ final class OfferMerge {
             }
         }
         return new Result(new ArrayList<>(out.values()), availability.link, sources);
+    }
+
+    /**
+     * The Where to watch caption: "Availability: JustWatch · Prices: Apple / Watchmode", naming only the price sources
+     * whose prices show; just the availability with none, and null without TMDB's availability (the mock catalogue).
+     */
+    static String attribution(boolean availability, Set<String> priceSources) {
+        if (!availability) return null;
+        StringBuilder b = new StringBuilder("Availability: JustWatch");
+        List<String> names = new ArrayList<>();
+        for (String s : priceSources) {
+            String name = ItunesPrices.ID.equals(s) ? "Apple" : WatchmodePrices.ID.equals(s) ? "Watchmode"
+                    : StreamingAvailabilityPrices.ID.equals(s) ? "Movie of the Night" : null;
+            if (name != null && !names.contains(name)) names.add(name);
+        }
+        if (!names.isEmpty()) b.append(" · Prices: ").append(String.join(" / ", names));
+        return b.toString();
     }
 
     private static String key(String store, OfferType type) {

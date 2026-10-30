@@ -79,6 +79,26 @@ interface Catalog {
     /** Titles and people the network finds for a query. The mock catalogue has no more than it holds, so never. */
     default void search(String query, Consumer<Found> done) {}
 
+    /**
+     * Asks for t's real prices and the links into its services' apps (V2 Phase 2): when a title preview opens
+     * ({@code preview}) or a list shows the title. {@code done}, which may be null, runs on the main thread with the
+     * title as it then is; listeners hear too. The mock catalogue's offers are all it has, so it does nothing.
+     */
+    default void prices(Title t, boolean preview, Consumer<Title> done) {}
+
+    /** The link that opens t itself in a service's app, or null (the app then opens on its home screen). */
+    default String link(Title t, ServiceId service) {
+        return null;
+    }
+
+    /** Where t's availability and prices come from, for the Where to watch caption; null for the mock catalogue. */
+    default String attribution(Title t) {
+        return null;
+    }
+
+    /** Home is showing (true) or hidden: no price lookups start while it is hidden. */
+    default void setVisible(boolean visible) {}
+
     /** The best-known titles of a genre, movies and shows. */
     default void genre(String genre, Consumer<List<Title>> done) {
         List<Title> out = new ArrayList<>();

@@ -30,8 +30,9 @@ import java.util.function.Consumer;
  * The real catalogue, from TMDB (BACKLOG.md, Real catalogue; {@link Catalog} says how it answers). It starts from
  * the mock catalogue's titles on TMDB ({@link MockIds}), as stubs with a name and a year, and fills them in from the
  * disk cache or the network a couple of seconds after Home is up, never on the main thread and never holding Home
- * up. Titles met on the way (search hits, recommendations, a person's titles) join what it knows. Offers and the
- * imported watchlists stay mock ({@link MockOverlay}).
+ * up. Titles met on the way (search hits, recommendations, a person's titles) join what it knows. A detailed title's
+ * offers are where TMDB says it can be watched in Sweden, with the prices {@link PriceBook} finds on demand merged in
+ * ({@link OfferMerge}); the imported watchlists stay mock ({@link MockOverlay}).
  *
  * <p>Everything it knows lives on the main thread; three low-priority threads read the cache and the network, at
  * most three requests at a time, what a screen waits for first. A request that fails is not tried again for a
@@ -68,9 +69,15 @@ final class TmdbCatalog implements Catalog {
     private final Map<String, Found> searches = lru(24);
     private final Map<String, List<Title>> genres = lru(8);
 
+    /** V2 Phase 2: each detailed title's availability in Sweden, its prices and links, and their sources. */
+    private final Map<String, ProviderAvailability> availability = new HashMap<>();
+    private final Map<String, Set<String>> priceSources = new HashMap<>();
+    private final PriceBook book;
+
     TmdbCatalog(Context ctx, String token) {
         client = new TmdbClient(token, ctx.getApplicationContext().getCacheDir());
         overlay = new MockOverlay(new MockCatalog());
+        book = new PriceBook(ctx, BuildConfig.WATCHMODE_KEY, BuildConfig.STREAMING_AVAILABILITY_KEY, this::repriced);
         pool = new ThreadPoolExecutor(THREADS, THREADS, 10, TimeUnit.SECONDS, new PriorityBlockingQueue<>(), r -> {
             Thread t = new Thread(() -> {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
@@ -179,17 +186,21 @@ final class TmdbCatalog implements Catalog {
         loading.add(id);
         run(now ? Job.HIGH : Job.LOW, () -> {
             Title t = null;
+            ProviderAvailability a = null;
             try {
-                t = TmdbParse.details(client.get(TmdbApi.details(id)), kind);
+                JSONObject o = client.get(TmdbApi.details(id));
+                t = TmdbParse.details(o, kind);
+                a = TmdbParse.availability(o);
             } catch (IOException | RuntimeException e) {
                 // Offline with nothing cached, or an odd answer: the stub stays, and the screen keeps what it shows.
             }
             Title result = t;
-            main.post(() -> loaded(id, result));
+            ProviderAvailability where = a;
+            main.post(() -> loaded(id, result, where));
         });
     }
 
-    private void loaded(String id, Title t) {
+    private void loaded(String id, Title t, ProviderAvailability where) {
         loading.remove(id);
         urgent.remove(id);
         List<Consumer<Title>> list = waiting.remove(id);
@@ -198,6 +209,7 @@ final class TmdbCatalog implements Catalog {
             return;
         }
         failedAt.remove(id);
+        if (where != null) availability.put(id, where);
         Title k = upsert(t);
         if (list != null) for (Consumer<Title> done : list) done.accept(k);
     }
@@ -238,6 +250,58 @@ final class TmdbCatalog implements Catalog {
                 done.accept(known.get(id));
             });
         });
+    }
+
+    // ---- Prices and links (V2 Phase 2) ------------------------------------------------------------------------------
+
+    @Override
+    public void prices(Title t, boolean preview, Consumer<Title> done) {
+        Title k = known.get(t.id);
+        if (k == null || !availability.containsKey(t.id)) return;
+        boolean stores = false;
+        for (Offer o : k.offers) stores |= o.type == OfferType.RENT || o.type == OfferType.BUY;
+        // A list only needs prices; a preview also wants the links into the apps.
+        if (!preview && !stores) return;
+        String id = t.id;
+        book.want(k, preview, stores, done == null ? null : () -> done.accept(known.get(id)));
+    }
+
+    @Override
+    public String link(Title t, ServiceId service) {
+        PriceBook.Entry e = book.get(t.id);
+        return e == null ? null : DeepLinks.link(service.id, t.kind, e.ids, t.name);
+    }
+
+    @Override
+    public String attribution(Title t) {
+        if (!availability.containsKey(t.id)) return null;
+        Set<String> sources = priceSources.get(t.id);
+        return OfferMerge.attribution(true, sources == null ? Collections.emptySet() : sources);
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        book.setActive(visible);
+    }
+
+    /** t's offers: its availability with what the price book found merged in. */
+    private Title priced(Title t) {
+        ProviderAvailability a = availability.get(t.id);
+        if (a == null) return t;
+        PriceBook.Entry e = book.get(t.id);
+        OfferMerge.Result r = OfferMerge.merge(a, e == null ? Collections.emptyList() : e.prices, WatchProviders.SE);
+        priceSources.put(t.id, r.priceSources);
+        Title.Draft d = new Title.Draft(t);
+        d.offers = r.toOffers();
+        return d.build();
+    }
+
+    /** The price book found something for a title: its offers again, and the screens hear. */
+    private void repriced(String id) {
+        Title k = known.get(id);
+        if (k == null || !k.detailed) return;
+        known.put(id, priced(k));
+        changed();
     }
 
     // ---- Lists of titles --------------------------------------------------------------------------------------------
@@ -360,11 +424,12 @@ final class TmdbCatalog implements Catalog {
     }
 
     /**
-     * Puts what TMDB said about a title among what is known, with its mock offers and lists, and returns the copy
-     * kept. A summary never replaces details, and new details keep the episodes of the seasons already fetched.
+     * Puts what TMDB said about a title among what is known, with its mock lists and its offers priced, and returns
+     * the copy kept. A summary never replaces details, and new details keep the episodes of the seasons already fetched.
      */
     private Title upsert(Title t) {
         Title in = overlay.apply(t);
+        if (in.detailed) in = priced(in);
         Title old = known.get(in.id);
         Title keep = in;
         if (old != null && old.detailed && !in.detailed) {
