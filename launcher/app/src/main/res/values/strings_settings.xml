@@ -11,6 +11,7 @@
     <string name="weather_place_pick">Choose a place</string>
     <string name="weather_place_none">No places match “%1$s”</string>
     <string name="weather_place_offline">Can\'t search: no internet</string>
+    <string name="weather_place_failed">Search failed; try again later</string>
     <string name="weather_place_default">Use default</string>
     <string name="weather_place_saved">Weather for %1$s</string>
     <string name="weather_place_hint_row">Home\'s weather. The search sends only what you type to Open-Meteo.</string>

@@ -6,6 +6,8 @@ import android.os.Looper;
 import android.util.AtomicFile;
 import android.util.Log;
 
+import androidx.annotation.WorkerThread;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -163,6 +165,7 @@ final class WeatherStore {
     }
 
     /** A small JSON answer over HTTPS, or null when offline or refused. Blocks: never on the main thread. */
+    @WorkerThread
     static String download(String url) {
         HttpURLConnection c = null;
         try {

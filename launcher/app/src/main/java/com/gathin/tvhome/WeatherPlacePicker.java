@@ -185,23 +185,27 @@ final class WeatherPlacePicker {
         new Thread(() -> {
             String body = WeatherStore.download(url);
             List<WeatherPlace> found = null;
+            int failure = R.string.weather_place_offline;
             if (body != null) {
                 try {
                     found = WeatherPlace.parseSearch(body);
                 } catch (JSONException e) {
-                    Log.w(TAG, "unexpected place search answer: " + e.getMessage());
+                    Log.w(TAG, "unexpected place search answer", e);
+                    failure = R.string.weather_place_failed;
                 }
             }
             List<WeatherPlace> result = found;
-            main.post(() -> show(mine, typed.trim(), result));
+            int failed = failure;
+            main.post(() -> show(mine, typed.trim(), result, failed));
         }, "weather-place").start();
     }
 
-    private void show(int mine, String typed, List<WeatherPlace> result) {
+    /** result is null when the search failed; failed then names why (offline, or an answer it could not read). */
+    private void show(int mine, String typed, List<WeatherPlace> result, int failed) {
         if (mine != generation || activity.isDestroyed()) return;
         places.clear();
         if (result == null) {
-            status.setText(R.string.weather_place_offline);
+            status.setText(failed);
         } else if (result.isEmpty()) {
             status.setText(activity.getString(R.string.weather_place_none, typed));
         } else {

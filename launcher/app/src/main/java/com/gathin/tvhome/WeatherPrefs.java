@@ -5,8 +5,9 @@ import android.content.SharedPreferences;
 
 /**
  * Home's weather place and unit as saved in Launcher settings' preferences (WeatherSettings decides what they mean).
- * Every change moves Launcher settings' change count, so Home rebuilds and its WeatherStore fetches for the new
- * place or unit at once: the cached answer is kept per request, so the old place's weather never shows for the new.
+ * The callers move Launcher settings' change count after every change, so Home rebuilds and its WeatherStore fetches
+ * for the new place or unit at once: the cached answer is kept per request, so the old place's weather never shows
+ * for the new.
  */
 final class WeatherPrefs {
     private WeatherPrefs() {}

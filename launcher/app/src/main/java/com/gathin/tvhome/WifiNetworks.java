@@ -40,10 +40,10 @@ final class WifiNetworks {
             return out;
         } catch (SecurityException e) {
             // A firmware that wants more than the documented permissions.
-            Log.w(TAG, "saved networks refused: " + e);
+            Log.w(TAG, "saved networks refused", e);
             return Collections.emptyList();
         } catch (RuntimeException e) {
-            Log.w(TAG, "saved networks unreadable: " + e);
+            Log.w(TAG, "saved networks unreadable", e);
             return Collections.emptyList();
         }
     }
@@ -58,10 +58,10 @@ final class WifiNetworks {
             Log.i(TAG, "enableNetwork(" + networkId + ") = " + ok);
             return ok;
         } catch (SecurityException e) {
-            Log.w(TAG, "switch refused: " + e);
+            Log.w(TAG, "switch refused", e);
             return false;
         } catch (RuntimeException e) {
-            Log.w(TAG, "switch failed: " + e);
+            Log.w(TAG, "switch failed", e);
             return false;
         }
     }
