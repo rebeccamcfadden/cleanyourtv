@@ -54,15 +54,6 @@ final class PriceCachePolicy {
         return fetchedAt > 0 && now >= fetchedAt && now - fetchedAt < ttl;
     }
 
-    /**
-     * Whether to ask again: not while the kept answer is fresh, nor within {@link #FAILURE_RETRY} of a failure
-     * ({@code failedAt}, 0 for none, later than the last success).
-     */
-    static boolean shouldFetch(long fetchedAt, long failedAt, long now) {
-        if (fresh(fetchedAt, now, PRICE_TTL)) return false;
-        return !(failedAt > fetchedAt && fresh(failedAt, now, FAILURE_RETRY));
-    }
-
     /** Whether iTunes is still worth asking after the keyed sources answered. */
     static boolean needsItunes(List<StorePrice> found) {
         for (StorePrice p : found) if (ItunesPrices.STORE.equals(p.store)) return false;

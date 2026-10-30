@@ -17,19 +17,11 @@ public class PriceCachePolicyTest {
 
     @Test
     public void pricesAreKeptADay() {
-        assertTrue(PriceCachePolicy.shouldFetch(0, 0, NOW));
-        assertFalse(PriceCachePolicy.shouldFetch(NOW - 23 * H, 0, NOW));
-        assertTrue(PriceCachePolicy.shouldFetch(NOW - 24 * H, 0, NOW));
+        assertTrue(PriceCachePolicy.fresh(NOW - 23 * H, NOW, PriceCachePolicy.PRICE_TTL));
+        assertFalse(PriceCachePolicy.fresh(NOW - 24 * H, NOW, PriceCachePolicy.PRICE_TTL));
+        assertFalse(PriceCachePolicy.fresh(0, NOW, PriceCachePolicy.PRICE_TTL));
         // A clock that went backwards doesn't keep a stale answer forever.
-        assertTrue(PriceCachePolicy.shouldFetch(NOW + H, 0, NOW));
-    }
-
-    @Test
-    public void aFailureWaitsAnHour() {
-        assertFalse(PriceCachePolicy.shouldFetch(0, NOW - 30 * 60_000L, NOW));
-        assertTrue(PriceCachePolicy.shouldFetch(0, NOW - 2 * H, NOW));
-        // A failure older than the last success doesn't hold anything back.
-        assertTrue(PriceCachePolicy.shouldFetch(NOW - 25 * H, NOW - 26 * H, NOW));
+        assertFalse(PriceCachePolicy.fresh(NOW + H, NOW, PriceCachePolicy.PRICE_TTL));
     }
 
     @Test

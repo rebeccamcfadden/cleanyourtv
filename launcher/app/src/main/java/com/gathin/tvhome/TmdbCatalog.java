@@ -268,7 +268,7 @@ final class TmdbCatalog implements Catalog {
 
     @Override
     public String link(Title t, ServiceId service) {
-        PriceBook.Entry e = book.get(t.id);
+        PriceLookup.Entry e = book.get(t.id);
         return e == null ? null : DeepLinks.link(service.id, t.kind, e.ids, t.name);
     }
 
@@ -288,7 +288,7 @@ final class TmdbCatalog implements Catalog {
     private Title priced(Title t) {
         ProviderAvailability a = availability.get(t.id);
         if (a == null) return t;
-        PriceBook.Entry e = book.get(t.id);
+        PriceLookup.Entry e = book.get(t.id);
         OfferMerge.Result r = OfferMerge.merge(a, e == null ? Collections.emptyList() : e.prices, WatchProviders.SE);
         priceSources.put(t.id, r.priceSources);
         Title.Draft d = new Title.Draft(t);
