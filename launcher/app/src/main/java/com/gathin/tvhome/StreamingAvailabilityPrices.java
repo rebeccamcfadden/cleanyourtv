@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
  * Store prices from Movie of the Night's Streaming Availability API ({@code GET /v4/shows/movie/{tmdb id}?country=se}),
  * which looks titles up by TMDB id and gives each price with its currency. Its free plan allows 1,000 requests a
  * month; its terms ask for attribution with a link to https://www.movieofthenight.com/about/api. The key is the
- * optional {@code streaming_availability_api_key} in tv.properties (from developers.movieofthenight.com), sent as the
- * X-API-Key header. In Sweden it prices only Apple TV and Amazon. A show is asked for by season, since a series
+ * optional {@code movie_of_the_night_api_key} in tv.properties (from developers.movieofthenight.com; see
+ * {@link PriceKeys}), sent as the X-API-Key header. In Sweden it prices only Apple TV and Amazon. A show is asked for by season, since a series
  * often has no price of its own; an option through an add-on channel is skipped.
  */
 final class StreamingAvailabilityPrices implements PriceSource {

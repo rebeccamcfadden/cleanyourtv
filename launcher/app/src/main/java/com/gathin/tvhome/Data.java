@@ -20,7 +20,10 @@ final class Data {
         this.services = services;
         this.household = household;
         this.table = table;
-        wantHousehold = () -> catalog.want(household.titleIds());
+        wantHousehold = () -> {
+            catalog.want(household.titleIds());
+            catalog.keepPriced(household.myListIds());
+        };
         household.addListener(wantHousehold);
         wantHousehold.onHouseholdChanged();
     }

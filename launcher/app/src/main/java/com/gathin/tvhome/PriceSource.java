@@ -10,7 +10,7 @@ import java.util.List;
  * goes through {@link HttpGet}. {@link OfferMerge} combines the prices with TMDB's availability.
  */
 interface PriceSource {
-    /** A short stable id ("itunes"), for the request ledger in {@link PriceCachePolicy}. */
+    /** A short stable id ("itunes"), for its quota in {@link PriceCachePolicy}. */
     String id();
 
     /** Whether it can be asked at all: false for a source whose key isn't in tv.properties. */

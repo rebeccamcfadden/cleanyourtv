@@ -245,8 +245,6 @@ final class Kit {
         card.addView(art, new LinearLayout.LayoutParams(Ui.px(417), Ui.px(172)));
 
         Offer o = data.shownOffer(t);
-        // Shown in a list: its prices are worth asking for (only for a title with something to rent or buy).
-        data.catalog.prices(t, false, null);
         LinearLayout top = new LinearLayout(ctx);
         top.setOrientation(LinearLayout.HORIZONTAL);
         TextView name = Ui.line(ctx, 25, Ui.TEXT_1, Ui.MEDIUM);
@@ -289,8 +287,6 @@ final class Kit {
         card.addView(name, below(12));
         card.addView(textLine(ctx, TitleText.kindYear(t), Ui.TEXT_2), below(4));
         card.addView(textLine(ctx, data.offerLine(t), Ui.TEXT_3), below(2));
-        // Shown in a list: its prices are worth asking for (only for a title with something to rent or buy).
-        data.catalog.prices(t, false, null);
         return focusCard(card, art, 1.03f, group, key, isDefault, onOk, t.name);
     }
 

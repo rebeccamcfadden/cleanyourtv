@@ -89,8 +89,8 @@ public final class LauncherSettingsActivity extends Activity {
             // And where its Where to watch comes from: JustWatch through TMDB, Apple's prices, and any keyed source.
             StringBuilder notice = new StringBuilder(getString(R.string.prices_notice_justwatch))
                     .append('\n').append(getString(R.string.prices_notice_itunes));
-            if (!BuildConfig.WATCHMODE_KEY.isEmpty()) notice.append('\n').append(getString(R.string.prices_notice_watchmode));
-            if (!BuildConfig.STREAMING_AVAILABILITY_KEY.isEmpty()) {
+            if (!PriceKeys.watchmode().isEmpty()) notice.append('\n').append(getString(R.string.prices_notice_watchmode));
+            if (!PriceKeys.movieOfTheNight().isEmpty()) {
                 notice.append('\n').append(getString(R.string.prices_notice_motn));
             }
             TextView prices = findViewById(R.id.priceNotice);

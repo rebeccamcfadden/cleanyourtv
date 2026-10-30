@@ -13,11 +13,13 @@ import java.util.Map;
 
 /**
  * Store prices from Watchmode ({@code GET /v1/title/movie-{tmdb id}/sources/?regions=SE}), which looks titles up by
- * TMDB id. Its free plan is for non-commercial use with attribution, 2,500 credits a month, a TMDB-id lookup costing
- * 2, and answers may be kept at most 30 days. The key is the optional {@code watchmode_api_key} in tv.properties,
- * sent as the X-API-Key header. Watchmode gives no currency: a price is taken to be in the region's own
- * ({@link WatchProviders#currency}), which a real key still has to confirm for Sweden. Stores are matched by name
- * ({@link WatchProviders#storeForName}); a store the launcher doesn't know is dropped.
+ * TMDB id and prices the most Swedish stores: Apple TV ("AppleTV"), Amazon, Rakuten TV and SF Anytime, in SD, HD and
+ * 4K. Its free plan is for non-commercial use with attribution, 2,500 credits a month, a TMDB-id lookup costing 2, and
+ * answers may be kept at most 30 days. The key is the optional {@code watchmode_api_key} in tv.properties, sent as the
+ * X-API-Key header. Watchmode gives no currency; its Swedish prices are in kronor (checked 2026-10-30), so a price is
+ * taken to be in the region's own ({@link WatchProviders#currency}). Stores are matched by name
+ * ({@link WatchProviders#storeForName}); one the launcher doesn't know is dropped, Blockbuster too (closed, though
+ * Watchmode still lists it).
  */
 final class WatchmodePrices implements PriceSource {
     static final String ID = "watchmode";

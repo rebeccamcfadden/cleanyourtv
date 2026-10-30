@@ -5,9 +5,11 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.LongSupplier;
 
@@ -15,20 +17,28 @@ import java.util.function.LongSupplier;
  * The {@link HttpGet} the price sources and the Wikidata lookup use on the TV, one per source: answers are kept on
  * disk ({@link DiskCache}, keyed by URL only, so an API key in a header never reaches a file name) for as long as
  * {@link PriceCachePolicy} says, and a stale copy is used when the network fails, so what was seen once still shows
- * offline. Before going to the network it checks the source's monthly budget ({@link PriceCachePolicy#allowed}) and
- * keeps its minimum gap between requests. A 404 is kept too, as "not known". Blocking: the price thread only. Pure
- * Java (java.net), unit-tested with a fake network (CachedHttpTest).
+ * offline. Before a keyed source goes to the network it checks its {@link PriceCachePolicy.Quota}, synced from every
+ * reply's quota headers (and, for Watchmode, from its free status endpoint once a day, so a reinstall starts from the
+ * server's count); a spent budget gives no stale copy, so stores fall back to Rent or Buy without an amount. It keeps
+ * each source's minimum gap between requests. A 404 is kept too, as "not known". Blocking: the price thread only.
+ * Pure Java (java.net), unit-tested with a fake network (CachedHttpTest).
  */
 final class CachedHttp implements HttpGet {
 
-    /** What the network answered. */
+    /** What the network answered, with the reply's headers (names in lower case). */
     static final class Response {
         final int code;
         final byte[] body;
+        final Map<String, String> headers;
 
         Response(int code, byte[] body) {
+            this(code, body, Collections.emptyMap());
+        }
+
+        Response(int code, byte[] body, Map<String, String> headers) {
             this.code = code;
             this.body = body;
+            this.headers = headers;
         }
     }
 
@@ -36,19 +46,22 @@ final class CachedHttp implements HttpGet {
         Response fetch(String url, Map<String, String> headers) throws IOException;
     }
 
-    /** Where the ledgers live between runs: the app's preferences on the TV. */
+    /** Where the quotas live between runs: the app's preferences on the TV. */
     interface LedgerStore {
         String load(String sourceId);
 
         void save(String sourceId, String encoded);
     }
 
-    /** No room left in the source's budget today, and nothing kept: the caller tries another source or none. */
+    /** No room left in the source's budget today, or this period: the caller tries another source or none. */
     static final class OverBudget extends IOException {
         OverBudget(String sourceId) {
             super(sourceId + ": over budget");
         }
     }
+
+    /** Watchmode's account status: the quota and the count used, for no credits. */
+    static final String WATCHMODE_STATUS = "https://api.watchmode.com/v1/status/";
 
     private static final int CONNECT_MS = 8000, READ_MS = 12000;
 
@@ -63,6 +76,8 @@ final class CachedHttp implements HttpGet {
     private long lastRequest;
     /** Why the lookup is made; set by the price thread before each one. */
     volatile PriceCachePolicy.Trigger trigger = PriceCachePolicy.Trigger.PREVIEW;
+    /** Ask again even when the kept answer is fresh (the change feed marked the title stale); set like trigger. */
+    volatile boolean refresh;
 
     CachedHttp(String sourceId, DiskCache cache, long ttl, long minInterval, Fetcher fetcher, LedgerStore ledgers,
                LongSupplier clock, ZoneId zone) {
@@ -76,27 +91,26 @@ final class CachedHttp implements HttpGet {
         this.zone = zone;
     }
 
+    /** The source's quota as kept now. */
+    synchronized PriceCachePolicy.Quota quota() {
+        return PriceCachePolicy.Quota.decode(sourceId, ledgers.load(sourceId));
+    }
+
     @Override
     public synchronized String get(String url, Map<String, String> headers) throws IOException {
         DiskCache.Entry kept = cache.read(url, ttl);
-        if (kept != null && kept.fresh) return text(kept.bytes);
+        if (kept != null && kept.fresh && !refresh) return text(kept.bytes);
+        PriceCachePolicy.Quota quota = quota();
+        if (WatchmodePrices.ID.equals(sourceId)
+                && !PriceCachePolicy.fresh(quota.syncedAt, clock.getAsLong(), PriceCachePolicy.DAY)) {
+            syncStatus(quota, headers);
+        }
         int cost = PriceCachePolicy.requestCost(sourceId);
-        int budget = PriceCachePolicy.monthlyBudget(sourceId);
-        LocalDate today = Instant.ofEpochMilli(clock.getAsLong()).atZone(zone).toLocalDate();
-        PriceCachePolicy.Ledger ledger = PriceCachePolicy.Ledger.decode(ledgers.load(sourceId), today);
-        if (!PriceCachePolicy.allowed(ledger, cost, budget, trigger, today)) {
-            if (kept != null) return text(kept.bytes);
+        if (!quota.allowed(cost, trigger, clock.getAsLong(), zone)) {
+            ledgers.save(sourceId, quota.encode());
             throw new OverBudget(sourceId);
         }
-        long wait = lastRequest + minInterval - clock.getAsLong();
-        if (wait > 0) {
-            try {
-                Thread.sleep(wait);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IOException("interrupted");
-            }
-        }
+        pause();
         Response r;
         try {
             r = fetcher.fetch(url, headers);
@@ -104,11 +118,14 @@ final class CachedHttp implements HttpGet {
             if (kept != null) return text(kept.bytes);
             throw e;
         } finally {
-            // Counted whatever the answer: a failed request may still have used a credit.
+            // Counted whatever the answer: a failed request may still have cost something. The server's own count,
+            // when the reply has one, replaces ours just below.
             lastRequest = clock.getAsLong();
-            ledger.record(cost, today);
-            ledgers.save(sourceId, ledger.encode());
+            quota.record(cost, lastRequest, zone);
+            ledgers.save(sourceId, quota.encode());
         }
+        quota.sync(r.headers, clock.getAsLong());
+        ledgers.save(sourceId, quota.encode());
         if (r.code == 200 && r.body != null && r.body.length > 0) {
             cache.write(url, r.body);
             return new String(r.body, StandardCharsets.UTF_8);
@@ -119,6 +136,30 @@ final class CachedHttp implements HttpGet {
         }
         if (kept != null) return text(kept.bytes);
         throw new IOException(sourceId + " answered " + r.code);
+    }
+
+    /** Watchmode's status costs no credits: its headers (and body) tell the server's count. Failures don't matter. */
+    private void syncStatus(PriceCachePolicy.Quota quota, Map<String, String> headers) {
+        try {
+            pause();
+            Response r = fetcher.fetch(WATCHMODE_STATUS, headers);
+            lastRequest = clock.getAsLong();
+            quota.sync(r.headers, lastRequest);
+            ledgers.save(sourceId, quota.encode());
+        } catch (IOException e) {
+            // Offline: the kept count will do.
+        }
+    }
+
+    private void pause() throws IOException {
+        long wait = lastRequest + minInterval - clock.getAsLong();
+        if (wait <= 0) return;
+        try {
+            Thread.sleep(wait);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("interrupted");
+        }
     }
 
     /** A kept answer: an empty file is a kept 404. */
@@ -136,13 +177,19 @@ final class CachedHttp implements HttpGet {
         for (Map.Entry<String, String> h : headers.entrySet()) c.setRequestProperty(h.getKey(), h.getValue());
         try {
             int code = c.getResponseCode();
+            Map<String, String> replyHeaders = new HashMap<>();
+            for (Map.Entry<String, List<String>> h : c.getHeaderFields().entrySet()) {
+                if (h.getKey() != null && !h.getValue().isEmpty()) {
+                    replyHeaders.put(h.getKey().toLowerCase(Locale.ROOT), h.getValue().get(0));
+                }
+            }
             if (code != HttpURLConnection.HTTP_OK) {
                 InputStream err = c.getErrorStream();
                 if (err != null) err.close();
-                return new Response(code, null);
+                return new Response(code, null, replyHeaders);
             }
             try (InputStream in = c.getInputStream()) {
-                return new Response(code, DiskCache.readAll(in));
+                return new Response(code, DiskCache.readAll(in), replyHeaders);
             }
         } catch (IOException e) {
             c.disconnect();

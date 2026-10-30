@@ -41,6 +41,8 @@ def priceKey = { String key ->
     return value
 }
 def watchmodeKey = priceKey('watchmode_api_key')
+// Movie of the Night's key under the project lead's name, or under its API's other name; Java picks (PriceKeys).
+def movieOfTheNightKey = priceKey('movie_of_the_night_api_key')
 def streamingAvailabilityKey = priceKey('streaming_availability_api_key')
 
 android {
@@ -60,6 +62,7 @@ android {
         buildConfigField 'boolean', 'FAHRENHEIT', String.valueOf(temperatureUnit == 'F')
         buildConfigField 'String', 'TMDB_TOKEN', "\"${tmdbToken}\""
         buildConfigField 'String', 'WATCHMODE_KEY', "\"${watchmodeKey}\""
+        buildConfigField 'String', 'MOVIE_OF_THE_NIGHT_KEY', "\"${movieOfTheNightKey}\""
         buildConfigField 'String', 'STREAMING_AVAILABILITY_KEY', "\"${streamingAvailabilityKey}\""
     }
 

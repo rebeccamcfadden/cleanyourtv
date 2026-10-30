@@ -58,6 +58,24 @@ public class KeyedPriceSourcesTest {
     }
 
     @Test
+    public void watchmodesRecordedSwedishAnswerInKronorWithoutBlockbuster() throws JSONException {
+        // Recorded 2026-10-30 for Interstellar: AppleTV, Amazon, Rakuten TV, SF Anytime and Blockbuster, SD to 4K.
+        List<StorePrice> p = WatchmodePrices.parse(Fixtures.read("watchmode_movie_157336.json"), "SE", table);
+        for (StorePrice s : p) {
+            assertTrue(s.store, !s.store.contains("blockbuster"));
+            assertEquals("SEK", s.price.currency);
+        }
+        assertEquals(21, p.size());
+        ProviderAvailability a = ProviderAvailability.parse(Fixtures.read("tmdb_wp_movie_157336.json"), "SE");
+        List<String> rent = new ArrayList<>();
+        for (PricedOffer o : OfferMerge.merge(a, p, table).offers) {
+            if (o.type == OfferType.RENT) rent.add(o.provider.key + " " + o.label());
+        }
+        assertEquals(Arrays.asList("appletv Rent 39 kr", "rakuten Rent 39 kr", "sfanytime Rent 49 kr",
+                "amazonvideo Rent 39 kr"), rent);
+    }
+
+    @Test
     public void watchmodeWithoutAKeyAsksNothing() throws Exception {
         Fixtures.FakeHttp http = new Fixtures.FakeHttp();
         assertTrue(new WatchmodePrices("").prices(ARRIVAL, http).isEmpty());

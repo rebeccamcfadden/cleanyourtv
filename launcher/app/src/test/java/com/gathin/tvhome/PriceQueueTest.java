@@ -10,11 +10,11 @@ import static org.junit.Assert.assertTrue;
 /** The price thread's queue: previews first, and a preview moves its title's waiting list lookup ahead. */
 public class PriceQueueTest {
 
-    private static final PriceCachePolicy.Trigger LIST = PriceCachePolicy.Trigger.LIST;
+    private static final PriceCachePolicy.Trigger BACKGROUND = PriceCachePolicy.Trigger.BACKGROUND;
     private static final PriceCachePolicy.Trigger PREVIEW = PriceCachePolicy.Trigger.PREVIEW;
 
     private static void list(PriceQueue q, String id) {
-        assertTrue(q.add(id, Kind.MOVIE, id, 2020, true, LIST));
+        assertTrue(q.add(id, Kind.MOVIE, id, 2020, true, BACKGROUND));
     }
 
     @Test

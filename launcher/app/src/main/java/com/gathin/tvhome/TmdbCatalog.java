@@ -73,11 +73,22 @@ final class TmdbCatalog implements Catalog {
     private final Map<String, ProviderAvailability> availability = new HashMap<>();
     private final Map<String, Set<String>> priceSources = new HashMap<>();
     private final PriceBook book;
+    /** My list, whose titles (with the Household and Friends lists') are kept priced in the background. */
+    private final Set<String> myList = new HashSet<>();
+    private boolean visible = true;
+    /** While Home shows, the household's titles are checked for prices due every few hours (memory only). */
+    private final Runnable keepFresh = new Runnable() {
+        @Override
+        public void run() {
+            refreshKept();
+            main.postDelayed(this, PriceCachePolicy.KEEP_FRESH_EVERY);
+        }
+    };
 
     TmdbCatalog(Context ctx, String token) {
         client = new TmdbClient(token, ctx.getApplicationContext().getCacheDir());
         overlay = new MockOverlay(new MockCatalog());
-        book = new PriceBook(ctx, BuildConfig.WATCHMODE_KEY, BuildConfig.STREAMING_AVAILABILITY_KEY, this::repriced);
+        book = new PriceBook(ctx, PriceKeys.watchmode(), PriceKeys.movieOfTheNight(), this::repriced, this::refreshKept);
         pool = new ThreadPoolExecutor(THREADS, THREADS, 10, TimeUnit.SECONDS, new PriorityBlockingQueue<>(), r -> {
             Thread t = new Thread(() -> {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
@@ -211,6 +222,7 @@ final class TmdbCatalog implements Catalog {
         failedAt.remove(id);
         if (where != null) availability.put(id, where);
         Title k = upsert(t);
+        if (isKept(k)) wantPrices(k, false, null);
         if (list != null) for (Consumer<Title> done : list) done.accept(k);
     }
 
@@ -254,15 +266,38 @@ final class TmdbCatalog implements Catalog {
 
     // ---- Prices and links (V2 Phase 2) ------------------------------------------------------------------------------
 
+    /** Only a preview asks for one title: grids and search never do (the household's titles are kept fresh). */
     @Override
     public void prices(Title t, boolean preview, Consumer<Title> done) {
         Title k = known.get(t.id);
-        if (k == null || !availability.containsKey(t.id)) return;
+        if (preview && k != null) wantPrices(k, true, done);
+    }
+
+    @Override
+    public void keepPriced(Collection<String> myListIds) {
+        myList.clear();
+        myList.addAll(myListIds);
+        refreshKept();
+    }
+
+    /** On My list, or on the Household or Friends list. Seen and the rest are not kept priced. */
+    private boolean isKept(Title t) {
+        return myList.contains(t.id) || t.isOn(ListId.HOUSEHOLD) || t.isOn(ListId.FRIENDS);
+    }
+
+    /** The household's titles whose prices are due, in the background (PriceBook skips the fresh ones). */
+    private void refreshKept() {
+        if (!visible || !started) return;
+        for (Title t : all()) if (isKept(t)) wantPrices(t, false, null);
+    }
+
+    /** Asks the price book: a preview for the links and any prices, the background only for titles that sell. */
+    private void wantPrices(Title k, boolean preview, Consumer<Title> done) {
+        if (!k.detailed || !availability.containsKey(k.id)) return;
         boolean stores = false;
         for (Offer o : k.offers) stores |= o.type == OfferType.RENT || o.type == OfferType.BUY;
-        // A list only needs prices; a preview also wants the links into the apps.
         if (!preview && !stores) return;
-        String id = t.id;
+        String id = k.id;
         book.want(k, preview, stores, done == null ? null : () -> done.accept(known.get(id)));
     }
 
@@ -281,7 +316,10 @@ final class TmdbCatalog implements Catalog {
 
     @Override
     public void setVisible(boolean visible) {
+        this.visible = visible;
         book.setActive(visible);
+        main.removeCallbacks(keepFresh);
+        if (visible) keepFresh.run();
     }
 
     /** t's offers: its availability with what the price book found merged in. */

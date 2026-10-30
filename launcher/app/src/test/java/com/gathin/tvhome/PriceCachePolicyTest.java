@@ -2,94 +2,143 @@ package com.gathin.tvhome;
 
 import org.junit.Test;
 
-import java.time.LocalDate;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-/** When prices and deep links are fetched again, and the monthly request budget. */
+/** How long prices and links are kept, and the keyed sources' quotas: stops, the daily share, server sync, resets. */
 public class PriceCachePolicyTest {
 
-    private static final long H = PriceCachePolicy.HOUR;
-    private static final long NOW = 1_800_000_000_000L;
+    private static final long H = PriceCachePolicy.HOUR, D = PriceCachePolicy.DAY;
+    private static final ZoneId UTC = ZoneOffset.UTC;
+    private static final PriceCachePolicy.Trigger PREVIEW = PriceCachePolicy.Trigger.PREVIEW;
+    private static final PriceCachePolicy.Trigger BACKGROUND = PriceCachePolicy.Trigger.BACKGROUND;
+    /** 2026-10-01 12:00 UTC. */
+    private static final long OCT1 = Instant.parse("2026-10-01T12:00:00Z").toEpochMilli();
+
+    private static Map<String, String> headers(String... kv) {
+        Map<String, String> m = new HashMap<>();
+        for (int i = 0; i < kv.length; i += 2) m.put(kv[i], kv[i + 1]);
+        return m;
+    }
 
     @Test
-    public void pricesAreKeptADay() {
-        assertTrue(PriceCachePolicy.fresh(NOW - 23 * H, NOW, PriceCachePolicy.PRICE_TTL));
-        assertFalse(PriceCachePolicy.fresh(NOW - 24 * H, NOW, PriceCachePolicy.PRICE_TTL));
-        assertFalse(PriceCachePolicy.fresh(0, NOW, PriceCachePolicy.PRICE_TTL));
+    public void pricesAreKeptAWeekAndLinksAMonth() {
+        assertTrue(PriceCachePolicy.fresh(OCT1 - 6 * D, OCT1, PriceCachePolicy.PRICE_TTL));
+        assertFalse(PriceCachePolicy.fresh(OCT1 - 7 * D, OCT1, PriceCachePolicy.PRICE_TTL));
+        assertFalse(PriceCachePolicy.fresh(0, OCT1, PriceCachePolicy.PRICE_TTL));
         // A clock that went backwards doesn't keep a stale answer forever.
-        assertFalse(PriceCachePolicy.fresh(NOW + H, NOW, PriceCachePolicy.PRICE_TTL));
+        assertFalse(PriceCachePolicy.fresh(OCT1 + H, OCT1, PriceCachePolicy.PRICE_TTL));
+        assertTrue(PriceCachePolicy.fresh(OCT1 - 29 * D, OCT1, PriceCachePolicy.DEEP_LINK_TTL));
+        assertFalse(PriceCachePolicy.fresh(OCT1 - 30 * D, OCT1, PriceCachePolicy.DEEP_LINK_TTL));
     }
 
     @Test
-    public void deepLinksAreKeptAMonth() {
-        assertTrue(PriceCachePolicy.fresh(NOW - 29 * 24 * H, NOW, PriceCachePolicy.DEEP_LINK_TTL));
-        assertFalse(PriceCachePolicy.fresh(NOW - 30 * 24 * H, NOW, PriceCachePolicy.DEEP_LINK_TTL));
-    }
-
-    @Test
-    public void budgetsStayUnderTheFreePlans() {
-        assertEquals(2000, PriceCachePolicy.monthlyBudget(WatchmodePrices.ID));
-        assertTrue(PriceCachePolicy.monthlyBudget(StreamingAvailabilityPrices.ID) < 1000);
-        assertEquals(0, PriceCachePolicy.monthlyBudget(ItunesPrices.ID));
+    public void eachKeyedSourceStopsBelowItsFreeQuota() {
+        assertEquals(2300, PriceCachePolicy.stopAt(WatchmodePrices.ID, 2500));
+        assertEquals(2300, PriceCachePolicy.stopAt(WatchmodePrices.ID, 0));
+        assertEquals(800, PriceCachePolicy.stopAt(WatchmodePrices.ID, 1000));
+        assertEquals(900, PriceCachePolicy.stopAt(StreamingAvailabilityPrices.ID, 1000));
+        assertEquals(900, PriceCachePolicy.stopAt(StreamingAvailabilityPrices.ID, 0));
+        assertEquals(400, PriceCachePolicy.stopAt(StreamingAvailabilityPrices.ID, 500));
+        assertEquals(0, PriceCachePolicy.stopAt(ItunesPrices.ID, 0));
+        assertEquals(2, PriceCachePolicy.requestCost(WatchmodePrices.ID));
+        assertEquals(1, PriceCachePolicy.requestCost(StreamingAvailabilityPrices.ID));
         assertEquals(3000, PriceCachePolicy.minIntervalMs(ItunesPrices.ID));
-        assertEquals(0, PriceCachePolicy.minIntervalMs(WatchmodePrices.ID));
     }
 
     @Test
-    public void theBudgetIsSpreadOverTheMonth() {
-        LocalDate oct1 = LocalDate.of(2026, 10, 1);
-        PriceCachePolicy.Ledger l = new PriceCachePolicy.Ledger(oct1, 0, 0);
-        // 2,000 over 31 days: 64 a day.
-        assertEquals(64, PriceCachePolicy.dailyAllowance(l, 2000, oct1));
-        assertTrue(PriceCachePolicy.allowed(l, 2, 2000, PriceCachePolicy.Trigger.PREVIEW, oct1));
-        l.record(62, oct1);
-        assertTrue(PriceCachePolicy.allowed(l, 2, 2000, PriceCachePolicy.Trigger.PREVIEW, oct1));
-        assertFalse(PriceCachePolicy.allowed(l, 4, 2000, PriceCachePolicy.Trigger.PREVIEW, oct1));
-        // A list only gets half the day's share.
-        assertFalse(PriceCachePolicy.allowed(l, 2, 2000, PriceCachePolicy.Trigger.LIST, oct1));
-        PriceCachePolicy.Ledger fresh = new PriceCachePolicy.Ledger(oct1, 0, 0);
-        fresh.record(30, oct1);
-        assertTrue(PriceCachePolicy.allowed(fresh, 2, 2000, PriceCachePolicy.Trigger.LIST, oct1));
-        assertFalse(PriceCachePolicy.allowed(fresh, 4, 2000, PriceCachePolicy.Trigger.LIST, oct1));
+    public void theBudgetIsSpreadToTheResetAndTheBackgroundGetsHalf() {
+        PriceCachePolicy.Quota q = new PriceCachePolicy.Quota(WatchmodePrices.ID);
+        q.record(0, OCT1, UTC);
+        // 2,300 over the 31 days to a reset a month from first use: 74 a day.
+        assertEquals(74, q.dailyAllowance(OCT1, UTC));
+        q.record(72, OCT1, UTC);
+        assertTrue(q.allowed(2, PREVIEW, OCT1, UTC));
+        assertFalse(q.allowed(4, PREVIEW, OCT1, UTC));
+        assertFalse(q.allowed(2, BACKGROUND, OCT1, UTC));
+        PriceCachePolicy.Quota fresh = new PriceCachePolicy.Quota(WatchmodePrices.ID);
+        fresh.record(34, OCT1, UTC);
+        assertTrue(fresh.allowed(2, BACKGROUND, OCT1, UTC));
+        assertFalse(fresh.allowed(4, BACKGROUND, OCT1, UTC));
+        // The next day has its own share, with yesterday's leftovers carried over.
+        assertTrue(fresh.allowed(36, PREVIEW, OCT1 + D, UTC));
     }
 
     @Test
-    public void quietDaysCarryOverAndANewMonthStartsAgain() {
-        LocalDate oct30 = LocalDate.of(2026, 10, 30);
-        PriceCachePolicy.Ledger l = new PriceCachePolicy.Ledger(LocalDate.of(2026, 10, 2), 100, 10);
-        // 1,900 left for two days.
-        assertEquals(950, PriceCachePolicy.dailyAllowance(l, 2000, oct30));
-        assertEquals(0, l.dayUsed);
-        l.record(2000 - 100 - 2, oct30);
-        assertFalse(PriceCachePolicy.allowed(l, 4, 2000, PriceCachePolicy.Trigger.PREVIEW, oct30));
-        LocalDate nov1 = LocalDate.of(2026, 11, 1);
-        assertTrue(PriceCachePolicy.allowed(l, 4, 2000, PriceCachePolicy.Trigger.PREVIEW, nov1));
-        assertEquals(0, l.monthUsed);
-        assertEquals(nov1, l.day);
+    public void theServersCountWinsSoAReinstallCantOverspend() {
+        // A reinstall starts at 0, but Watchmode's reply says 2,299 credits are used.
+        PriceCachePolicy.Quota q = new PriceCachePolicy.Quota(WatchmodePrices.ID);
+        assertTrue(q.allowed(2, PREVIEW, OCT1, UTC));
+        q.sync(headers("x-account-quota", "2500", "X-Account-Quota-Used", "2299"), OCT1);
+        assertEquals(2500, q.granted);
+        assertEquals(2299, q.used);
+        assertEquals(OCT1, q.syncedAt);
+        assertFalse(q.allowed(2, PREVIEW, OCT1, UTC));
+        // A smaller grant lowers the stop too.
+        PriceCachePolicy.Quota small = new PriceCachePolicy.Quota(WatchmodePrices.ID);
+        small.sync(headers("x-account-quota", "1000", "x-account-quota-used", "799"), OCT1);
+        assertEquals(800, small.stop());
+        assertFalse(small.allowed(2, PREVIEW, OCT1, UTC));
     }
 
     @Test
-    public void unmeteredSourcesAreAlwaysAllowed() {
-        PriceCachePolicy.Ledger l = new PriceCachePolicy.Ledger(LocalDate.of(2026, 10, 30), 99999, 99999);
-        assertTrue(PriceCachePolicy.allowed(l, 1, 0, PriceCachePolicy.Trigger.LIST, LocalDate.of(2026, 10, 30)));
+    public void movieOfTheNightResetsWhenItsServerSays() {
+        long oct31 = Instant.parse("2026-10-31T12:00:00Z").toEpochMilli();
+        PriceCachePolicy.Quota q = new PriceCachePolicy.Quota(StreamingAvailabilityPrices.ID);
+        q.sync(headers("X-Quota-Granted", "1000", "X-Quota-Used", "899", "X-Quota-Reset", "2026-11-01T00:00:00Z"), oct31);
+        assertEquals(Instant.parse("2026-11-01T00:00:00Z").toEpochMilli(), q.resetAt);
+        // One request left below the stop of 900, on the last day.
+        assertTrue(q.allowed(1, PREVIEW, oct31, UTC));
+        q.record(1, oct31, UTC);
+        assertFalse(q.allowed(1, PREVIEW, oct31, UTC));
+        long nov1 = Instant.parse("2026-11-01T00:00:01Z").toEpochMilli();
+        assertTrue(q.allowed(1, PREVIEW, nov1, UTC));
+        assertEquals(0, q.used);
+        assertEquals(Instant.parse("2026-12-01T00:00:00Z").toEpochMilli(), q.resetAt);
     }
 
     @Test
-    public void theLedgerSurvivesAsText() {
-        LocalDate today = LocalDate.of(2026, 10, 30);
-        PriceCachePolicy.Ledger l = new PriceCachePolicy.Ledger(today, 123, 7);
-        assertEquals("2026-10-30|123|7", l.encode());
-        PriceCachePolicy.Ledger back = PriceCachePolicy.Ledger.decode(l.encode(), today);
-        assertEquals(123, back.monthUsed);
-        assertEquals(7, back.dayUsed);
-        PriceCachePolicy.Ledger broken = PriceCachePolicy.Ledger.decode("garbage", today);
-        assertEquals(0, broken.monthUsed);
-        assertEquals(today, broken.day);
-        assertEquals(0, PriceCachePolicy.Ledger.decode(null, today).monthUsed);
+    public void watchmodesPeriodRunsAMonthFromFirstUseAndFollowsADrop() {
+        PriceCachePolicy.Quota q = new PriceCachePolicy.Quota(WatchmodePrices.ID);
+        q.sync(headers("x-account-quota", "2500", "x-account-quota-used", "4"), OCT1);
+        assertEquals(Instant.parse("2026-11-01T12:00:00Z").toEpochMilli(), q.resetAt);
+        q.sync(headers("x-account-quota-used", "1200"), OCT1 + 20 * D);
+        assertEquals(1200, q.used);
+        // The server's count dropped on the 25th: its period started again.
+        long oct26 = OCT1 + 25 * D;
+        q.sync(headers("x-account-quota-used", "2"), oct26);
+        assertEquals(2, q.used);
+        assertEquals(Instant.ofEpochMilli(oct26).atZone(UTC).plusMonths(1).toInstant().toEpochMilli(), q.resetAt);
+    }
+
+    @Test
+    public void keylessSourcesAreAlwaysAllowed() {
+        PriceCachePolicy.Quota q = new PriceCachePolicy.Quota(ItunesPrices.ID);
+        q.used = 99999;
+        assertTrue(q.allowed(1, BACKGROUND, OCT1, UTC));
+    }
+
+    @Test
+    public void theQuotaSurvivesAsText() {
+        PriceCachePolicy.Quota q = new PriceCachePolicy.Quota(StreamingAvailabilityPrices.ID);
+        q.sync(headers("X-Quota-Granted", "1000", "X-Quota-Used", "12", "X-Quota-Reset", "1793491200"), OCT1);
+        q.record(1, OCT1, UTC);
+        PriceCachePolicy.Quota back = PriceCachePolicy.Quota.decode(StreamingAvailabilityPrices.ID, q.encode());
+        assertEquals(1000, back.granted);
+        assertEquals(13, back.used);
+        assertEquals(1793491200000L, back.resetAt);
+        assertEquals(OCT1, back.syncedAt);
+        assertEquals(1, back.dayUsed);
+        assertEquals(0, PriceCachePolicy.Quota.decode(WatchmodePrices.ID, "garbage").used);
+        assertEquals(0, PriceCachePolicy.Quota.decode(WatchmodePrices.ID, null).used);
     }
 
     @Test

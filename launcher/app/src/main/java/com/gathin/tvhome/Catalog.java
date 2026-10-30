@@ -80,11 +80,15 @@ interface Catalog {
     default void search(String query, Consumer<Found> done) {}
 
     /**
-     * Asks for t's real prices and the links into its services' apps (V2 Phase 2): when a title preview opens
-     * ({@code preview}) or a list shows the title. {@code done}, which may be null, runs on the main thread with the
-     * title as it then is; listeners hear too. The mock catalogue's offers are all it has, so it does nothing.
+     * Asks for t's real prices and the links into its services' apps (V2 Phase 2) when its preview opens
+     * ({@code preview}; anything else asks nothing: grids and search never do). {@code done}, which may be null, runs
+     * on the main thread with the title as it then is; listeners hear too. The mock catalogue's offers are all it
+     * has, so it does nothing.
      */
     default void prices(Title t, boolean preview, Consumer<Title> done) {}
+
+    /** The household's My list: its titles, with the Household and Friends lists', are kept priced in the background. */
+    default void keepPriced(Collection<String> myListIds) {}
 
     /** The link that opens t itself in a service's app, or null (the app then opens on its home screen). */
     default String link(Title t, ServiceId service) {

@@ -57,24 +57,32 @@ milestones: [docs/rework.md](docs/rework.md).
   (the mock catalogue).
 - **V2 Phase 2 (real):** with a TMDB token, a title's offers are where TMDB's watch providers (JustWatch data) say it
   streams, is free, or can be rented or bought in Sweden, asked with the title's details (`append_to_response=
-  watch/providers`, kept 12 hours like them). Prices come on demand, when a preview opens or a list shows a title
-  with something to rent or buy, never while Home is hidden (`PriceBook`): Apple's iTunes lookup by the iTunes ids
-  Wikidata keeps (keyless; its search as a fallback), Watchmode and the Streaming Availability API only when their
-  key is in `tv.properties` (`watchmode_api_key`, `streaming_availability_api_key`). Answers are kept on disk a
-  day and used stale offline; a keyed source has a monthly budget under its free plan (`PriceCachePolicy`). The
-  merge (`OfferMerge`) keeps the cheapest price per store, type and quality: "Rent 39 kr", "Rent from 49 kr". A
-  store no source prices (SF Anytime, Viaplay's store, Rakuten TV) still shows, as "Rent" or "Buy" without an
-  amount, and its dialog only opens the app. Where to watch credits its sources ("Availability: JustWatch · Prices:
-  Apple"); Launcher settings has the full notices. Pure parts unit-tested; seen on the emulator (2026-10-30).
-- **Mock or missing:** without keys only the Apple TV Store has prices, and only for movies whose iTunes id
-  Wikidata has: Apple's search finds no movies since late 2025, and no TV seasons in Sweden. No source prices SF
-  Anytime, Viaplay's store or Rakuten. Watchmode answers have no currency and are taken as kronor, untested without
-  a key; so are the Streaming Availability shapes (hand-made fixtures). Prices are refreshed once a day, not live.
-  Decided by the lead, open with the project lead: which stores to show, whether to get keys, a paid plan.
+  watch/providers`, kept 12 hours like them). Prices follow the project lead's policy (2026-10-30), never while Home
+  is hidden (`PriceBook`, `PriceLookup`, `PriceCachePolicy`):
+  - **Sources:** Watchmode first (`watchmode_api_key`; Apple TV, Amazon, Rakuten TV and SF Anytime in kronor, SD to
+    4K; Blockbuster, closed, dropped), Movie of the Night only when Watchmode had no price or its budget is spent
+    (`movie_of_the_night_api_key`, or `streaming_availability_api_key`; Apple and Amazon only), Apple's keyless
+    iTunes lookup (by the iTunes ids Wikidata keeps) when neither priced Apple. Without keys only iTunes is asked.
+  - **When:** prices are kept 7 days. Titles on My list and the Household and Friends lists are kept fresh in the
+    background; any other title is priced only when its preview opens. Grids and search never ask. Movie of the
+    Night's change feed (`ChangeFeed`: rent and buy changes at Apple and Amazon in Sweden), read at most once a day
+    while Home shows and at most 3 pages, marks kept titles stale for an early refetch.
+  - **Budgets, no paid plans:** every reply's quota headers (Watchmode `X-Account-Quota`/`-Used`, also from its free
+    `/v1/status/` once a day; Movie of the Night `X-Quota-Granted`/`-Used`/`-Reset`) set the count, so a reinstall
+    can't overspend. Watchmode stops at 2,300 credits of 2,500 (a lookup costs 2; its month runs from first use, as
+    its docs don't say when it renews), Movie of the Night at 900 requests of 1,000 (resets when its server says,
+    the 1st). What is left is spread over the days to the reset; the background may use half a day's share. With a
+    budget spent, only Apple is priced and the other stores show "Rent" or "Buy" without an amount.
+  - **Shown:** the cheapest price per store, type and quality (`OfferMerge`): "Rent 39 kr", "Rent from 49 kr". A
+    store with no known price still shows, without an amount, and its dialog only opens the app. Where to watch
+    credits its sources ("Availability: JustWatch · Prices: Watchmode"); Launcher settings has the full notices.
+    Answers are kept on disk and used stale offline. Seen on the emulator with real keys (2026-10-30).
+- **Still missing:** Viaplay's store has no price from any source. Shows are rarely priced (Apple's TV search finds
+  no Swedish seasons). Prices are a week old at most, not live.
 - **Findings (2026-10-30):** in Sweden TMDB lists rent and buy at Apple TV, Viaplay, Rakuten TV, SF Anytime and
-  Amazon Video, and still Blockbuster, which closed and is dropped; no Google Play. Watchmode's TMDB-id lookup costs
-  2 credits. Streaming Availability prices only Apple TV and Amazon in Sweden. TMDB's add-on channels ("HBO Max
-  Amazon Channel") are dropped.
+  Amazon Video, and still Blockbuster, which closed and is dropped; no Google Play. TMDB's add-on channels ("HBO Max
+  Amazon Channel") are dropped. The first start with keys prices the household's lists at once: about 16 Watchmode
+  lookups (32 credits) for the emulator's lists, within the background's daily share.
 ### Two regions
 - **V1:** SE only.
 - **Wanted:** search SE and US together, since the household also watches through a VPN, and label each result
