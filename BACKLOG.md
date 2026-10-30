@@ -63,8 +63,9 @@ milestones: [docs/rework.md](docs/rework.md).
     4K; Blockbuster, closed, dropped), Movie of the Night only when Watchmode had no price or its budget is spent
     (`movie_of_the_night_api_key`, or `streaming_availability_api_key`; Apple and Amazon only), Apple's keyless
     iTunes lookup (by the iTunes ids Wikidata keeps) when neither priced Apple. Without keys only iTunes is asked.
-  - **When:** prices are kept 7 days. Titles on My list and the Household and Friends lists are kept fresh in the
-    background; any other title is priced only when its preview opens. Grids and search never ask. Movie of the
+  - **When:** prices are kept 7 days. Once a TMDB account is signed in, titles on My list and the Household and
+    Friends lists are kept fresh in the background (not before, so a fresh TV spends nothing on the mock lists); any
+    other title is priced only when its preview opens. Grids and search never ask. Movie of the
     Night's change feed (`ChangeFeed`: rent and buy changes at Apple and Amazon in Sweden), read at most once a day
     while Home shows and at most 3 pages, marks kept titles stale for an early refetch.
   - **Budgets, no paid plans:** every reply's quota headers (Watchmode `X-Account-Quota`/`-Used`, also from its free

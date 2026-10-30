@@ -76,6 +76,8 @@ final class TmdbCatalog implements Catalog {
     /** My list, whose titles (with the Household and Friends lists') are kept priced in the background. */
     private final Set<String> myList = new HashSet<>();
     private boolean visible = true;
+    /** Off until a TMDB account is signed in: see {@link Catalog#setListPricing}. */
+    private boolean listPricing;
     /** While Home shows, the household's titles are checked for prices due every few hours (memory only). */
     private final Runnable keepFresh = new Runnable() {
         @Override
@@ -280,14 +282,22 @@ final class TmdbCatalog implements Catalog {
         refreshKept();
     }
 
-    /** On My list, or on the Household or Friends list. Seen and the rest are not kept priced. */
+    /** On My list, or on the Household or Friends list, while list pricing is on. Seen and the rest are not kept. */
     private boolean isKept(Title t) {
+        if (!listPricing) return false;
         return myList.contains(t.id) || t.isOn(ListId.HOUSEHOLD) || t.isOn(ListId.FRIENDS);
+    }
+
+    @Override
+    public void setListPricing(boolean on) {
+        if (listPricing == on) return;
+        listPricing = on;
+        refreshKept();
     }
 
     /** The household's titles whose prices are due, in the background (PriceBook skips the fresh ones). */
     private void refreshKept() {
-        if (!visible || !started) return;
+        if (!visible || !started || !listPricing) return;
         for (Title t : all()) if (isKept(t)) wantPrices(t, false, null);
     }
 

@@ -90,6 +90,13 @@ interface Catalog {
     /** The household's My list: its titles, with the Household and Friends lists', are kept priced in the background. */
     default void keepPriced(Collection<String> myListIds) {}
 
+    /**
+     * Whether the household's lists are priced in the background at all. Off until a TMDB account is signed in
+     * (project lead, 2026-10-30), so a fresh TV doesn't spend price credits on the mock Household and Friends lists;
+     * a preview still prices the title it shows.
+     */
+    default void setListPricing(boolean on) {}
+
     /** The link that opens t itself in a service's app, or null (the app then opens on its home screen). */
     default String link(Title t, ServiceId service) {
         return null;
