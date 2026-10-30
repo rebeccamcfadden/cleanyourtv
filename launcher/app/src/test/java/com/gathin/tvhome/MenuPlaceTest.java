@@ -77,4 +77,10 @@ public class MenuPlaceTest {
         assertEquals(MenuPlace.Side.BELOW, p.side);
         insideSafeArea(p);
     }
-}
+
+    @Test
+    public void aTileWithNoRoomAroundItGetsTheMenuUnderTheCeilingAndInsideTheSafeArea() {
+        MenuPlace p = at(SX, 500, W - SX, 900, HERO);
+        assertTrue(p.top >= HERO);
+        insideSafeArea(p);
+    }}

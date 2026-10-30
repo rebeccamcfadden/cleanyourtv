@@ -23,7 +23,7 @@ final class TileMenu {
         return create(shell, tile, rows, null);
     }
 
-    /** As create, keeping the menu below avoid (Home's greeting, date and clock) while it is showing. */
+    /** As create, keeping the menu below the avoid view (Home's greeting, date and clock) while that view is showing. */
     static Screen create(Shell shell, View tile, List<MenuPanel.Row> rows, View avoid) {
         FrameLayout root = new FrameLayout(shell.stage.getContext());
         View catcher = new View(root.getContext());
@@ -40,12 +40,12 @@ final class TileMenu {
                 View.MeasureSpec.makeMeasureSpec(stageH, View.MeasureSpec.AT_MOST));
         int pw = panel.getMeasuredWidth(), ph = panel.getMeasuredHeight();
         float[] r = Focus.rectIn(tile, shell.stage);
+        int gap = Ui.px(14);
         int ceiling = 0;
         if (avoid != null && avoid.isShown() && avoid.getAlpha() > 0f) {
-            ceiling = Math.round(Focus.rectIn(avoid, shell.stage)[3]) + Ui.px(14);
+            ceiling = Math.round(Focus.rectIn(avoid, shell.stage)[3]) + gap;
         }
-        MenuPlace at = MenuPlace.of(r, pw, ph, stageW, stageH, Ui.px(Ui.SAFE_X), Ui.px(Ui.SAFE_Y), Ui.px(14),
-                ceiling);
+        MenuPlace at = MenuPlace.of(r, pw, ph, stageW, stageH, Ui.px(Ui.SAFE_X), Ui.px(Ui.SAFE_Y), gap, ceiling);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
         lp.leftMargin = at.left;

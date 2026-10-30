@@ -34,6 +34,8 @@ final class MenuPlace {
         int top = Math.max(safeY, Math.min(Math.max((tt + tb - ph) / 2, minTop), maxBottom - ph));
         if (tr + gap <= maxLeft) return new MenuPlace(Math.max(safeX, tr + gap), top, Side.RIGHT);
         if (tl - gap - pw >= safeX) return new MenuPlace(Math.min(tl - gap - pw, maxLeft), top, Side.LEFT);
-        return new MenuPlace(under, Math.max(safeY, tt - gap - ph), Side.ABOVE);
+        // No room anywhere: over the tile, still under the ceiling and inside the safe area.
+        int over = Math.max(safeY, Math.min(Math.max(tt - gap - ph, minTop), maxBottom - ph));
+        return new MenuPlace(under, over, Side.ABOVE);
     }
 }
