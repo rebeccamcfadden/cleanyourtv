@@ -128,6 +128,16 @@ final class ServicePicks {
         return !STORES.contains(o.service) || stores.contains(o.service);
     }
 
+    /**
+     * The stores whose rent and buy offers count, for {@link PriceCards#ticked}: the ticked ones plus every store the
+     * pane doesn't list, as {@link #keeps} does. Null (every store) stays null.
+     */
+    static Set<ServiceId> counted(Set<ServiceId> ticked) {
+        if (ticked == null) return null;
+        EnumSet<ServiceId> out = EnumSet.complementOf(EnumSet.copyOf(STORES));
+        out.addAll(ticked);
+        return Collections.unmodifiableSet(out);
+    }
     /** The title's offers with only the ticked stores' prices; the same list when none is left out. */
     static List<Offer> keep(List<Offer> offers, Set<ServiceId> stores) {
         List<Offer> out = new ArrayList<>(offers.size());

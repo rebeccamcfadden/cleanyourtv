@@ -50,7 +50,7 @@ final class Data {
         Data data = new Data(catalog, Services.from(ctx, cfg, table), household, table,
                 new Accounts(ctx, household, token));
         Context app = ctx.getApplicationContext();
-        data.tickedStores = () -> ServiceChoices.stores(app);
+        data.tickedStores = () -> ServicePicks.counted(ServiceChoices.stores(app));
         return data;
     }
 

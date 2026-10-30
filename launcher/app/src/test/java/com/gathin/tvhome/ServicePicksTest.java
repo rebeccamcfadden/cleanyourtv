@@ -102,4 +102,12 @@ public class ServicePicksTest {
         assertEquals(Arrays.asList(sub, youtubeRent, tele2Rent), ServicePicks.keep(offers, set()));
         assertEquals(Collections.emptyList(), ServicePicks.keep(Collections.emptyList(), set()));
     }
-}
+
+    @Test
+    public void storesThePaneDoesNotListAlwaysCount() {
+        Set<ServiceId> counted = ServicePicks.counted(EnumSet.of(ServiceId.APPLETV));
+        assertTrue(counted.contains(ServiceId.APPLETV));
+        assertFalse(counted.contains(ServiceId.RAKUTEN));
+        assertTrue(counted.contains(ServiceId.TELE2PLAY));
+        assertNull(ServicePicks.counted(null));
+    }}
