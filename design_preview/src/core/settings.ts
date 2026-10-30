@@ -1,5 +1,6 @@
 import { HOME_APPS, PICK_SERVICES, PICK_STORES } from '../data/services';
 import type { ServiceId } from '../types';
+import type { ThemeId } from './theme';
 
 // Launcher settings that the prototype acts on, saved at once in localStorage as the TV saves them.
 
@@ -7,6 +8,7 @@ export type Motion = 'full' | 'reduced' | 'off';
 export type OpenOnStart = 'home' | 'last' | 'live';
 export type Unit = 'c' | 'f' | 'tv';
 export type Sleep = 0 | 30 | 60 | 90 | 120;
+export type ThemeFont = 'theme' | 'system';
 
 interface Saved {
   motion: Motion;
@@ -21,6 +23,11 @@ interface Saved {
   place: string;
   recentPlaces: string[];
   unit: Unit;
+  /** Launcher settings › Theme: the chosen theme (a Seasonal one follows the date), and whether it uses its own fonts. */
+  theme: ThemeId;
+  themeFont: ThemeFont;
+  /** Petals, snow and leaves drifting over Seasonal backdrops. Saved only: nothing moves yet, on the TV either. */
+  movingDetails: boolean;
   /** Sleep timer, in minutes; 0 is off. Not kept between visits on the TV either. */
   sleep: Sleep;
 }
@@ -40,6 +47,9 @@ const defaults = (): Saved => ({
   place: DEFAULT_PLACE,
   recentPlaces: ['malmo'],
   unit: 'tv',
+  theme: 'midnight',
+  themeFont: 'theme',
+  movingDetails: true,
   sleep: 0,
 });
 
@@ -95,6 +105,7 @@ export const START_LABELS: Record<OpenOnStart, string> = { home: 'Home', last: '
 /** The TV's region is Sweden in the mock, so TV default resolves to °C. */
 export const TV_UNIT: 'c' | 'f' = 'c';
 export const UNIT_LABELS: Record<Unit, string> = { c: '°C', f: '°F', tv: `TV default (°${TV_UNIT.toUpperCase()})` };
+export const FONT_LABELS: Record<ThemeFont, string> = { theme: 'Theme font', system: 'System font' };
 export const SLEEP_STEPS: Sleep[] = [0, 30, 60, 90, 120];
 export const sleepLabel = (m: Sleep) => (m ? `${m} min` : 'Off');
 
