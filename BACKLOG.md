@@ -65,6 +65,18 @@ milestones: [docs/rework.md](docs/rework.md).
   their current terms before choosing.
 - **Recommendation:** TMDB providers for availability first; prices from a second source only if the "Rent from
   $3.99" lines are worth a key and a quota.
+- **V2 Phase 2, stage 1 (built, not wired):** pure, tested building blocks in `launcher/`: `WatchProviders` (TMDB's
+  Swedish provider ids, the launcher's services, their TV apps), `ProviderAvailability` (TMDB's answer per region),
+  `PriceSource` with `ItunesPrices`, `WatchmodePrices` and `StreamingAvailabilityPrices`, `OfferMerge` and
+  `PricedOffer` (offers in kronor, "Rent from 39 kr"), `PriceCachePolicy` (24 hours, on demand, a monthly budget
+  per keyed source), and `HttpGet`, the one network call they need. The keys are the optional
+  `watchmode_api_key` and `streaming_availability_api_key` in `tv.properties`.
+- **Findings (2026-10-30):** in Sweden TMDB lists rent and buy at Apple TV, Viaplay, Rakuten TV, SF Anytime and
+  Amazon Video, and still Blockbuster, which closed; no Google Play. Apple's iTunes search no longer finds movies
+  (any country) or TV seasons (Sweden), but its lookup by id answers in kronor (Arrival: rent 39 kr, buy 79 kr),
+  and Wikidata keeps those ids (P6398). Watchmode's answer has no currency, and a TMDB-id lookup costs 2 credits.
+  Streaming Availability prices only Apple TV and Amazon in Sweden. No source prices SF Anytime, Viaplay's store or
+  Rakuten.
 
 ### Two regions
 - **V1:** SE only.
@@ -105,6 +117,10 @@ milestones: [docs/rework.md](docs/rework.md).
   `P4983` shows). From it, it reads the service ids for Netflix (`P1874`), Disney+ (`P7595`/`P7596`), Apple TV
   (`P9586`/`P9751`), Max (`P8298`) and Prime Video (`P8055`), builds each app's link, and keeps the answer for a
   month. No source for episode links was found yet.
+- **V2 Phase 2, stage 1 (built, not wired):** `WikidataIds` asks query.wikidata.org once per title (SPARQL by
+  the TMDB id) for those ids plus Disney+'s newer browse ids (`P13902`), Prime Video GTIs (`P14462`, `P14440`), SVT
+  Play (`P6817`) and the iTunes ids the prices use; `DeepLinks` builds the links. TV4 Play, Viaplay and SkyShowtime
+  have no Wikidata property, so they still open on their home screen.
 
 ### Choosing the household's services
 - **V1:** subscribed services come from the installed apps, with an override: `subscribed_services` in
