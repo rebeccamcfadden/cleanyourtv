@@ -746,7 +746,9 @@ final class TitlePreview extends Screen {
             for (int i = 0; i < services.size(); i++) {
                 PriceCards.Card c = services.get(i);
                 ServiceId id = c.offers.service;
-                String name = c.offers.watchable() ? data.table.name(id) : data.table.storeName(id);
+                // The store's name only for a card that sells: an unsubscribed Viaplay is still "Viaplay".
+                boolean sells = c.offers.rent != null || c.offers.buy != null;
+                String name = sells && !c.offers.watchable() ? data.table.storeName(id) : data.table.name(id);
                 cards.add(PriceViews.serviceCard(ctx, c, name, G_WHERE, i == 0, v -> openService(c.offers)));
             }
             body = row(cards);
