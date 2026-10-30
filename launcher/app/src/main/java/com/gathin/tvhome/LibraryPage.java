@@ -337,9 +337,11 @@ final class LibraryPage extends Screen {
         if (pending == 0) loadingSince = 0;
         else if (loadingSince == 0) loadingSince = nowMs;
         boolean waitedEnough = detailed > 0 && loadingSince != 0 && nowMs - loadingSince >= LOADING_MAX_MS;
-        if (pending > 0 && !settled && !waitedEnough) {
+        long wait = loadingSince + LOADING_MAX_MS - nowMs;
+        // Past the deadline with nothing detailed, the catalogue's listener re-renders when the first title arrives.
+        if (pending > 0 && !settled && !waitedEnough && wait > 0) {
             view.removeCallbacks(renderLater);
-            view.postDelayed(renderLater, loadingSince + LOADING_MAX_MS - nowMs);
+            view.postDelayed(renderLater, wait);
         }
         CatalogState.Lists st = CatalogState.lists(data.catalog.isRemote(), online, pool.size(), detailed, pending,
                 settled || waitedEnough);
