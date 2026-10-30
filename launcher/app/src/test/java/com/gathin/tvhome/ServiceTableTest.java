@@ -97,6 +97,12 @@ public class ServiceTableTest {
         assertEquals("Prime Video", branded.appName(ServiceId.AMAZONVIDEO));
         assertEquals("SF Anytime", branded.appName(ServiceId.SFANYTIME));
         assertEquals("Apple TV", table.appName(ServiceId.APPLETV));
+        // Viaplay's rentals and purchases are the Viaplay Store's (07-prices A); it opens in Viaplay.
+        assertEquals("Viaplay Store", branded.storeName(ServiceId.VIAPLAY));
+        assertEquals("Viaplay", branded.name(ServiceId.VIAPLAY));
+        assertEquals("Viaplay", branded.appName(ServiceId.VIAPLAY));
+        assertEquals("Apple TV Store", branded.storeName(ServiceId.APPLETV));
+        assertEquals("Viaplay", table.storeName(ServiceId.VIAPLAY));
     }
 
     @Test

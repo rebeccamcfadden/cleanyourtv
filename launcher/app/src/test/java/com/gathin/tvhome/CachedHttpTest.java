@@ -136,6 +136,29 @@ public class CachedHttpTest {
     }
 
     @Test
+    public void itNotesWhenTheOldestAnswerItGaveWasFetched() throws IOException {
+        CachedHttp h = http(ItunesPrices.ID);
+        long fetched = now;
+        next = ok("{\"a\":1}");
+        h.get("https://x/1", Collections.emptyMap());
+        assertEquals(fetched, h.oldestServed);
+        // Days later, offline: the kept copy goes out with its own time, not today's.
+        now += 8 * D;
+        offline = true;
+        h.oldestServed = Long.MAX_VALUE;
+        h.get("https://x/1", Collections.emptyMap());
+        assertEquals(fetched, h.oldestServed);
+        // A fresh answer from the network is as old as now; the oldest one counts.
+        offline = false;
+        next = ok("{\"b\":1}");
+        h.get("https://x/2", Collections.emptyMap());
+        assertEquals(fetched, h.oldestServed);
+        h.oldestServed = Long.MAX_VALUE;
+        h.get("https://x/2", Collections.emptyMap());
+        assertEquals(now, h.oldestServed);
+    }
+
+    @Test
     public void aNotFoundIsKept() throws IOException {
         CachedHttp h = http(StreamingAvailabilityPrices.ID);
         next = new CachedHttp.Response(404, null);

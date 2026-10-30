@@ -63,6 +63,15 @@ final class ServiceTable {
     }
 
     /**
+     * The name of the service as a store, where its rentals and purchases show (design 07-prices A): "Viaplay Store"
+     * for Viaplay, which also streams, with current branding (design_preview/README.md, Product decisions); otherwise
+     * {@link #name}.
+     */
+    String storeName(ServiceId id) {
+        return branded && id == ServiceId.VIAPLAY ? "Viaplay Store" : name(id);
+    }
+
+    /**
      * The name of the app that opens the service: with current branding a store opens in its subscription's app
      * ("Apple TV Store" in the Apple TV app, "Amazon Video" in Prime Video); otherwise the service's own name.
      */
