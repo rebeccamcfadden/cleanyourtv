@@ -52,6 +52,9 @@ interface Catalog {
     /** Loads the details of these titles in the background, from the cache first, for lists and filters. */
     default void want(Collection<String> ids) {}
 
+    /** The internet is back (or Home showed again): try once more what failed, such as a cold start before Wi-Fi. */
+    default void retryFailed() {}
+
     /** The title with its details (cast, seasons, rating, trailer). */
     default void details(Title t, Consumer<Title> done) {
         Title known = get(t.id);

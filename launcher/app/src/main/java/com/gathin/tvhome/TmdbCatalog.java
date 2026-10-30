@@ -147,6 +147,14 @@ final class TmdbCatalog implements Catalog {
     }
 
     @Override
+    public void retryFailed() {
+        if (!started || failedAt.isEmpty()) return;
+        List<String> ids = new ArrayList<>(failedAt.keySet());
+        failedAt.clear();
+        for (String id : ids) load(id, false);
+    }
+
+    @Override
     public void details(Title t, Consumer<Title> done) {
         Title k = known.get(t.id);
         if (k == null) k = upsert(t);

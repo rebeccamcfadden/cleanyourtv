@@ -360,7 +360,10 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     private void readNetwork() {
         NetworkState s = NetworkState.read(this);
         networkIcon = s.icon();
+        boolean was = internet;
         internet = s.validated;
+        // Titles whose details failed while offline (a cold start before Wi-Fi is up) load once the internet is back.
+        if (internet && !was && data != null) data.catalog.retryFailed();
     }
 
     private void refreshInputs() {
