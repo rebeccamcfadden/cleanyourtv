@@ -165,7 +165,8 @@ decided after the first run on a real TV: closing with Back alone felt clunky.)
 
 - **Resting:** greeting ("Good evening"), date, a large clock with AM/PM, today's and tomorrow's forecast, and a
   row of seven app tiles (Netflix, YouTube, Prime Video, Disney+, Max, Apple TV+, Spotify).
-- **Scrolled:** moving down from the apps slides the page up to Inputs (Live TV, HDMI 1–3), Shortcuts (All Apps,
+- **Scrolled:** moving down from the apps slides the page up to Inputs (Live TV, HDMI 1–3: at most four tiles,
+  never scrolling; any others are in the nav's Inputs menu), Shortcuts (All Apps,
   Launcher settings, TV Settings) and an hourly Weather strip, and dims the background. Launcher settings opens the
   same page as the last row of the quick-settings dropdown. (The Figma frame still shows an Explore shortcut here;
   it was replaced because Explore is parked.)
