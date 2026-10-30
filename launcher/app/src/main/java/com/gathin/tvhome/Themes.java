@@ -197,6 +197,8 @@ final class Themes {
     // Midnight's proportions, for the values Figma does not name (see the class comment).
     private static final float SURFACE_STEP = 1.3f;
     private static final float GHOST_TO_BG = 0.26f;
+    /** A portrait's fill, a little toward the text from the raised fill (Midnight: 1C2633 on 121A24). */
+    private static final float PORTRAIT_TO_TEXT = 0.06f;
     private static final int ACCENT_SOFT_ALPHA = 0x24, GOOD_SOFT_ALPHA = 0x29;
     private static final int MENU_ALPHA = 0xF5, TOAST_ALPHA = 0xF7;
     private static final float SCRIM_BRIGHTNESS = 0.57f;
@@ -267,6 +269,15 @@ final class Themes {
         b.scanlines = s.scanlines;
         b.vignette = s.vignette;
         b.backdrop = backdrop;
+        // Track A's fills, in Midnight's proportions to its surface (tile 11, panel 8, card 15, selected 31 of 13);
+        // a theme with solid surfaces (High Contrast) keeps them solid, and its selected item takes surface/2.
+        float sa = alpha(p.surface1);
+        b.tile = solid ? p.surface1 : withAlpha(p.surface1, sa * 11 / 13f);
+        b.panel = solid ? p.surface1 : withAlpha(p.surface1, sa * 8 / 13f);
+        b.card = solid ? p.surface1 : withAlpha(p.surface1, sa * 15 / 13f);
+        b.selected = solid ? p.surface2 : withAlpha(p.surface1, sa * 31 / 13f);
+        b.dialogBg = raised;
+        b.portrait = mix(raised, p.text1, PORTRAIT_TO_TEXT);
         return b.build();
     }
 

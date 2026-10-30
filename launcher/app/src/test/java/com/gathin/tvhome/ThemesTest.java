@@ -46,6 +46,35 @@ public class ThemesTest {
         assertEquals("midnight", Themes.DEFAULT_ID);
     }
 
+    /**
+     * Every colour field is the theme's own: one left at the Builder's Midnight default would put Midnight's navy or
+     * white-on-dark fills into a light theme (Daylight's dialogs were navy before track A's fills were derived).
+     */
+    @Test
+    public void lightThemesDoNotKeepMidnightsFills() {
+        Theme daylight = Themes.resolve("daylight", DAY);
+        Theme midnight = Theme.midnight();
+        for (Field f : Theme.class.getDeclaredFields()) {
+            if (Modifier.isStatic(f.getModifiers()) || f.getType() != int.class) continue;
+            try {
+                int d = f.getInt(daylight), m = f.getInt(midnight);
+                // Colours that are fine to share: transparent ones and status colours the palette may repeat.
+                if (d >>> 24 == 0 || f.getName().startsWith("shadow") || f.getName().startsWith("textShadow")) continue;
+                assertTrue(f.getName() + " is still Midnight's", d != m);
+            } catch (IllegalAccessException ex) {
+                throw new AssertionError(ex);
+            }
+        }
+    }
+
+    /** A dialog is read on its own fill: text1 on dialogBg passes AA in every theme and period. */
+    @Test
+    public void dialogTextIsReadable() {
+        for (Theme t : allThemes()) {
+            assertTrue(t.id + " dialog " + contrast(t.text1, t.dialogBg), contrast(t.text1, t.dialogBg) >= 4.5);
+        }
+    }
+
     @Test
     public void everyIdResolvesToItself() {
         Set<Integer> names = new HashSet<>();
