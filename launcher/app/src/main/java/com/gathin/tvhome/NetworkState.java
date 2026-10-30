@@ -72,9 +72,12 @@ final class NetworkState {
         return s;
     }
 
-    /** The nav's network icon: Ethernet, Wi-Fi, or Wi-Fi crossed out while offline. */
+    /**
+     * The nav's network icon: Ethernet, Wi-Fi, or Wi-Fi crossed out while offline. Offline is no internet, as the pages
+     * say it (V2 design 06-states A), so a network Android couldn't reach the internet through is crossed out too.
+     */
     int icon() {
-        if (!online) return R.drawable.ic_ui_wifi_off;
+        if (!online || !validated) return R.drawable.ic_ui_wifi_off;
         return ethernet ? R.drawable.ic_ui_ethernet : R.drawable.ic_ui_wifi;
     }
 }
