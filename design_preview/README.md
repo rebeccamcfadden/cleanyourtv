@@ -139,7 +139,8 @@ From [AGENTS.md](../AGENTS.md) and the design:
 - ←/→ on the nav stay on it and move to the next item: ← from Wi-Fi is always Search, never something on the page
   below, and past either end nothing happens.
 - Landing on a section highlights it; OK switches to it (OK on the current page's section does nothing). Down
-  enters the page. Landing back on the nav from a page puts focus on that page's own section.
+  enters the page. Landing back on the nav from a page puts focus on that page's own section, whichever section
+  or icon was used last and whichever is nearest; Pick for me's section is Movies or TV Shows.
 - Switching animates: the new page's content slides 90 px in from the side of the tab you switched towards and fades
   in (360 ms); the old content slides 60 px the other way and fades out (240 ms). The nav stays still. With
   reduced motion, pages switch without animating.
