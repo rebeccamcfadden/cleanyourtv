@@ -428,6 +428,11 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     void openFirstRun(Collection<String> done) {
         shell.closeDialogs();
         if (firstRun != null && shell.has(firstRun)) return;
+        // Never over Launcher settings: the two would restore in the wrong order after a rebuild.
+        if (settingsPage != null && shell.has(settingsPage)) {
+            shell.goTab(Screen.Tab.HOME, false);
+            settingsClosed();
+        }
         firstRun = FirstRunPage.create(this, done);
         shell.push(firstRun);
     }
@@ -436,6 +441,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     void closeFirstRun() {
         shell.goTab(Screen.Tab.HOME, false);
         firstRunClosed();
+        if (settingsPage != null && !shell.has(settingsPage)) settingsClosed();
         if (Config.settingsChanged(settingsRevision, settingsRevision())) recreate();
     }
 
