@@ -429,14 +429,34 @@ key still opens the TV maker's panel, or `settings_key_panel`'s old quick-settin
 - **The open menu's button:** as with the Wi-Fi and Inputs dropdowns, the Settings icon is not kept highlighted while
   its menu is open (the prototype's `is-open`).
 
+## First run
+
+The checklist (design 01-setup B; `FirstRunPage`) and its cut-down split (r2-setup-checklist; Launcher settings'
+own page through `LauncherSettingsPage.Setup`, filled by `FirstRunSplit`). Two questions are **pending the project
+lead**; both are stubbed so the answer changes one place.
+
+- **When it shows on a real TV: pending the project lead.** Stub: never by itself by default. config.xml's
+  `first_run_checklist` (or `"first_run_checklist": true` in a pushed config.json) shows it once, on the first start
+  of Home after install, remembered in the `first_run` preferences (kept apart from Launcher settings' choices, which
+  a theme push clears). The intent action `com.gathin.tvhome.action.FIRST_RUN` on `MainActivity` opens it at any
+  time, for adb: `adb shell am start -a com.gathin.tvhome.action.FIRST_RUN -n com.gathin.tvhome/.MainActivity`.
+  There is no quick-settings or Launcher settings row for it. The rule is `FirstRunRules.showOnStart`.
+- **When a row counts as done: pending the project lead.** Stub, as in the prototype: once its pane was opened
+  (OK on the row, or Next to it), whatever was chosen there. The rule is `FirstRunRules.done`. Which steps are done
+  is kept while the launcher rebuilds, not across a restart.
+- **Rows differ from the prototype in two places:** the value on the right is the section's own (Launcher settings'
+  "6 ticked", the weather place) rather than the prototype's service and store names, and the line under Streaming
+  services is fixed ("Titles on these show as Included") rather than the count. Weather's value is left out while it
+  is "Default" beside the Default pill, and the signed-in account shows the username without the avatar.
+
 ## Not designed yet
 
 From the spec's open questions ([design_preview/README.md](design_preview/README.md)). Each needs a design before
 it is built.
 
 - Search and Home's weather while loading (06-states A designs offline and errors, not these).
-- First run and setup: the checklist (01-setup B) and its panes (r2-setup-checklist) are built in the prototype; not
-  in the launcher. When it shows is open.
+- First run and setup: the checklist (01-setup B) and its panes (r2-setup-checklist) are built in the launcher
+  (`FirstRunPage`, `FirstRunSplit`); see [First run](#first-run) for what is pending.
 - Launcher settings in the new UI: the split (05-settings A) and every pane are built in the launcher (M9, see
   [From M1](#from-m1)). Home row apps (with reordering) has no design; the prototype's is a stand-in.
 - Removing a recent search.
