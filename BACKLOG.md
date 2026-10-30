@@ -448,6 +448,9 @@ lead**; both are stubbed so the answer changes one place.
   "6 ticked", the weather place) rather than the prototype's service and store names, and the line under Streaming
   services is fixed ("Titles on these show as Included") rather than the count. Weather's value is left out while it
   is "Default" beside the Default pill, and the signed-in account shows the username without the avatar.
+- **A step that recreates the launcher:** a rebuild (Theme or Typeface, for example) reopens First run with its done
+  steps, not the split it was in. None of the four steps rebuilds mid-split today; a new step that does needs the
+  restore path to know it came from First run.
 
 ## Not designed yet
 
