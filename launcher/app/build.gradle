@@ -33,11 +33,12 @@ def tmdbToken = tvProps.getProperty('tmdb_api_key', '').trim()
 if (tmdbToken && !(tmdbToken ==~ /[A-Za-z0-9._\-]+/)) {
     throw new GradleException("${tvPropsFile.name}: tmdb_api_key has characters a TMDB token never has")
 }
-// Optional price keys (BACKLOG.md, Streaming availability and prices): without them the source is skipped. Checked
-// the same way, so a key can't break the generated Java; the message never prints the value.
+// Optional price keys (BACKLOG.md, Streaming availability and prices): without them the source is skipped. Any
+// printable ASCII but a space, a double quote or a backslash, so a key can't break the generated Java string; the
+// message never prints the value.
 def priceKey = { String key ->
     def value = tvProps.getProperty(key, '').trim()
-    if (value && !(value ==~ /[A-Za-z0-9._\-]+/)) throw new GradleException("${tvPropsFile.name}: ${key} has characters a key never has")
+    if (value && !(value ==~ /[!-~&&[^"\\]]+/)) throw new GradleException("${tvPropsFile.name}: ${key} has a space, a quote, a backslash or a character outside printable ASCII")
     return value
 }
 def watchmodeKey = priceKey('watchmode_api_key')

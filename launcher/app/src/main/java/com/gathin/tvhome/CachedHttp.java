@@ -60,6 +60,13 @@ final class CachedHttp implements HttpGet {
         }
     }
 
+    /** The provider answered with a code but its body was lost (a read timeout, a dropped link): the request counts. */
+    static final class Unread extends IOException {
+        Unread(IOException cause) {
+            super("reply unread", cause);
+        }
+    }
+
     /** Watchmode's account status: the quota and the count used, for no credits. */
     static final String WATCHMODE_STATUS = "https://api.watchmode.com/v1/status/";
 
@@ -115,15 +122,16 @@ final class CachedHttp implements HttpGet {
         try {
             r = fetcher.fetch(url, headers);
         } catch (IOException e) {
+            lastRequest = clock.getAsLong();
+            // Offline, DNS and timeouts before a reply cost nothing; a reply whose body was lost still counts.
+            if (e instanceof Unread) charge(quota, cost);
             if (kept != null) return text(kept.bytes);
             throw e;
-        } finally {
-            // Counted whatever the answer: a failed request may still have cost something. The server's own count,
-            // when the reply has one, replaces ours just below.
-            lastRequest = clock.getAsLong();
-            quota.record(cost, lastRequest, zone);
-            ledgers.save(sourceId, quota.encode());
         }
+        lastRequest = clock.getAsLong();
+        // Counted whatever the code: an error reply may still have cost something. The server's own count, when the
+        // reply has one, replaces ours just below.
+        charge(quota, cost);
         quota.sync(r.headers, clock.getAsLong());
         ledgers.save(sourceId, quota.encode());
         if (r.code == 200 && r.body != null && r.body.length > 0) {
@@ -136,6 +144,11 @@ final class CachedHttp implements HttpGet {
         }
         if (kept != null) return text(kept.bytes);
         throw new IOException(sourceId + " answered " + r.code);
+    }
+
+    private void charge(PriceCachePolicy.Quota quota, int cost) {
+        quota.record(cost, lastRequest, zone);
+        ledgers.save(sourceId, quota.encode());
     }
 
     /** Watchmode's status costs no credits: its headers (and body) tell the server's count. Failures don't matter. */
@@ -183,17 +196,20 @@ final class CachedHttp implements HttpGet {
                     replyHeaders.put(h.getKey().toLowerCase(Locale.ROOT), h.getValue().get(0));
                 }
             }
-            if (code != HttpURLConnection.HTTP_OK) {
-                InputStream err = c.getErrorStream();
-                if (err != null) err.close();
-                return new Response(code, null, replyHeaders);
+            try {
+                if (code != HttpURLConnection.HTTP_OK) {
+                    InputStream err = c.getErrorStream();
+                    if (err != null) err.close();
+                    return new Response(code, null, replyHeaders);
+                }
+                try (InputStream in = c.getInputStream()) {
+                    return new Response(code, DiskCache.readAll(in), replyHeaders);
+                }
+            } catch (IOException e) {
+                throw new Unread(e);
             }
-            try (InputStream in = c.getInputStream()) {
-                return new Response(code, DiskCache.readAll(in), replyHeaders);
-            }
-        } catch (IOException e) {
+        } finally {
             c.disconnect();
-            throw e;
         }
     };
 }

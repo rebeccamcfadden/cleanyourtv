@@ -34,10 +34,13 @@ public class CachedHttpTest {
     private CachedHttp.Response next;
     private Map<String, String> statusHeaders = Collections.emptyMap();
     private boolean offline;
+    /** Thrown instead of answering, when set. */
+    private IOException failure;
 
     private final CachedHttp.Fetcher fake = (url, headers) -> {
         asked.add(url);
         if (offline) throw new IOException("offline");
+        if (failure != null) throw failure;
         if (url.equals(CachedHttp.WATCHMODE_STATUS)) return new CachedHttp.Response(200, "{}".getBytes(), statusHeaders);
         return next;
     };
@@ -230,5 +233,36 @@ public class CachedHttpTest {
         for (int i = 0; i < 300; i++) h.get("https://x/" + i, Collections.emptyMap());
         assertEquals(300, asked.size());
         assertTrue(quota(ItunesPrices.ID).used >= 300);
+    }
+
+    @Test
+    public void onlyARequestTheProviderAnsweredIsCounted() throws IOException {
+        CachedHttp h = http(StreamingAvailabilityPrices.ID);
+        offline = true;
+        try {
+            h.get("https://x/1", Collections.emptyMap());
+            fail();
+        } catch (IOException expected) {
+            // Offline, DNS or a timeout before a reply: the budget is untouched.
+        }
+        assertEquals(0, quota(StreamingAvailabilityPrices.ID).used);
+        offline = false;
+        failure = new CachedHttp.Unread(new IOException("read timed out"));
+        try {
+            h.get("https://x/1", Collections.emptyMap());
+            fail();
+        } catch (IOException expected) {
+            // The provider answered, then the body was lost: that request counts.
+        }
+        assertEquals(1, quota(StreamingAvailabilityPrices.ID).used);
+        failure = null;
+        next = new CachedHttp.Response(500, null);
+        try {
+            h.get("https://x/1", Collections.emptyMap());
+            fail();
+        } catch (IOException expected) {
+            // An error reply counts too.
+        }
+        assertEquals(2, quota(StreamingAvailabilityPrices.ID).used);
     }
 }
