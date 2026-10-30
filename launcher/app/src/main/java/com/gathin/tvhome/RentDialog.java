@@ -156,8 +156,8 @@ final class RentDialog {
         LinearLayout v = new LinearLayout(ctx);
         v.setOrientation(LinearLayout.VERTICAL);
         v.setPadding(Ui.px(24), Ui.px(20), Ui.px(24), Ui.px(20));
-        v.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1), null,
-                Ui.round(Ui.ACCENT, Ui.RADIUS_L, Ui.ACCENT, 1)));
+        v.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W), null,
+                Ui.round(Ui.ACCENT, Ui.RADIUS_L, Ui.ACCENT, Ui.LINE_W)));
         v.addView(part(ctx, b.label, Ui.T_SMALL, Ui.TEXT_3));
         v.addView(part(ctx, b.amount, 32, Ui.TEXT_1), below(4));
         v.addView(part(ctx, b.detail, Ui.T_MIN, Ui.TEXT_3), below(4));
