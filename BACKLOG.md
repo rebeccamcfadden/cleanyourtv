@@ -53,31 +53,28 @@ milestones: [docs/rework.md](docs/rework.md).
   filmography and a person page design (see From M5).
 
 ### Streaming availability and prices
-- **V1:** mock: which service has a title, "Included", and the rent and buy prices.
-- **V2 Phase 1:** still mock. The mock offers stay on the mock titles TMDB has (`MockOverlay`, by TMDB id); any other
-  title (from search, More like this or a person page) has no offers and reads "Not available", so "Included only"
-  and Pick for me's "My services" leave it out.
-- **Wanted:** real availability for the region, and real prices.
-- **Findings:** cleanyourtv-ui uses TMDB's `/watch/providers` for the region (JustWatch data). That gives which
-  services stream, rent or sell a title, but no prices. Its `Providers.java` maps TMDB service names to the TV
-  apps that open them, and the person can override the mapping. Prices need a second source, such as Watchmode
-  or the Streaming Availability API (RapidAPI). Both need a key and have free tiers with rate limits; check
-  their current terms before choosing.
-- **Recommendation:** TMDB providers for availability first; prices from a second source only if the "Rent from
-  $3.99" lines are worth a key and a quota.
-- **V2 Phase 2, stage 1 (built, not wired):** pure, tested building blocks in `launcher/`: `WatchProviders` (TMDB's
-  Swedish provider ids, the launcher's services, their TV apps), `ProviderAvailability` (TMDB's answer per region),
-  `PriceSource` with `ItunesPrices`, `WatchmodePrices` and `StreamingAvailabilityPrices`, `OfferMerge` and
-  `PricedOffer` (offers in kronor, "Rent from 39 kr"), `PriceCachePolicy` (24 hours, on demand, a monthly budget
-  per keyed source), and `HttpGet`, the one network call they need. The keys are the optional
-  `watchmode_api_key` and `streaming_availability_api_key` in `tv.properties`.
+- **V1:** mock: which service has a title, "Included", and the rent and buy prices. Still so without a TMDB token
+  (the mock catalogue).
+- **V2 Phase 2 (real):** with a TMDB token, a title's offers are where TMDB's watch providers (JustWatch data) say it
+  streams, is free, or can be rented or bought in Sweden, asked with the title's details (`append_to_response=
+  watch/providers`, kept 12 hours like them). Prices come on demand, when a preview opens or a list shows a title
+  with something to rent or buy, never while Home is hidden (`PriceBook`): Apple's iTunes lookup by the iTunes ids
+  Wikidata keeps (keyless; its search as a fallback), Watchmode and the Streaming Availability API only when their
+  key is in `tv.properties` (`watchmode_api_key`, `streaming_availability_api_key`). Answers are kept on disk a
+  day and used stale offline; a keyed source has a monthly budget under its free plan (`PriceCachePolicy`). The
+  merge (`OfferMerge`) keeps the cheapest price per store, type and quality: "Rent 39 kr", "Rent from 49 kr". A
+  store no source prices (SF Anytime, Viaplay's store, Rakuten TV) still shows, as "Rent" or "Buy" without an
+  amount, and its dialog only opens the app. Where to watch credits its sources ("Availability: JustWatch · Prices:
+  Apple"); Launcher settings has the full notices. Pure parts unit-tested; seen on the emulator (2026-10-30).
+- **Mock or missing:** without keys only the Apple TV Store has prices, and only for movies whose iTunes id
+  Wikidata has: Apple's search finds no movies since late 2025, and no TV seasons in Sweden. No source prices SF
+  Anytime, Viaplay's store or Rakuten. Watchmode answers have no currency and are taken as kronor, untested without
+  a key; so are the Streaming Availability shapes (hand-made fixtures). Prices are refreshed once a day, not live.
+  Decided by the lead, open with the project lead: which stores to show, whether to get keys, a paid plan.
 - **Findings (2026-10-30):** in Sweden TMDB lists rent and buy at Apple TV, Viaplay, Rakuten TV, SF Anytime and
-  Amazon Video, and still Blockbuster, which closed; no Google Play. Apple's iTunes search no longer finds movies
-  (any country) or TV seasons (Sweden), but its lookup by id answers in kronor (Arrival: rent 39 kr, buy 79 kr),
-  and Wikidata keeps those ids (P6398). Watchmode's answer has no currency, and a TMDB-id lookup costs 2 credits.
-  Streaming Availability prices only Apple TV and Amazon in Sweden. No source prices SF Anytime, Viaplay's store or
-  Rakuten.
-
+  Amazon Video, and still Blockbuster, which closed and is dropped; no Google Play. Watchmode's TMDB-id lookup costs
+  2 credits. Streaming Availability prices only Apple TV and Amazon in Sweden. TMDB's add-on channels ("HBO Max
+  Amazon Channel") are dropped.
 ### Two regions
 - **V1:** SE only.
 - **Wanted:** search SE and US together, since the household also watches through a VPN, and label each result
@@ -111,23 +108,29 @@ milestones: [docs/rework.md](docs/rework.md).
   emulator has no YouTube, so only the "not installed" toast was seen; check the video opens on the TV.
 
 ### Title deep links
-- **V1:** "Watch on …", episode rows and Where to watch open the service's app on its home screen.
-- **Wanted:** open the title, or the episode, directly.
-- **Findings:** cleanyourtv-ui's `DeepLinks.java` finds the Wikidata item for a TMDB id (`P4947` movies,
-  `P4983` shows). From it, it reads the service ids for Netflix (`P1874`), Disney+ (`P7595`/`P7596`), Apple TV
-  (`P9586`/`P9751`), Max (`P8298`) and Prime Video (`P8055`), builds each app's link, and keeps the answer for a
-  month. No source for episode links was found yet.
-- **V2 Phase 2, stage 1 (built, not wired):** `WikidataIds` asks query.wikidata.org once per title (SPARQL by
-  the TMDB id) for those ids plus Disney+'s newer browse ids (`P13902`), Prime Video GTIs (`P14462`, `P14440`), SVT
-  Play (`P6817`) and the iTunes ids the prices use; `DeepLinks` builds the links. TV4 Play, Viaplay and SkyShowtime
-  have no Wikidata property, so they still open on their home screen.
-
+- **V1:** "Watch on …", episode rows and Where to watch open the service's app on its home screen. Still so with the
+  mock catalogue.
+- **V2 Phase 2 (real):** with a TMDB token, Watch and Where to watch open the title itself where Wikidata knows the
+  service's id for it: `WikidataIds` asks query.wikidata.org once per title (SPARQL by the TMDB id, `P4947` movies,
+  `P4983` shows, kept a month) for Netflix (`P1874`), Disney+ (`P13902`, `P7595`/`P7596`), Apple TV
+  (`P9586`/`P9751`), HBO Max (`P8298`), Prime Video (`P14462`, `P14440`, `P8055`) and SVT Play (`P6817`), and
+  `DeepLinks` builds the links (formats after cleanyourtv-ui's `DeepLinks.java`). The link goes as an ACTION_VIEW
+  intent limited to the service's package (Netflix with `source=30`); when no installed app takes it, the app opens
+  on its home screen as before.
+- **Mock or missing:** episodes still open the show. TV4 Play, Viaplay, SkyShowtime and the Swedish stores have no
+  Wikidata property, so they open on their home screen. The emulator has none of these apps: whether each TV app
+  takes its link is still to be checked on the TV.
 ### Choosing the household's services
 - **V1:** subscribed services come from the installed apps, with an override: `subscribed_services` in
   `config.xml` or a pushed `config.json`, a list of lowercase ids (`["netflix", "prime"]`; an unknown id is
   ignored, so `["none"]` means none). Left empty, every subscription service whose TV app is installed counts,
   and YouTube; the Apple TV app counts as Apple TV+, never as the Apple TV store. Read when Home starts, so an
   app installed later counts after Home restarts.
+- **V2 Phase 2:** the same rule over Sweden's services too (`WatchProviders`: Viaplay, SkyShowtime, SVT Play, TV4
+  Play, Tele2 Play, Telia Play, Hayu, MUBI and others, with their TV apps); a service that also sells (Viaplay)
+  counts as a subscription, a store alone (Amazon Video, SF Anytime, Rakuten TV) never. TV4 Play counts as included
+  when installed, even on its free tier. With the real catalogue the names follow current branding: "HBO Max", and
+  "Apple TV" for the subscription with the "Apple TV Store" beside it.
 - **Wanted:** a screen in Launcher settings to tick the services the household pays for.
 
 ### Weather location on the TV
@@ -224,8 +227,8 @@ From the old launcher; not in V1 by decision.
 - **Genre options** are TMDB's movie or TV genres in the launcher's words (`GenreMap`: "Sci-fi" for Science
   Fiction, "Sci-Fi & Fantasy" as both); TV Shows still leave out Food, Musical, Western and Horror, as the
   prototype does. With the mock catalogue they are its genres, as in V1.
-- **Guide line:** "Illustrative services, scores & availability" stays while availability is mock (the scores are
-  TMDB's now).
+- **Guide line:** with the real catalogue it reads "Scores from TMDB · Where to watch from JustWatch" (V2 Phase 2;
+  Pick for me's results likewise); the mock catalogue keeps "Illustrative services, scores & availability".
 - **Long lists:** the grid builds a card for every title at once (16 at most in the lists today). A real list of
   hundreds needs a recycled grid or paging, with the artwork decoded as cards come into view. With the real
   catalogue the grid is built again each time a title in it fills in, a few times while the lists load.
