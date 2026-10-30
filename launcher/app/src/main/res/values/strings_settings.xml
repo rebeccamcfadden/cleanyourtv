@@ -17,4 +17,8 @@
     <string name="temperature_unit_state">Temperature unit: %1$s</string>
     <string name="temperature_unit_title">Temperature unit</string>
     <string name="temperature_unit_default">Default (%1$s, from tv.properties)</string>
+
+    <string name="wifi_saved">Saved</string>
+    <string name="wifi_switching">Switching to %1$s…</string>
+    <string name="wifi_switch_refused">This TV did not let the launcher switch networks</string>
 </resources>
