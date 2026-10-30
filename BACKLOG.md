@@ -363,6 +363,36 @@ From the old launcher; not in V1 by decision.
 - **Accessibility in the prototype:** the launcher now reports the current preview tab and nav section as selected
   and reads Pick for me's fields with their value; the prototype has no ARIA roles or states to match.
 
+## Quick settings
+
+The nav Settings icon's dropdown (design final-quick-settings; `QuickSettings`, `QuickPanel`). The remote's Settings
+key still opens the TV maker's panel, or `settings_key_panel`'s old quick-settings panel; nothing about it changed.
+
+- **Sleep timer: mechanism pending the project lead's answer.** OK steps the row through Off, 30, 60, 90 and 120 min
+  with its dots, kept in memory only (not saved, as in the prototype), and nothing else happens: no timer runs and
+  the TV is never turned off. No accessibility service and no new permission are used. Wanted: the project lead's
+  choice of how the launcher turns the TV off, then the timer itself and its warning (not designed).
+- **Picture and Inputs:** Android has no public settings action for either, so both open the TV's settings (through
+  `SystemSettings`, the vendor's settings app where it has one). Sound and Network & Wi-Fi use
+  `ACTION_SOUND_SETTINGS` and `ACTION_WIFI_SETTINGS`, with the same fallback. Every row starts the settings app
+  afresh, so it opens on the page asked for and not on the page it was left on. Wanted: a check on the project
+  lead's TCL of which activity is its own Picture page and which its Inputs page, to add as vendor targets. (The
+  remote's old panel, `Menus.quickSettings`, opens `ACTION_DISPLAY_SETTINGS` for Picture.)
+- **Launcher settings rows:** Launcher settings, TMDB account, Streaming services and Weather open the old
+  `LauncherSettingsActivity`, the last three with a `section` extra (`account`, `services`, `weather`) that it
+  ignores. `QuickSettings.openLauncherSettings` is the one place to point at the new split page and its panes once
+  they land, and the rows' values go through `QuickSettings.Value`, the shape of `SettingsSection.value`, so the
+  panes can supply them. The TMDB account row is left out of builds without a TMDB token, as in Launcher settings.
+- **Motion:** Full, Reduced and Off, saved as `motion` (`full`, `reduced`, `off`; `MotionChoice`), with the old
+  Animations switch kept in step: Off is Animations off, and turning the switch on or off in Launcher settings drops
+  the saved Motion. A saved Full overrides config.xml's `reduced_motion` on that TV; with nothing saved, the switch
+  and `reduced_motion` decide as before. A step applies at once and moves the settings change count, so Home
+  rebuilds with it the next time it resumes. The launcher has one reduced-motion mode (no animations), so Reduced
+  and Off look the same for now. Wanted: Reduced as the spec has it, keeping the fades and dropping slides, rises
+  and focus scale-ups.
+- **The open menu's button:** as with the Wi-Fi and Inputs dropdowns, the Settings icon is not kept highlighted while
+  its menu is open (the prototype's `is-open`).
+
 ## Not designed yet
 
 From the spec's open questions ([design_preview/README.md](design_preview/README.md)). Each needs a design before
@@ -371,11 +401,12 @@ it is built.
 - Search and Home's weather while loading (06-states A designs offline and errors, not these).
 - First run and setup: the checklist (01-setup B) and its panes (r2-setup-checklist) are built in the prototype; not
   in the launcher. When it shows is open.
-- Launcher settings in the new UI: the split (05-settings A), the round-2 Account, Streaming services, Stores and
-  Weather panes, and the Settings icon's quick-settings dropdown (final-quick-settings) are built in the prototype;
-  the launcher still has the old Launcher settings activity, and its nav Settings icon opens the TV's settings.
+- Launcher settings in the new UI: the split (05-settings A) and the round-2 Account, Streaming services, Stores and
+  Weather panes are built in the prototype; the launcher still has the old Launcher settings activity, which the
+  nav Settings icon's quick-settings dropdown opens (see [Quick settings](#quick-settings)).
   Home row apps (with reordering) has no design; the prototype's is a stand-in.
-- The sleep timer (quick settings): its warning before the TV turns off, and how the launcher turns the TV off.
+- The sleep timer (quick settings): its warning before the TV turns off, and how the launcher turns the TV off (see
+  [Quick settings](#quick-settings)).
 - Removing a recent search.
 - Voice search.
 - Progress on started titles.
