@@ -43,6 +43,7 @@ final class Data {
     static Data create(Context ctx, Config cfg) {
         String token = BuildConfig.TMDB_TOKEN;
         Catalog catalog = token.isEmpty() ? new MockCatalog() : new TmdbCatalog(ctx, token);
+        catalog.setPriceStores(ServiceChoices.stores(ctx));
         // The real catalogue names services as they are branded now; the mock one keeps the prototype's names.
         ServiceTable table = token.isEmpty() ? new ServiceTable() : ServiceTable.branded();
         Household household = new Household(ctx, catalog);

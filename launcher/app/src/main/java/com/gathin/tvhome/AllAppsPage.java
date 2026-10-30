@@ -60,7 +60,7 @@ final class AllAppsPage {
         LinearLayout head = new LinearLayout(activity);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setBaselineAligned(true);
-        TextView title = Ui.line(activity, Ui.T_H1, Ui.TEXT_1, Ui.REGULAR);
+        TextView title = Ui.line(activity, Ui.T_H1, Ui.TEXT_1, Ui.display(Ui.REGULAR));
         title.setText(R.string.all_apps);
         head.addView(title);
         count = Ui.line(activity, Ui.T_SMALL, Ui.TEXT_3, Ui.REGULAR);

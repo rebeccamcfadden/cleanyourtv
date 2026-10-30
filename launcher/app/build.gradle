@@ -58,6 +58,14 @@ def watchmodeKey = priceKey('watchmode_api_key')
 // Movie of the Night's key under the project lead's name, or under its API's other name; Java picks (PriceKeys).
 def movieOfTheNightKey = priceKey('movie_of_the_night_api_key')
 def streamingAvailabilityKey = priceKey('streaming_availability_api_key')
+// Where the themes' photos and drawings are downloaded from (launcher/backdrops/README.md): https only, and only the
+// characters a URL needs, so it can't break the generated Java.
+def themeAssetsUrl = tvProps.getProperty('theme_assets_url', '').trim()
+if (!themeAssetsUrl) themeAssetsUrl = 'https://cdn.jsdelivr.net/gh/rebeccamcfadden/cleanyourtv@main/launcher/backdrops/'
+if (!(themeAssetsUrl ==~ /https:\/\/[A-Za-z0-9._~:\/@%+\-]+/)) {
+    throw new GradleException("${tvPropsFile.name}: theme_assets_url must be an https:// address")
+}
+if (!themeAssetsUrl.endsWith('/')) themeAssetsUrl += '/'
 
 android {
     namespace 'com.gathin.tvhome'
@@ -79,6 +87,7 @@ android {
         buildConfigField 'String', 'WATCHMODE_KEY', "\"${watchmodeKey}\""
         buildConfigField 'String', 'MOVIE_OF_THE_NIGHT_KEY', "\"${movieOfTheNightKey}\""
         buildConfigField 'String', 'STREAMING_AVAILABILITY_KEY', "\"${streamingAvailabilityKey}\""
+        buildConfigField 'String', 'THEME_ASSETS_URL', "\"${themeAssetsUrl}\""
     }
 
     buildFeatures {

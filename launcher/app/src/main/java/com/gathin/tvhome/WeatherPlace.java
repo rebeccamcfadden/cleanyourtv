@@ -60,6 +60,40 @@ final class WeatherPlace {
     }
 
     /**
+     * Whether a keyboard character goes into Change city's search (design_preview weather.ts TYPEABLE): letters of any
+     * alphabet, so "Göteborg" and "Malmö" can be typed, digits, a space, a hyphen and an apostrophe.
+     */
+    static boolean typeable(char c) {
+        return Character.isLetterOrDigit(c) || c == ' ' || c == '-' || c == '\'';
+    }
+
+    /** How many of the name's first letters are what was typed, ignoring case: the highlighted part of a match. */
+    static int matched(String name, String typed) {
+        String t = typed == null ? "" : typed.trim();
+        if (t.isEmpty() || name.length() < t.length()) return 0;
+        return name.regionMatches(true, 0, t, 0, t.length()) ? t.length() : 0;
+    }
+
+    /**
+     * The ghost completion after what was typed (the search bar's grey rest of the word): the top match's name past
+     * the typed letters, in lower case, when it begins with them; null otherwise.
+     */
+    static String ghost(String typed, List<WeatherPlace> places) {
+        if (typed == null || places == null || places.isEmpty()) return null;
+        String name = places.get(0).name;
+        int n = matched(name, typed);
+        if (n == 0 || n != typed.length() || n >= name.length()) return null;
+        return name.substring(n).toLowerCase(Locale.ROOT);
+    }
+
+    /** The same place: the same name and, to about a kilometre, the same position. */
+    static boolean same(WeatherPlace a, WeatherPlace b) {
+        if (a == null || b == null) return a == b;
+        return a.name.equalsIgnoreCase(b.name) && Math.abs(a.latitude - b.latitude) < 0.01
+                && Math.abs(a.longitude - b.longitude) < 0.01;
+    }
+
+    /**
      * The search request. Open-Meteo matches names in the language asked for (and returns them in it): an English TV
      * finds "Gothenburg", a Swedish one "Göteborg" too, so the TV's language is passed, English when it has none.
      */
