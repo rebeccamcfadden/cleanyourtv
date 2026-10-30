@@ -509,7 +509,7 @@ final class AccountSection implements SettingsSection {
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setMinimumHeight(Ui.px(76));
             row.setPadding(Ui.px(22), 0, Ui.px(12), 0);
-            row.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1));
+            row.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W));
             LinearLayout name = PaneParts.column(ctx);
             TextView nm = Ui.line(ctx, 23, Ui.TEXT_1, Ui.REGULAR);
             nm.setText(l.name);

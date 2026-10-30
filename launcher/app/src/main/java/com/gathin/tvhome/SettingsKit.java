@@ -59,7 +59,7 @@ final class SettingsKit {
         seg.setOrientation(LinearLayout.HORIZONTAL);
         int inset = Ui.px(small ? 4 : 6);
         seg.setPadding(inset, inset, inset, inset);
-        seg.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, 1));
+        seg.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, Ui.LINE_W));
         for (int i = 0; i < values.length; i++) {
             String value = values[i];
             TextView o = Ui.line(ctx, small ? 19 : 22, Ui.TEXT_2, Ui.REGULAR);
@@ -69,8 +69,8 @@ final class SettingsKit {
             o.setPadding(pad, 0, pad, 0);
             o.setTextColor(Ui.colors(Ui.TEXT_2, Ui.ACCENT, Ui.ON_ACCENT));
             o.setBackground(Ui.states(Ui.round(0, Ui.RADIUS_PILL),
-                    Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_PILL, Ui.ACCENT, 1),
-                    Ui.round(Ui.ACCENT, Ui.RADIUS_PILL, Ui.ACCENT, 1)));
+                    Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_PILL, Ui.ACCENT, Ui.LINE_W),
+                    Ui.round(Ui.ACCENT, Ui.RADIUS_PILL, Ui.ACCENT, Ui.LINE_W)));
             o.setTag(R.id.settings_seg_value, value);
             o.setActivated(value.equals(selected));
             Kit.reportsSelected(o);
@@ -253,8 +253,8 @@ final class SettingsKit {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setMinimumHeight(Ui.px(minHeight));
         row.setPadding(Ui.px(padX), Ui.px(12), Ui.px(padX), Ui.px(12));
-        row.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1), null,
-                Ui.round(Ui.ACCENT, Ui.RADIUS_L, Ui.ACCENT, 1)));
+        row.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W), null,
+                Ui.round(Ui.ACCENT, Ui.RADIUS_L, Ui.ACCENT, Ui.LINE_W)));
         return row;
     }
 

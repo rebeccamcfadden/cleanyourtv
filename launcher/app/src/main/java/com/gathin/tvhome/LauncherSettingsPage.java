@@ -214,7 +214,7 @@ final class LauncherSettingsPage extends Screen implements SettingsSection.Host 
 
     /** The pane's border brightens while it has focus (.set-pane.is-live). */
     private void paintPane() {
-        pane.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_XL, inPane ? Ui.LINE_STRONG : Ui.LINE, 1));
+        pane.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_XL, inPane ? Ui.LINE_STRONG : Ui.LINE, Ui.LINE_W));
     }
 
     private SettingsSection section(String id) {

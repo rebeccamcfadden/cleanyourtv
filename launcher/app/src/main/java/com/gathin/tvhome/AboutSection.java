@@ -46,7 +46,7 @@ final class AboutSection implements SettingsSection {
             tmdb.setText(R.string.tmdb_notice);
             tmdb.setLineSpacing(0f, 1.5f);
             tmdb.setPadding(Ui.px(30), Ui.px(28), Ui.px(30), Ui.px(28));
-            tmdb.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1));
+            tmdb.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W));
             SettingsKit.addWide(pane, tmdb, 32);
             StringBuilder prices = new StringBuilder(ctx.getString(R.string.prices_notice_justwatch))
                     .append('\n').append(ctx.getString(R.string.prices_notice_itunes));

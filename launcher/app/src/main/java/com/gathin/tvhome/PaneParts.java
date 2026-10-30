@@ -251,8 +251,8 @@ final class PaneParts {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setMinimumHeight(Ui.px(66));
         row.setPadding(Ui.px(20), 0, Ui.px(20), 0);
-        row.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1), null,
-                Ui.round(Ui.ACCENT, Ui.RADIUS_L, Ui.ACCENT, 1)));
+        row.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W), null,
+                Ui.round(Ui.ACCENT, Ui.RADIUS_L, Ui.ACCENT, Ui.LINE_W)));
         row.setContentDescription(title);
 
         FrameLayout box = new FrameLayout(ctx);
@@ -299,7 +299,7 @@ final class PaneParts {
         LinearLayout seg = across(ctx);
         int pad = Ui.px(small ? 4 : 6);
         seg.setPadding(pad, pad, pad, pad);
-        seg.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, 1));
+        seg.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, Ui.LINE_W));
         View[] options = new View[labels.length];
         for (int i = 0; i < labels.length; i++) {
             int index = i;
@@ -310,7 +310,7 @@ final class PaneParts {
             o.setMinHeight(Ui.px(small ? 46 : 54));
             o.setTextColor(Ui.colors(Ui.TEXT_2, Ui.ACCENT, Ui.ON_ACCENT));
             o.setBackground(Ui.states(Ui.round(Color.TRANSPARENT, Ui.RADIUS_PILL),
-                    Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_PILL, Ui.ACCENT, 1), Ui.round(Ui.ACCENT, Ui.RADIUS_PILL)));
+                    Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_PILL, Ui.ACCENT, Ui.LINE_W), Ui.round(Ui.ACCENT, Ui.RADIUS_PILL)));
             Kit.reportsSelected(o);
             options[i] = o;
             Focus.make(o, group, group + "-" + i, isDefault && i == selected, v -> {
@@ -344,7 +344,7 @@ final class PaneParts {
                 ViewGroup.LayoutParams.MATCH_PARENT));
         LinearLayout box = column(ctx);
         box.setPadding(Ui.px(56), Ui.px(52), Ui.px(56), Ui.px(52));
-        box.setBackground(Ui.round(Ui.BG_RAISED, Ui.RADIUS_XL, Ui.LINE_STRONG, 1));
+        box.setBackground(Ui.round(Ui.BG_RAISED, Ui.RADIUS_XL, Ui.LINE_STRONG, Ui.LINE_W));
         box.setElevation(Ui.px(40));
         TextView t = Ui.text(ctx, 38, Ui.TEXT_1, Ui.REGULAR);
         t.setText(title);

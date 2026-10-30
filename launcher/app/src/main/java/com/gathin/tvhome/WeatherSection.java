@@ -175,7 +175,7 @@ final class WeatherSection implements SettingsSection {
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(Ui.px(30), Ui.px(26), Ui.px(30), Ui.px(26));
-        card.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1));
+        card.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W));
         card.addView(Ui.icon(ctx, R.drawable.ic_ui_pin, 30, Ui.GOOD), new LinearLayout.LayoutParams(Ui.px(30), Ui.px(30)));
         LinearLayout names = new LinearLayout(ctx);
         names.setOrientation(LinearLayout.VERTICAL);
@@ -319,7 +319,7 @@ final class WeatherSection implements SettingsSection {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setPadding(Ui.px(24), 0, Ui.px(24), 0);
-        bar.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, 1));
+        bar.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, Ui.LINE_W));
         bar.addView(Ui.icon(ctx, R.drawable.ic_ui_search, 28, Ui.TEXT_2), new LinearLayout.LayoutParams(Ui.px(28), Ui.px(28)));
         typed = Ui.line(ctx, 28, Ui.TEXT_1, Ui.MEDIUM);
         LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -350,7 +350,7 @@ final class WeatherSection implements SettingsSection {
         LinearLayout panel = Kit.unclip(new LinearLayout(ctx));
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(Ui.px(24), Ui.px(22), Ui.px(24), Ui.px(22));
-        panel.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_XL, Ui.LINE, 1));
+        panel.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_XL, Ui.LINE, Ui.LINE_W));
         for (String row : KEY_ROWS) {
             LinearLayout r = keyRow(panel);
             for (char ch : row.toCharArray()) {
@@ -398,8 +398,8 @@ final class WeatherSection implements SettingsSection {
     }
 
     private static void keyLook(View k) {
-        k.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_M, Ui.LINE, 1), null,
-                Ui.round(Ui.ACCENT, Ui.RADIUS_M, Ui.ACCENT, 1)));
+        k.setBackground(Ui.states(Ui.round(Ui.SURFACE, Ui.RADIUS_M, Ui.LINE, Ui.LINE_W), null,
+                Ui.round(Ui.ACCENT, Ui.RADIUS_M, Ui.ACCENT, Ui.LINE_W)));
         Ui.scaleOnFocus(k, 1.08f);
     }
 

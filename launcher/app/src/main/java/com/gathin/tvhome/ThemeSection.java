@@ -258,7 +258,7 @@ final class ThemeSection implements SettingsSection {
         seg.setOrientation(LinearLayout.HORIZONTAL);
         int pad = Ui.px(4);
         seg.setPadding(pad, pad, pad, pad);
-        seg.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, 1));
+        seg.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_PILL, Ui.LINE, Ui.LINE_W));
         for (int i = 0; i < labels.length; i++) {
             TextView opt = Ui.line(ctx, 19, Ui.TEXT_2, Ui.REGULAR);
             opt.setText(labels[i]);
@@ -266,7 +266,7 @@ final class ThemeSection implements SettingsSection {
             opt.setPadding(Ui.px(18), 0, Ui.px(18), 0);
             opt.setTextColor(Ui.colors(Ui.TEXT_2, Ui.ACCENT, Ui.ON_ACCENT));
             opt.setBackground(Ui.states(Ui.round(Color.TRANSPARENT, Ui.RADIUS_PILL),
-                    Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_PILL, Ui.ACCENT, 1),
+                    Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_PILL, Ui.ACCENT, Ui.LINE_W),
                     Ui.round(Ui.ACCENT, Ui.RADIUS_PILL)));
             opt.setTag(R.id.kit_label, opt);
             select(opt, i == selected);

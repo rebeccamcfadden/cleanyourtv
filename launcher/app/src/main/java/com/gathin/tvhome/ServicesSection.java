@@ -137,8 +137,8 @@ final class ServicesSection implements SettingsSection {
 
         FrameLayout face = new FrameLayout(ctx);
         face.setBackground(PaneParts.ticked(Ui.round(Ui.SURFACE_2, Ui.RADIUS_L, Ui.ACCENT, 4),
-                Ui.round(Ui.SURFACE_2, Ui.RADIUS_L, Ui.ACCENT, 4), Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_L, Ui.LINE, 1),
-                Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, 1)));
+                Ui.round(Ui.SURFACE_2, Ui.RADIUS_L, Ui.ACCENT, 4), Ui.round(Ui.ACCENT_SOFT, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W),
+                Ui.round(Ui.SURFACE, Ui.RADIUS_L, Ui.LINE, Ui.LINE_W)));
         face.setDuplicateParentStateEnabled(true);
         TextView mark = Ui.line(ctx, 26, Ui.TEXT_3, Ui.BOLD);
         mark.setText(name);
