@@ -58,7 +58,7 @@ final class Config {
         return seen != current;
     }
 
-    /** The new UI's reduced motion: reduced_motion, or Animations turned off in Launcher settings. */
+    /** The new UI's reduced motion: reduced_motion, or Animations turned off, or Motion (MotionChoice) not Full. */
     boolean reducedMotion() {
         return reducedMotion || !animations;
     }
@@ -84,13 +84,14 @@ final class Config {
     final String inputUriScheme;
     /** Animations on (config.xml, animations), unless turned off in Launcher settings. */
     final boolean animations;
-    /** Calmer motion for weak GPUs (config.xml, reduced_motion); see {@link #reducedMotion()}. */
+    /** Calmer motion for weak GPUs (config.xml, reduced_motion), unless Motion is saved on the TV; see
+     *  {@link #reducedMotion()}. */
     final boolean reducedMotion;
     /** Open the Live TV app on the first Home after the TV starts (config.xml, boot_to_live_tv). */
     final boolean bootToLiveTv;
     /** Show the Open on start row in Launcher settings (config.xml, open_on_start_choice). */
     final boolean openOnStartChoice;
-    /** The Settings button opens Launcher settings instead of the TV's Settings (launcher_settings_button). */
+    /** launcher_settings_button: read but unused since the nav's Settings icon opens quick settings (QuickSettings). */
     final boolean launcherSettingsButton;
     /** Show the Wi-Fi/Ethernet button in the nav bar (config.xml, show_network_pill). */
     final boolean showNetworkPill;
@@ -313,6 +314,12 @@ final class Config {
         // Unmounted storage looks like a theme reset; compare only once the file is readable.
         if (mounted) syncThemeChoices(choices, dir, file);
         animations = choices.getBoolean("animations", animations);
+        // Motion from the quick-settings dropdown (MotionChoice): a saved choice sets both; without one they mean
+        // what they did before.
+        MotionChoice motion = MotionChoice.resolve(choices.getString(MotionChoice.KEY, null), animations,
+                reducedMotion);
+        animations = motion.animations();
+        reducedMotion = motion.reduced();
 
         return new Config(dock, hidden, liveTv, liveTvAction, liveTvInputId, packageMap(appLabels),
                 panelService, panelAction, panelExtra, coocaaSources, inputAction, inputUriScheme, animations,
@@ -343,7 +350,7 @@ final class Config {
     }
 
     private static void clearChoices(SharedPreferences.Editor editor) {
-        editor.remove("animations");
+        editor.remove("animations").remove(MotionChoice.KEY);
         for (String key : OLD_CHOICES) editor.remove(key);
     }
 
