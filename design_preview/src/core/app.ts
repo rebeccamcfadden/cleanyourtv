@@ -47,6 +47,7 @@ class App {
   private tabs = new Map<TabId, Screen>();
   private factories!: Record<TabId, () => Screen>;
   private toastEl!: HTMLElement;
+  private readonly overlays: HTMLElement[] = [];
   private toastTimer = 0;
   private listeners: (() => void)[] = [];
 
@@ -221,10 +222,16 @@ class App {
   private render() {
     const show = this.visible();
     for (const child of [...this.stage.children]) {
-      if (child !== this.toastEl && !show.some((s) => s.el === child)) child.remove();
+      if (child !== this.toastEl && !this.overlays.includes(child as HTMLElement) && !show.some((s) => s.el === child)) child.remove();
     }
     for (const s of show) this.stage.insertBefore(s.el, this.toastEl);
     this.listeners.forEach((fn) => fn());
+  }
+
+  /** An element that stays over every screen, like the toast (the import pill); never focusable. */
+  overlay(el: HTMLElement) {
+    this.overlays.push(el);
+    this.stage.append(el);
   }
 
   /** A D-pad move on the top screen, as if the key had been pressed: the screen sees it first. */
