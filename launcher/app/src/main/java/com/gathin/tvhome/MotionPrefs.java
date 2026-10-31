@@ -11,7 +11,10 @@ import android.content.SharedPreferences;
 final class MotionPrefs {
     private MotionPrefs() {}
 
-    /** The household's Motion: the saved choice, else what config.xml and the Animations switch make it. */
+    /**
+     * The Motion in effect: the saved choice, else what the Animations switch makes it, never Full on a TV whose
+     * config sets reduced_motion (MotionChoice.resolve).
+     */
     static MotionChoice load(Context ctx, Config cfg) {
         return MotionChoice.resolve(prefs(ctx).getString(MotionChoice.KEY, null), cfg.animations, cfg.reducedMotion);
     }

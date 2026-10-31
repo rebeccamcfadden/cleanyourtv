@@ -206,8 +206,10 @@ milestones: [docs/rework.md](docs/rework.md).
   settings has two rows over them: **Weather location** searches Open-Meteo's geocoding as the typing pauses (no
   key; only the typed name is sent, in the TV's language) and keeps the chosen place's name, region, country and
   position on the TV; "Use default" goes back to `tv.properties`. **Temperature unit** is Default, °C or °F. Home
-  fetches the weather for the new place or unit as soon as it is back in front; the cached answer is kept per
-  request, so the old place's weather never shows for the new one. The logic is in `WeatherPlace`,
+  fetches the weather for the new place or unit as soon as it is back in front (a place or unit change moves the
+  settings change count, Home rebuilds on resume, and the new request has no cached answer, so it is fetched at
+  once); the cached answer is kept per request, so the old place's weather never shows for the new one. The
+  optional `weather_city` in `tv.properties` names the default place on the quick settings' Weather row. The logic is in `WeatherPlace`,
   `WeatherSettings` and `WeatherPrefs`, unit-tested.
 - **Waits for design:** the picker is a plain Android dialog (a text field with the TV's keyboard and a list of
   matches) in the old-style settings screen, until the new Launcher settings page and its pickers are designed
@@ -368,16 +370,14 @@ From the old launcher; not in V1 by decision.
 The nav Settings icon's dropdown (design final-quick-settings; `QuickSettings`, `QuickPanel`). The remote's Settings
 key still opens the TV maker's panel, or `settings_key_panel`'s old quick-settings panel; nothing about it changed.
 
-- **Sleep timer: mechanism pending the project lead's answer.** OK steps the row through Off, 30, 60, 90 and 120 min
-  with its dots, kept in memory only (not saved, as in the prototype), and nothing else happens: no timer runs and
-  the TV is never turned off. No accessibility service and no new permission are used. Wanted: the project lead's
-  choice of how the launcher turns the TV off, then the timer itself and its warning (not designed).
-- **Picture and Inputs:** Android has no public settings action for either, so both open the TV's settings (through
-  `SystemSettings`, the vendor's settings app where it has one). Sound and Network & Wi-Fi use
-  `ACTION_SOUND_SETTINGS` and `ACTION_WIFI_SETTINGS`, with the same fallback. Every row starts the settings app
-  afresh, so it opens on the page asked for and not on the page it was left on. Wanted: a check on the project
-  lead's TCL of which activity is its own Picture page and which its Inputs page, to add as vendor targets. (The
-  remote's old panel, `Menus.quickSettings`, opens `ACTION_DISPLAY_SETTINGS` for Picture.)
+- **Sleep timer:** the row was dropped by the project lead's decision, 2026-10-31.
+- **Picture and Inputs:** Picture opens `ACTION_DISPLAY_SETTINGS`, as the TCL's own panel and the remote's old
+  panel (`Menus.quickSettings`) do (the project lead's decision, 2026-10-31). Inputs has no public settings action and
+  opens the TV's settings. Sound and Network & Wi-Fi use `ACTION_SOUND_SETTINGS` and `ACTION_WIFI_SETTINGS`. Each
+  falls back to the TV's settings when its page doesn't resolve (through `SystemSettings`, the vendor's settings app
+  where it has one). Every row starts the settings app afresh, so it opens on the page asked for and not on the page
+  it was left on. Wanted: a check on the project lead's TCL of which activity is its own Inputs page, to add as a
+  vendor target.
 - **Launcher settings rows:** Launcher settings, TMDB account, Streaming services and Weather open the old
   `LauncherSettingsActivity`, the last three with a `section` extra (`account`, `services`, `weather`) that it
   ignores. `QuickSettings.openLauncherSettings` is the one place to point at the new split page and its panes once
@@ -385,8 +385,9 @@ key still opens the TV maker's panel, or `settings_key_panel`'s old quick-settin
   panes can supply them. The TMDB account row is left out of builds without a TMDB token, as in Launcher settings.
 - **Motion:** Full, Reduced and Off, saved as `motion` (`full`, `reduced`, `off`; `MotionChoice`), with the old
   Animations switch kept in step: Off is Animations off, and turning the switch on or off in Launcher settings drops
-  the saved Motion. A saved Full overrides config.xml's `reduced_motion` on that TV; with nothing saved, the switch
-  and `reduced_motion` decide as before. A step applies at once and moves the settings change count, so Home
+  the saved Motion. A TV whose config.xml or config.json sets `reduced_motion` is never Full (the project lead's
+  decision, 2026-10-31): a saved Full is Reduced there, a saved Off stays Off, the row shows the Motion in effect and
+  OK steps Reduced and Off only. With nothing saved, the switch and `reduced_motion` decide as before. A step applies at once and moves the settings change count, so Home
   rebuilds with it the next time it resumes. The launcher has one reduced-motion mode (no animations), so Reduced
   and Off look the same for now. Wanted: Reduced as the spec has it, keeping the fades and dropping slides, rises
   and focus scale-ups.
@@ -405,8 +406,6 @@ it is built.
   Weather panes are built in the prototype; the launcher still has the old Launcher settings activity, which the
   nav Settings icon's quick-settings dropdown opens (see [Quick settings](#quick-settings)).
   Home row apps (with reordering) has no design; the prototype's is a stand-in.
-- The sleep timer (quick settings): its warning before the TV turns off, and how the launcher turns the TV off (see
-  [Quick settings](#quick-settings)).
 - Removing a recent search.
 - Voice search.
 - Progress on started titles.

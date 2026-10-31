@@ -7,7 +7,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-/** Motion's three values, and how a TV without a saved one keeps the Animations switch and reduced_motion. */
+/**
+ * Motion's three values, how a TV without a saved one keeps the Animations switch and reduced_motion, and how a TV
+ * whose config sets reduced_motion is never Full.
+ */
 public class MotionChoiceTest {
 
     @Test
@@ -29,10 +32,19 @@ public class MotionChoiceTest {
     }
 
     @Test
-    public void aSavedChoiceWins() {
-        assertEquals(MotionChoice.FULL, MotionChoice.resolve("full", false, true));
+    public void aSavedChoiceWinsOverTheAnimationsSwitch() {
+        assertEquals(MotionChoice.FULL, MotionChoice.resolve("full", false, false));
         assertEquals(MotionChoice.REDUCED, MotionChoice.resolve("reduced", true, false));
         assertEquals(MotionChoice.OFF, MotionChoice.resolve("off", true, false));
+    }
+
+    @Test
+    public void aTvsReducedMotionWinsOverASavedFull() {
+        assertEquals(MotionChoice.REDUCED, MotionChoice.resolve("full", true, true));
+        assertEquals(MotionChoice.REDUCED, MotionChoice.resolve("full", false, true));
+        assertEquals(MotionChoice.REDUCED, MotionChoice.resolve("reduced", true, true));
+        // A saved Off stays Off: reduced_motion asks for at least Reduced.
+        assertEquals(MotionChoice.OFF, MotionChoice.resolve("off", true, true));
     }
 
     @Test
@@ -59,5 +71,18 @@ public class MotionChoiceTest {
         assertEquals(MotionChoice.REDUCED, MotionChoice.FULL.next());
         assertEquals(MotionChoice.OFF, MotionChoice.REDUCED.next());
         assertEquals(MotionChoice.FULL, MotionChoice.OFF.next());
+        assertEquals(MotionChoice.FULL, MotionChoice.OFF.next(false));
+    }
+
+    @Test
+    public void okOnATvWithReducedMotionStepsReducedAndOffOnly() {
+        assertEquals(MotionChoice.OFF, MotionChoice.REDUCED.next(true));
+        assertEquals(MotionChoice.REDUCED, MotionChoice.OFF.next(true));
+        // Full was saved before: what shows is Reduced, so the next step is Off.
+        MotionChoice shown = MotionChoice.resolve("full", true, true);
+        assertEquals(MotionChoice.OFF, shown.next(true));
+        for (MotionChoice m : MotionChoice.values()) {
+            assertEquals(m.next(true), MotionChoice.resolve(m.next(true).code, true, true));
+        }
     }
 }

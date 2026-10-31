@@ -11,7 +11,6 @@
     <string name="qs_services">Streaming services</string>
     <string name="qs_weather">Weather</string>
     <string name="qs_motion">Motion</string>
-    <string name="qs_sleep">Sleep timer</string>
 
     <string name="qs_account_not_signed_in">Not signed in</string>
     <string name="qs_account_signed_in">Signed in</string>
@@ -23,11 +22,9 @@
         <item quantity="one">%1$d ticked</item>
         <item quantity="other">%1$d ticked</item>
     </plurals>
-    <!-- The weather row while tv.properties' position is used, before a place is chosen on the TV. -->
+    <!-- The weather row while tv.properties' position is used and it names no weather_city. -->
     <string name="qs_weather_default">Default</string>
     <string name="qs_motion_full">Full</string>
     <string name="qs_motion_reduced">Reduced</string>
     <string name="qs_motion_off">Off</string>
-    <string name="qs_sleep_off">Off</string>
-    <string name="qs_sleep_minutes">%1$d min</string>
 </resources>

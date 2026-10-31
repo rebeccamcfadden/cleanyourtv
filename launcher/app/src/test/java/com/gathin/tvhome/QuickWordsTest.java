@@ -41,9 +41,22 @@ public class QuickWordsTest {
 
     @Test
     public void weatherIsPlaceAndUnit() {
-        assertEquals("Stockholm \u00B7 \u00B0C", QuickWords.weather("Stockholm", "Default", "\u00B0C"));
-        assertEquals("Gothenburg \u00B7 \u00B0F", QuickWords.weather(" Gothenburg ", "Default", "\u00B0F"));
-        assertEquals("Default \u00B7 \u00B0C", QuickWords.weather(null, "Default", "\u00B0C"));
-        assertEquals("Default \u00B7 \u00B0C", QuickWords.weather("  ", "Default", "\u00B0C"));
+        assertEquals("Stockholm \u00B7 \u00B0C", QuickWords.weather("Stockholm", "", "Default", "\u00B0C"));
+        assertEquals("Gothenburg \u00B7 \u00B0F", QuickWords.weather(" Gothenburg ", "", "Default", "\u00B0F"));
+        // A chosen place wins over the build's city.
+        assertEquals("Malm\u00F6 \u00B7 \u00B0C", QuickWords.weather("Malm\u00F6", "Stockholm", "Default", "\u00B0C"));
+    }
+
+    @Test
+    public void withoutAChosenPlaceTheBuildsCityShows() {
+        assertEquals("Stockholm \u00B7 \u00B0C", QuickWords.weather(null, "Stockholm", "Default", "\u00B0C"));
+        assertEquals("Stockholm \u00B7 \u00B0F", QuickWords.weather("  ", " Stockholm ", "Default", "\u00B0F"));
+    }
+
+    @Test
+    public void withoutACityInTheBuildItSaysDefault() {
+        assertEquals("Default \u00B7 \u00B0C", QuickWords.weather(null, "", "Default", "\u00B0C"));
+        assertEquals("Default \u00B7 \u00B0C", QuickWords.weather("  ", null, "Default", "\u00B0C"));
+        assertEquals("Default \u00B7 \u00B0C", QuickWords.weather(null, "   ", "Default", "\u00B0C"));
     }
 }

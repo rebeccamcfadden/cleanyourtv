@@ -13,10 +13,11 @@ import java.util.List;
 /**
  * The nav Settings icon's quick-settings dropdown (design_preview/src/screens/quickSettings.ts; README, Top-bar
  * dropdowns; V2 design final-quick-settings, 5A and 5C combined): the Wi-Fi and Inputs dropdowns' look, 600 px wide,
- * in four groups. TV settings and Launcher settings; the TV's own Picture, Sound, Network and Inputs pages; the
- * household rows, which show a value and open their Launcher settings section; then Motion and Sleep timer, where OK
- * steps the value in place and the menu stays open. First focus is TV settings. The remote's Settings key keeps the
- * TV maker's panel (QuickSettingsActivity, Menus.quickSettings).
+ * in four groups. TV settings and Launcher settings; the TV's own Picture (display settings), Sound, Network and
+ * Inputs pages; the household rows, which show a value and open their Launcher settings section; then Motion, where
+ * OK steps the value in place and the menu stays open. No Sleep timer row (the project lead's decision, 2026-10-31).
+ * First focus is TV settings. The remote's Settings key keeps the TV maker's panel (QuickSettingsActivity,
+ * Menus.quickSettings).
  */
 final class QuickSettings {
     private QuickSettings() {}
@@ -84,9 +85,6 @@ final class QuickSettings {
         }
     }
 
-    /** The sleep timer, kept in memory only, as in the prototype. It turns nothing off yet (BACKLOG.md). */
-    private static int sleepMinutes;
-
     static Screen create(MainActivity act, View anchor) {
         Shell shell = act.shell();
         LinearLayout panel = QuickPanel.build(act, rows(act), row -> {
@@ -107,8 +105,9 @@ final class QuickSettings {
         launcher.chevron = true;
         rows.add(launcher);
 
-        // Picture and Inputs have no public settings action: they open the TV's settings (BACKLOG.md).
-        rows.add(page(act, R.string.qs_picture, R.drawable.ic_ui_picture, null).divider());
+        // Picture opens display settings, as the TV maker's panel does; Inputs has no public settings action and opens
+        // the TV's settings (BACKLOG.md).
+        rows.add(page(act, R.string.qs_picture, R.drawable.ic_ui_picture, Settings.ACTION_DISPLAY_SETTINGS).divider());
         rows.add(page(act, R.string.qs_sound, R.drawable.ic_ui_sound, Settings.ACTION_SOUND_SETTINGS));
         rows.add(page(act, R.string.qs_network, R.drawable.ic_ui_wifi, Settings.ACTION_WIFI_SETTINGS));
         rows.add(page(act, R.string.qs_inputs, R.drawable.ic_ui_input, null));
@@ -128,6 +127,8 @@ final class QuickSettings {
         household.get(0).divider();
         rows.addAll(household);
 
+        // The effective Motion shows: a TV whose config sets reduced_motion steps Reduced and Off only.
+        boolean configReduced = act.config().reducedMotion;
         MotionChoice[] motion = {MotionPrefs.load(act, act.config())};
         rows.add(new Row(R.string.qs_motion, R.drawable.ic_ui_motion).divider().steps(new Stepper() {
             @Override
@@ -142,29 +143,12 @@ final class QuickSettings {
 
             @Override
             public void step() {
-                motion[0] = motion[0].next();
+                motion[0] = motion[0].next(configReduced);
                 MotionPrefs.save(act, motion[0]);
                 // At once for what animates from here on; the change count rebuilds Home on its next resume.
                 Ui.init(act, motion[0].reduced());
             }
         }, ctx -> ctx.getString(motionLabel(motion[0]))));
-        rows.add(new Row(R.string.qs_sleep, R.drawable.ic_ui_timer).steps(new Stepper() {
-            @Override
-            public int count() {
-                return QuickSteps.SLEEP_MINUTES.length;
-            }
-
-            @Override
-            public int index() {
-                return QuickSteps.sleepIndex(sleepMinutes);
-            }
-
-            @Override
-            public void step() {
-                sleepMinutes = QuickSteps.nextSleep(sleepMinutes);
-            }
-        }, ctx -> sleepMinutes == 0 ? ctx.getString(R.string.qs_sleep_off)
-                : ctx.getString(R.string.qs_sleep_minutes, sleepMinutes)));
         return rows;
     }
 
@@ -217,8 +201,8 @@ final class QuickSettings {
 
     private static CharSequence weatherValue(Context ctx) {
         WeatherSettings w = WeatherPrefs.load(ctx);
-        return QuickWords.weather(w.place != null ? w.place.name : null, ctx.getString(R.string.qs_weather_default),
-                WeatherSettings.unitSymbol(w.fahrenheit));
+        return QuickWords.weather(w.place != null ? w.place.name : null, BuildConfig.WEATHER_CITY,
+                ctx.getString(R.string.qs_weather_default), WeatherSettings.unitSymbol(w.fahrenheit));
     }
 
     private static int motionLabel(MotionChoice m) {

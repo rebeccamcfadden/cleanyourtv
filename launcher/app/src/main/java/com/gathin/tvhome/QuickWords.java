@@ -48,9 +48,16 @@ final class QuickWords {
         return n;
     }
 
-    /** "Stockholm · °C": the chosen place, or {@code fallback} while tv.properties' position is used. */
-    static String weather(String place, String fallback, String unit) {
-        String name = place == null || place.trim().isEmpty() ? fallback : place.trim();
+    /**
+     * "Stockholm · °C": the chosen place; while tv.properties' position is used, its {@code weather_city}
+     * ({@code buildCity}), or {@code fallback} ("Default") when the build names none.
+     */
+    static String weather(String place, String buildCity, String fallback, String unit) {
+        String name = blank(place) ? blank(buildCity) ? fallback : buildCity.trim() : place.trim();
         return name + " \u00B7 " + unit;
+    }
+
+    private static boolean blank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 }
