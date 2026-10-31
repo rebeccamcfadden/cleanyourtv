@@ -10,7 +10,8 @@ import java.util.Set;
 /**
  * First run's rules (design_preview/README.md, First run; src/screens/setup.ts), kept apart from the views so they
  * are tested on the JVM: which steps show, when a row counts as done, where focus goes back to, the footer's step
- * and Next, the keys on the checklist, and whether the checklist opens by itself on this start.
+ * and Next, the keys on the checklist, the Streaming services and Stores rows' names, how the done rows are kept, and
+ * whether the checklist opens by itself on this start.
  */
 final class FirstRunRules {
     private FirstRunRules() {}
@@ -27,8 +28,8 @@ final class FirstRunRules {
     }
 
     /**
-     * When a row counts as done. Pending the project lead (BACKLOG.md, First run): for now, as in the prototype, once
-     * its pane was opened, whatever was chosen there.
+     * When a row counts as done (the project lead, 2026-10-31; BACKLOG.md, First run): as in the prototype, once its
+     * pane was opened, whatever was chosen there. Kept across restarts ({@link #encode}).
      */
     static boolean done(String id, Set<String> opened) {
         return opened.contains(id);
@@ -78,11 +79,68 @@ final class FirstRunRules {
     }
 
     /**
-     * Whether the checklist opens by itself on this start. Pending the project lead (BACKLOG.md, First run): only
-     * when config.xml's first_run_checklist (or a pushed config.json) asks, and only the first time.
+     * Whether the checklist opens by itself on this start (the project lead, 2026-10-31; BACKLOG.md, First run): once,
+     * on the first start after a fresh install, never after an update; config.xml's first_run_checklist (or a pushed
+     * config.json) set to false turns it off.
      */
-    static boolean showOnStart(boolean configured, boolean shownBefore) {
-        return configured && !shownBefore;
+    static boolean showOnStart(boolean configured, boolean freshInstall, boolean shownBefore) {
+        return configured && freshInstall && !shownBefore;
+    }
+
+    /**
+     * Whether the package is still as first installed: Android gives a fresh install the same first-install and
+     * last-update times, and moves the last-update time on every update after it.
+     */
+    static boolean freshInstall(long firstInstallTime, long lastUpdateTime) {
+        return firstInstallTime == lastUpdateTime;
+    }
+
+    /** The ticked among order, in that order: the pane's order for the row's names. */
+    static List<ServiceId> ticked(Collection<ServiceId> order, Set<ServiceId> ticked) {
+        List<ServiceId> out = new ArrayList<>();
+        for (ServiceId s : order) if (ticked.contains(s)) out.add(s);
+        return out;
+    }
+
+    /**
+     * A row's value from the names ticked on its pane, in the pane's order (setup.ts, names): "Netflix, Prime Video +6";
+     * one or two names alone; "" for none, which leaves the value out.
+     */
+    static String names(List<String> ticked) {
+        int max = 2;
+        if (ticked.size() <= max) return join(ticked);
+        return join(ticked.subList(0, max)) + " +" + (ticked.size() - max);
+    }
+
+    private static String join(List<String> names) {
+        StringBuilder b = new StringBuilder();
+        for (String n : names) {
+            if (b.length() > 0) b.append(", ");
+            b.append(n);
+        }
+        return b.toString();
+    }
+
+    /** The done steps as First run's preferences keep them: "services,stores" in the steps' order. */
+    static String encode(Collection<String> opened) {
+        StringBuilder b = new StringBuilder();
+        for (String id : STEPS) {
+            if (!opened.contains(id)) continue;
+            if (b.length() > 0) b.append(',');
+            b.append(id);
+        }
+        return b.toString();
+    }
+
+    /** The kept done steps, anything that is not a step left out; none for null. */
+    static List<String> decode(String saved) {
+        List<String> out = new ArrayList<>();
+        if (saved == null) return out;
+        for (String part : saved.split(",")) {
+            String id = part.trim();
+            if (STEPS.contains(id) && !out.contains(id)) out.add(id);
+        }
+        return out;
     }
 
     enum Move {

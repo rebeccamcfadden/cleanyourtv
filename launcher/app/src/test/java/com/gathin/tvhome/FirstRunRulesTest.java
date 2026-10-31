@@ -14,7 +14,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-/** First run's rules (design_preview/src/screens/setup.ts): steps, done rows, focus, the footer and the keys. */
+/**
+ * First run's rules (design_preview/src/screens/setup.ts): steps, done rows and how they are kept, focus, the footer,
+ * the keys, the rows' names, and when it opens by itself.
+ */
 public class FirstRunRulesTest {
     private static final List<String> FOUR = FirstRunRules.STEPS;
     private static final List<String> THREE = Arrays.asList("services", "stores", "weather");
@@ -93,11 +96,56 @@ public class FirstRunRulesTest {
     }
 
     @Test
-    public void itOpensByItselfOnlyWhenConfiguredAndOnlyOnce() {
-        assertFalse(FirstRunRules.showOnStart(false, false));
-        assertTrue(FirstRunRules.showOnStart(true, false));
-        assertFalse(FirstRunRules.showOnStart(true, true));
-        assertFalse(FirstRunRules.showOnStart(false, true));
+    public void itOpensByItselfOnceAfterAFreshInstallUnlessTurnedOff() {
+        // Fresh install, not shown yet: it shows.
+        assertTrue(FirstRunRules.showOnStart(true, true, false));
+        // After an update (an install from before First run too): never.
+        assertFalse(FirstRunRules.showOnStart(true, false, false));
+        // Shown once already: never again.
+        assertFalse(FirstRunRules.showOnStart(true, true, true));
+        // first_run_checklist false: never.
+        assertFalse(FirstRunRules.showOnStart(false, true, false));
+        assertFalse(FirstRunRules.showOnStart(false, false, true));
+    }
+
+    @Test
+    public void aFreshInstallHasNotBeenUpdated() {
+        assertTrue(FirstRunRules.freshInstall(1_700_000_000_000L, 1_700_000_000_000L));
+        assertFalse(FirstRunRules.freshInstall(1_700_000_000_000L, 1_700_000_500_000L));
+    }
+
+    @Test
+    public void theNamesAreTheFirstTwoThenHowManyMore() {
+        assertEquals("Netflix, Prime Video +6", FirstRunRules.names(Arrays.asList("Netflix", "Prime Video",
+                "Disney+", "Max", "Apple TV+", "Viaplay", "SVT Play", "TV4 Play")));
+        assertEquals("Apple TV Store, Amazon Video +1", FirstRunRules.names(Arrays.asList("Apple TV Store",
+                "Amazon Video", "Viaplay Store")));
+        assertEquals("Netflix, Max", FirstRunRules.names(Arrays.asList("Netflix", "Max")));
+        assertEquals("Netflix", FirstRunRules.names(Collections.singletonList("Netflix")));
+        assertEquals("", FirstRunRules.names(Collections.emptyList()));
+    }
+
+    @Test
+    public void theTickedFollowThePanesOrder() {
+        Set<ServiceId> ticked = new HashSet<>(Arrays.asList(ServiceId.MAX, ServiceId.NETFLIX, ServiceId.HAYU));
+        assertEquals(Arrays.asList(ServiceId.NETFLIX, ServiceId.MAX, ServiceId.HAYU),
+                FirstRunRules.ticked(ServicePicks.listed(ticked), ticked));
+        assertEquals(Collections.singletonList(ServiceId.VIAPLAY), FirstRunRules.ticked(ServicePicks.STORES,
+                new HashSet<>(Arrays.asList(ServiceId.VIAPLAY, ServiceId.NETFLIX))));
+        assertTrue(FirstRunRules.ticked(ServicePicks.STORES, Collections.emptySet()).isEmpty());
+    }
+
+    @Test
+    public void theDoneRowsAreKeptAndReadBack() {
+        assertEquals("services,weather", FirstRunRules.encode(opened("weather", "services")));
+        assertEquals("", FirstRunRules.encode(opened()));
+        assertEquals(Arrays.asList("services", "weather"), FirstRunRules.decode("services,weather"));
+        assertEquals(Arrays.asList("services", "weather"),
+                FirstRunRules.decode(FirstRunRules.encode(opened("services", "weather", "theme"))));
+        // Unknown ids, blanks and repeats are left out; nothing kept reads as none.
+        assertEquals(Collections.singletonList("stores"), FirstRunRules.decode("stores,,theme,stores"));
+        assertTrue(FirstRunRules.decode("").isEmpty());
+        assertTrue(FirstRunRules.decode(null).isEmpty());
     }
 
     @Test

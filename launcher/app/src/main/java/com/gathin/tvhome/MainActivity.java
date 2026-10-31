@@ -48,7 +48,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     private static final String KEY_SETTINGS_SECTION = "settings_section";
     private static final String KEY_SETTINGS_IN_PANE = "settings_in_pane";
     private LauncherSettingsPage settingsPage;
-    /** Opens First run's checklist over Home (FirstRunPage); for adb, until when it shows by itself is decided. */
+    /** Opens First run's checklist over Home (FirstRunPage) at any time, for adb; by itself it shows once. */
     static final String ACTION_FIRST_RUN = "com.gathin.tvhome.action.FIRST_RUN";
     /** Survive a rebuild with First run open: the checklist reopens with the same steps done. */
     private static final String KEY_FIRST_RUN = "first_run_opened";
@@ -434,6 +434,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
             settingsClosed();
         }
         firstRun = FirstRunPage.create(this, done);
+        FirstRunPage.markShown(this);
         shell.push(firstRun);
     }
 

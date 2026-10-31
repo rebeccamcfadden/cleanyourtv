@@ -2,6 +2,8 @@ package com.gathin.tvhome;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.view.Gravity;
 import android.view.View;
@@ -29,17 +31,24 @@ import java.util.Set;
  *
  * <p>OK on a row opens Launcher settings' own split and panes cut down to these steps ({@link FirstRunSplit}). Coming
  * back, every step whose pane was opened is done (FirstRunRules.done): a green check in place of its number and no
- * pill, and focus goes to the next row not done, or Start. With every row done the page reads "You’re all set".
- * Start and Back go Home (MainActivity#closeFirstRun). Without a TMDB token there is no Account section, and the
- * checklist has three steps.
+ * pill, and focus goes to the next row not done, or Start. The done steps are kept in First run's preferences, so
+ * they stay ticked after the launcher restarts. With every row done the page reads "You’re all set". Start and Back
+ * go Home (MainActivity#closeFirstRun). Without a TMDB token there is no Account section, and the checklist has three
+ * steps. Streaming services and Stores show the ticked names ("Netflix, Prime Video +6"), Streaming services' line
+ * the count.
  *
- * <p>When it shows by itself is pending the project lead (BACKLOG.md, First run): only with first_run_checklist on,
- * once. The intent action MainActivity.ACTION_FIRST_RUN opens it at any time.
+ * <p>It shows by itself once, on the first start after a fresh install, never after an update (the project lead,
+ * 2026-10-31; FirstRunRules.showOnStart); first_run_checklist false turns that off. The intent action
+ * MainActivity.ACTION_FIRST_RUN opens it at any time.
  */
 final class FirstRunPage extends Screen {
-    /** Remembers that the checklist has shown by itself once (not the launcher's settings: a theme push clears those). */
+    /**
+     * Remembers that the checklist has shown once, and which steps are done (not the launcher's settings: a theme
+     * push clears those).
+     */
     static final String PREFS = "first_run";
     static final String KEY_SHOWN = "shown";
+    static final String KEY_DONE = "done";
     private static final String GROUP_STEPS = "steps";
     private static final String KEY_START = "start";
     private static final float LEFT = Ui.SAFE_X, TOP = 100, MAIN_W = 1060;
@@ -59,7 +68,7 @@ final class FirstRunPage extends Screen {
     /** A step's split was opened: the next onShow is the way back from it. */
     private boolean returning;
 
-    /** The checklist, with the steps in opened already done (after a rebuild); opened may be null. */
+    /** The checklist, with the steps kept done and those in opened (after a rebuild) done; opened may be null. */
     static FirstRunPage create(MainActivity activity, Collection<String> opened) {
         return new FirstRunPage(activity, Kit.unclip(StubPage.frame(activity)), opened);
     }
@@ -75,12 +84,29 @@ final class FirstRunPage extends Screen {
         return json != null ? json.optBoolean("first_run_checklist", on) : on;
     }
 
-    /** True once, the first start after install with first_run_checklist on; remembers that it has. */
+    private static SharedPreferences prefs(Context ctx) {
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    /** Whether the launcher is as first installed, not updated since; false when the package can't be read. */
+    private static boolean freshInstall(Context ctx) {
+        try {
+            PackageInfo info = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
+            return FirstRunRules.freshInstall(info.firstInstallTime, info.lastUpdateTime);
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    /** True once, the first start after a fresh install (FirstRunRules.showOnStart). */
     static boolean dueOnStart(Context ctx) {
-        SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        if (!FirstRunRules.showOnStart(configured(ctx), prefs.getBoolean(KEY_SHOWN, false))) return false;
-        prefs.edit().putBoolean(KEY_SHOWN, true).apply();
-        return true;
+        return FirstRunRules.showOnStart(configured(ctx), freshInstall(ctx), prefs(ctx).getBoolean(KEY_SHOWN, false));
+    }
+
+    /** It has shown, by itself or through the intent: it doesn't show by itself again. */
+    static void markShown(Context ctx) {
+        SharedPreferences p = prefs(ctx);
+        if (!p.getBoolean(KEY_SHOWN, false)) p.edit().putBoolean(KEY_SHOWN, true).apply();
     }
 
     /** First run's own sections, Launcher settings' panes for its steps: made afresh for each split. */
@@ -100,6 +126,7 @@ final class FirstRunPage extends Screen {
         List<String> ids = new ArrayList<>();
         for (SettingsSection s : sections) ids.add(s.id());
         this.steps = FirstRunRules.steps(ids);
+        opened.addAll(FirstRunRules.decode(prefs(ctx).getString(KEY_DONE, null)));
         if (done != null) opened.addAll(done);
 
         // ---- The main column: eyebrow, title, lead, the rows and Start (.setup-main).
@@ -287,7 +314,9 @@ final class FirstRunPage extends Screen {
                 return ctx.getString(activity.data().accounts.signedIn() ? R.string.first_run_account_line_in
                         : R.string.first_run_account_line);
             case "services":
-                return ctx.getString(R.string.first_run_services_line);
+                Set<ServiceId> ticked = activity.data().services.subscribed();
+                return ctx.getString(R.string.settings_ticked, ServicePicks.count(ticked,
+                        ServicePicks.listed(ticked)));
             case "stores":
                 return ctx.getString(R.string.first_run_stores_line);
             default:
@@ -298,6 +327,36 @@ final class FirstRunPage extends Screen {
     private SettingsSection section(String id) {
         for (SettingsSection s : sections) if (s.id().equals(id)) return s;
         return null;
+    }
+
+    /**
+     * The value on a row: Streaming services' and Stores' ticked names, as the prototype has them ("Netflix, Prime
+     * Video +6"); the section's own for the rest (the account, the weather place).
+     */
+    private CharSequence valueOf(String id) {
+        Services services = activity.data().services;
+        ServiceTable table = services.table();
+        List<String> names = new ArrayList<>();
+        switch (id) {
+            case "services":
+                Set<ServiceId> ticked = services.subscribed();
+                for (ServiceId s : FirstRunRules.ticked(ServicePicks.listed(ticked), ticked)) names.add(table.name(s));
+                return FirstRunRules.names(names);
+            case "stores":
+                for (ServiceId s : FirstRunRules.ticked(ServicePicks.STORES, ServiceChoices.stores(ctx))) {
+                    names.add(StoresSection.storeName(ctx, table, s));
+                }
+                return FirstRunRules.names(names);
+            default:
+                SettingsSection s = section(id);
+                return s == null ? "" : s.value(ctx);
+        }
+    }
+
+    /** A step's pane was opened: it is done, now and after a restart. */
+    private void markDone(String id) {
+        if (!opened.add(id)) return;
+        prefs(ctx).edit().putString(KEY_DONE, FirstRunRules.encode(opened)).apply();
     }
 
     // ---- What the page shows -------------------------------------------------------------------------------------
@@ -320,8 +379,7 @@ final class FirstRunPage extends Screen {
                     Ui.round(done ? Ui.GOOD_SOFT : Ui.SURFACE_2, 22), null,
                     Ui.round(Ui.alpha(Ui.ON_ACCENT, 0x24), 22)));
             ((TextView) row.getTag(R.id.settings_row_sub)).setText(lineOf(id));
-            SettingsSection s = section(id);
-            CharSequence value = s == null ? "" : s.value(ctx);
+            CharSequence value = valueOf(id);
             String text = value == null ? null : value.toString();
             CharSequence pill = ((TextView) row.getTag(R.id.first_run_pill)).getText();
             if (FirstRunRules.placeholder(id, text, notSignedIn)
@@ -428,12 +486,12 @@ final class FirstRunPage extends Screen {
 
     /** OK on a row: the step is done, and Launcher settings' split opens on its pane. */
     private void open(String id) {
-        opened.add(id);
+        markDone(id);
         returning = true;
         split = FirstRunSplit.open(activity, stepSections(activity), steps, id, new FirstRunSplit.Listener() {
             @Override
             public void entered(String step) {
-                opened.add(step);
+                markDone(step);
             }
 
             @Override
