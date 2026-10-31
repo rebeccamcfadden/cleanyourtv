@@ -223,7 +223,7 @@ final class FirstRunPage extends Screen {
         text.setOrientation(LinearLayout.VERTICAL);
         text.setDuplicateParentStateEnabled(true);
         TextView t = Ui.line(ctx, Ui.T_BODY, Ui.TEXT_1, Ui.REGULAR);
-        t.setText(titleOf(id, 0));
+        t.setText(titleOf(ctx, id, section(id)));
         t.setTextColor(Ui.colors(Ui.TEXT_1, Ui.TEXT_1, Ui.ON_ACCENT));
         t.setDuplicateParentStateEnabled(true);
         text.addView(t);
@@ -280,8 +280,19 @@ final class FirstRunPage extends Screen {
         return lp;
     }
 
-    /** The step's title on its row and in the split's list; fallback (a section's own label) for any other id. */
-    static int titleOf(String id, int fallback) {
+    /**
+     * The step's title on its row, its help and the split's list and Next button: First run's own name, else the
+     * section's label, else the id itself, so an unknown step never asks for resource 0.
+     */
+    static CharSequence titleOf(Context ctx, String id, SettingsSection section) {
+        int res = titleRes(id);
+        if (res != 0) return ctx.getString(res);
+        if (section != null && section.label() != 0) return ctx.getString(section.label());
+        return id;
+    }
+
+    /** First run's own name for a step, or 0 for any other id: only {@link #titleOf} reads it. */
+    private static int titleRes(String id) {
         switch (id) {
             case "account":
                 return R.string.first_run_account;
@@ -292,7 +303,7 @@ final class FirstRunPage extends Screen {
             case "weather":
                 return R.string.first_run_weather;
             default:
-                return fallback;
+                return 0;
         }
     }
 
@@ -400,7 +411,7 @@ final class FirstRunPage extends Screen {
         help.removeAllViews();
         int done = FirstRunRules.doneCount(steps, opened);
         if (id != null) {
-            SettingsKit.add(help, SettingsKit.eyebrow(ctx, ctx.getString(titleOf(id, 0))), 0);
+            SettingsKit.add(help, SettingsKit.eyebrow(ctx, titleOf(ctx, id, section(id))), 0);
             helpTitle(ctx.getString(helpRes(id, 0)));
             helpBody(ctx.getString(helpRes(id, 1)));
             helpDivider();

@@ -30,11 +30,13 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
     }
 
     private final Context ctx;
+    private final List<SettingsSection> sections;
     private final List<String> steps;
     private final Listener listener;
 
-    FirstRunSplit(Context ctx, List<String> steps, Listener listener) {
+    FirstRunSplit(Context ctx, List<SettingsSection> sections, List<String> steps, Listener listener) {
         this.ctx = ctx;
+        this.sections = sections;
         this.steps = steps;
         this.listener = listener;
     }
@@ -42,7 +44,7 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
     /** Launcher settings' page for these steps, open on id's pane. */
     static LauncherSettingsPage open(MainActivity activity, List<SettingsSection> sections, List<String> steps,
                                      String id, Listener listener) {
-        FirstRunSplit split = new FirstRunSplit(activity, steps, listener);
+        FirstRunSplit split = new FirstRunSplit(activity, sections, steps, listener);
         LauncherSettingsPage page = LauncherSettingsPage.setup(activity, sections, id, split);
         split.page = page;
         return page;
@@ -63,7 +65,7 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
 
     @Override
     public CharSequence label(SettingsSection s) {
-        return ctx.getString(FirstRunPage.titleOf(s.id(), s.label()));
+        return FirstRunPage.titleOf(ctx, s.id(), s);
     }
 
     @Override
@@ -86,7 +88,7 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
         View back = Kit.button(ctx, ctx.getString(R.string.first_run_back_to_checklist), R.drawable.ic_ui_chev_left,
                 Kit.SMALL, false, GROUP_FOOT, "foot-back", false, v -> listener.back());
         CharSequence nextLabel = next == null ? ctx.getString(R.string.first_run_finish)
-                : ctx.getString(R.string.first_run_next, ctx.getString(nextName(next)));
+                : ctx.getString(R.string.first_run_next, nextName(next));
         View forward = Kit.button(ctx, nextLabel, next == null ? R.drawable.ic_ui_check : R.drawable.ic_ui_chev_right,
                 Kit.SMALL | Kit.PRIMARY, false, GROUP_FOOT, "foot-next", true, v -> {
                     if (next != null && page != null) page.enter(next);
@@ -109,7 +111,10 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
     }
 
     /** The step's name on the Next button: "Stores" is short for the stores step (settings.ts paintFoot). */
-    private static int nextName(String id) {
-        return "stores".equals(id) ? R.string.first_run_next_stores : FirstRunPage.titleOf(id, 0);
+    private CharSequence nextName(String id) {
+        if ("stores".equals(id)) return ctx.getString(R.string.first_run_next_stores);
+        SettingsSection section = null;
+        for (SettingsSection s : sections) if (s.id().equals(id)) section = s;
+        return FirstRunPage.titleOf(ctx, id, section);
     }
 }

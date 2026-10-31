@@ -60,8 +60,8 @@ final class LauncherSettingsPage extends Screen implements SettingsSection.Host 
     private static final float PANE_LEFT = 630, PANE_PAD_X = 52, PANE_PAD_Y = 44;
     /** Room inside the pane's scroll area for a focused control's ring and scale-up (.pane-scroll). */
     private static final float PANE_ROOM = 10;
-    /** First run's footer: 24 px above a row of 56 px buttons. */
-    private static final float FOOT_H = 80;
+    /** First run's footer (.pane-foot): a 24 px gap above its row of 56 px buttons (Kit.SMALL), 80 px in all. */
+    private static final float FOOT_GAP = 24, FOOT_ROW = 56, FOOT_H = FOOT_GAP + FOOT_ROW;
 
     private final MainActivity activity;
     private final Context ctx;
@@ -153,13 +153,15 @@ final class LauncherSettingsPage extends Screen implements SettingsSection.Host 
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
-        // First run: the footer sits under the scrolling content (.pane-foot, 24 px above its 56 px buttons).
+        // First run: the footer sits under the scrolling content (.pane-foot), exactly FOOT_H tall and flush with the
+        // scroll's bottom. The scroll's own room and the footer's top padding make the FOOT_GAP above the buttons;
+        // the room left at the footer's sides and bottom keeps a focused button's ring inside the footer.
         if (setup != null) {
             foot = Kit.unclip(new FrameLayout(ctx));
-            foot.setPadding(room, room, room, room);
+            foot.setPadding(room, Ui.px(FOOT_GAP) - room, room, room);
             slp.bottomMargin = Ui.px(FOOT_H);
-            pane.addView(foot, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    Ui.px(FOOT_H - 24) + 2 * room, Gravity.BOTTOM));
+            pane.addView(foot, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.px(FOOT_H),
+                    Gravity.BOTTOM));
         } else {
             foot = null;
         }

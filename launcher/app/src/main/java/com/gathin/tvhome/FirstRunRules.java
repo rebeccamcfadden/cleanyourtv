@@ -75,7 +75,7 @@ final class FirstRunRules {
      * it out while the pill shows.
      */
     static boolean repeatsPill(String value, String pill) {
-        return value != null && pill != null && value.equalsIgnoreCase(pill);
+        return value != null && pill != null && value.trim().equals(pill.trim());
     }
 
     /**

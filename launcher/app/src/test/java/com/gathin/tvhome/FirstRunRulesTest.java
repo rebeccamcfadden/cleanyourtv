@@ -90,6 +90,8 @@ public class FirstRunRulesTest {
     @Test
     public void aValueThatOnlyRepeatsThePillIsLeftOut() {
         assertTrue(FirstRunRules.repeatsPill("Default", "Default"));
+        assertTrue(FirstRunRules.repeatsPill(" Default ", "Default"));
+        assertFalse(FirstRunRules.repeatsPill("default", "Default"));
         assertFalse(FirstRunRules.repeatsPill("Stockholm", "Default"));
         assertFalse(FirstRunRules.repeatsPill("5 ticked", "Suggested"));
         assertFalse(FirstRunRules.repeatsPill(null, "Default"));
