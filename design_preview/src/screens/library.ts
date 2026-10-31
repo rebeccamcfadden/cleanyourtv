@@ -99,7 +99,7 @@ export function libraryScreen(kind: Kind): Screen {
       scopeEl,
       net.isOffline()
         ? h('span.offline-pill', h('span', { html: icon('wifiOff', 24) }), empty ? 'Offline' : `Offline · showing your lists as saved ${SAVED_AT}`)
-        : h('span.lib-scope-text', `${lists.all().length} imported watchlist${lists.all().length === 1 ? '' : 's'} · All ${subscribedCount()} services`),
+        : h('span.lib-scope-text', `${lists.watchlists()} imported watchlist${lists.watchlists() === 1 ? '' : 's'} · All ${subscribedCount()} services`),
     );
     replace(contextEl, `Your collection · ${lists.names()}`);
     replace(guideEl.lastElementChild!, empty ? '' : 'OK for title details');

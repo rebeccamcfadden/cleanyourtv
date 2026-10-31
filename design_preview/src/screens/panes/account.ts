@@ -1,7 +1,7 @@
 import { app } from '../../core/app';
 import { h } from '../../core/dom';
 import { account, USERNAME } from '../../core/account';
-import { lists } from '../../core/lists';
+import { CHIP_CAP, lists } from '../../core/lists';
 import { store } from '../../core/store';
 import { icon } from '../../ui/icons';
 import { qrSvg } from '../../ui/qr';
@@ -133,14 +133,19 @@ export function accountPane(host: PaneHost): Pane {
     );
 
   const signedIn = () => {
-    const shown = lists.imported();
+    const chips = lists.chipped();
+    const past = lists.overflow().length;
+    // Names while they fit on the row; past three, a count ("6 lists · +1 in All lists").
+    const shownText = chips.length
+      ? (chips.length <= 3 ? chips.map((l) => l.name).join(', ') : `${chips.length} lists`) + (past ? ` · +${past} in All lists` : '')
+      : 'None';
     return [
       h('div.eyebrow', 'Account'),
       h('div.acc-user', h('div.avatar', USERNAME[0].toUpperCase()), h('div', h('div.pane-title', USERNAME), h('div.pane-good', h('span', { html: icon('check', 22) }), 'Signed in to TMDB'))),
       h(
         'div.kvs',
         h('div.kv', h('span', 'My list · Seen · Favorites'), h('b', `${store.myListIds().length} · 118 · 12`)),
-        h('div.kv', h('span', 'Shown as chips'), h('b', shown.length ? shown.map((l) => l.name).join(', ') : 'None')),
+        h('div.kv', h('span', 'Shown as chips'), h('b', shownText)),
         h('div.kv', h('span', 'Last synced'), h('b', account.lastSynced())),
       ),
       h(
@@ -181,31 +186,48 @@ export function accountPane(host: PaneHost): Pane {
     ['hide', 'Hidden'],
   ];
 
-  // Choose lists (r2-account B's rows): one row per TMDB list with a Show / Hidden switch. Shown lists become chips in
-  // Movies, TV Shows and Pick for me, after All lists and My list, by their TMDB names and in this order.
-  const chooseLists = () => [
-    h('div.crumb', h('span', { html: icon('back', 20) }), 'Account'),
-    h('div.pane-title', 'Choose lists'),
-    h('div.pane-sub', 'Your TMDB lists. Shown ones become chips in Movies and TV Shows, by these names; ←/→ moves along a row, OK picks.'),
-    h(
-      'div.lists',
-      account.lists().map((l, i) =>
-        h(
-          'div.lists-row',
-          h('div.lists-name', h('div.nm', l.name), h('div.ct', `${lists.count(l.id)} titles · updated ${l.updated}`)),
-          segmented<'show' | 'hide'>({
-            options: SHOW,
-            get: () => (l.shown ? 'show' : 'hide'),
-            set: (v) => account.setShown(l.id, v === 'show'),
-            group: `list-${l.id}`,
-            small: true,
-            entry: i === 0,
-          }),
-        ),
+  // Choose lists (r2-account B's rows): one row per TMDB list with a Show / Hidden switch. The first six shown lists, in
+  // this order, become chips in Movies, TV Shows and Pick for me after All lists and My list, by their TMDB names; a list
+  // shown past six has no chip, but its titles are still in All lists (the project lead, 2026-10-31).
+  const chooseLists = () => {
+    const shownIds = lists.imported().map((l) => l.id);
+    const chipped = shownIds.length;
+    return [
+      h('div.crumb', h('span', { html: icon('back', 20) }), 'Account'),
+      h(
+        'div.pane-headrow',
+        h('div.pane-title', 'Choose lists'),
+        h('span.pane-count', `${Math.min(chipped, CHIP_CAP)} of ${CHIP_CAP} chips`),
       ),
-    ),
-    h('div.pane-note', 'My list, Seen and Favorites always come from the account itself. Back returns.'),
-  ];
+      h(
+        'div.pane-sub',
+        `Your TMDB lists. Up to ${CHIP_CAP} shown ones become chips in Movies and TV Shows, by these names and in this order; more are still in All lists. ←/→ moves along a row, OK picks.`,
+      ),
+      h(
+        'div.lists',
+        account.lists().map((l, i) => {
+          const past = shownIds.indexOf(l.id) >= CHIP_CAP;
+          return h(
+            'div.lists-row',
+            h(
+              'div.lists-name',
+              h('div.nm', l.name),
+              h('div.ct', `${lists.count(l.id)} titles · updated ${l.updated}`, past ? h('span.lists-past', ' · No chip: in All lists') : null),
+            ),
+            segmented<'show' | 'hide'>({
+              options: SHOW,
+              get: () => (l.shown ? 'show' : 'hide'),
+              set: (v) => account.setShown(l.id, v === 'show'),
+              group: `list-${l.id}`,
+              small: true,
+              entry: i === 0,
+            }),
+          );
+        }),
+      ),
+      h('div.pane-note', 'My list, Seen and Favorites always come from the account itself. Back returns.'),
+    ];
+  };
 
   return {
     render() {

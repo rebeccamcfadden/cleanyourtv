@@ -22,6 +22,8 @@ const MEMBERS: Record<string, (t: Title, i: number) => boolean> = {
   weekend: (t, i) => t.kind === 'movie' && i % 2 === 0,
   club: (t, i) => t.kind === 'movie' && i % 3 === 1,
   together: (_t, i) => i % 5 === 0,
+  docs: (t) => t.genres.includes('Documentary'),
+  kids: (t) => t.genres.includes('Animation') || t.rating === 'PG',
 };
 const holds = (id: string) => (t: Title) => MEMBERS[id]?.(t, INDEX.get(t.id) ?? 0) ?? false;
 
@@ -31,29 +33,42 @@ const MOCK: ShownList[] = [
   { id: 'friends', name: 'Friends', has: (t) => t.lists.includes('friends') },
 ];
 
+/** At most this many TMDB lists get a chip (the project lead, 2026-10-31); more shown lists are still in All lists. */
+export const CHIP_CAP = 6;
+
 export const lists = {
-  /** The lists after My list, in chip order. */
+  /** Every shown list after My list, in the account's order: chips and those past the cap alike. */
   imported(): ShownList[] {
     if (account.get() === 'in') return account.lists().filter((l) => l.shown).map((l) => ({ id: l.id, name: l.name, has: holds(l.id) }));
     return account.everSignedIn() ? [] : MOCK;
   },
-  /** My list, then {@link imported}. */
+  /** The shown lists that get a chip: the first {@link CHIP_CAP}. */
+  chipped(): ShownList[] {
+    return lists.imported().slice(0, CHIP_CAP);
+  },
+  /** Shown lists past the cap: no chip, but their titles are in All lists. */
+  overflow(): ShownList[] {
+    return lists.imported().slice(CHIP_CAP);
+  },
+  /** My list, then {@link chipped}: the chips after All lists, and Pick for me's lists. */
   all(): ShownList[] {
-    return [MY, ...lists.imported()];
+    return [MY, ...lists.chipped()];
   },
   byId: (id: string) => lists.all().find((l) => l.id === id),
-  /** On My list or any shown list. */
-  saved: (t: Title) => lists.all().some((l) => l.has(t)),
+  /** On My list or any shown list, past the cap included: what All lists holds. */
+  saved: (t: Title) => [MY, ...lists.imported()].some((l) => l.has(t)),
+  /** My list and every shown list, for the scope line ("8 imported watchlists"). */
+  watchlists: () => 1 + lists.imported().length,
   /** Titles on a TMDB list, shown or not, for Choose lists. */
   count: (id: string) => TITLES.filter(holds(id)).length,
   /** "My list, Family picks & Friends’ tips"; past four, "My list, Family picks & 4 more". */
   names(): string {
-    const n = lists.all().map((l) => l.name);
+    const n = [MY, ...lists.imported()].map((l) => l.name);
     if (n.length > 4) return `${n[0]}, ${n[1]} & ${n.length - 2} more`;
     return n.length < 2 ? n.join('') : `${n.slice(0, -1).join(', ')} & ${n[n.length - 1]}`;
   },
-  /** The card line's source: the first list in chip order holding the title, else the catalogue. */
+  /** The card line's source: the first list in the account's order holding the title, else the catalogue. */
   provenance(t: Title): string {
-    return lists.all().find((l) => l.has(t))?.name ?? 'Catalogue';
+    return [MY, ...lists.imported()].find((l) => l.has(t))?.name ?? 'Catalogue';
   },
 };

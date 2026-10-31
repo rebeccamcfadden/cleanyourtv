@@ -36,6 +36,8 @@ const lists: TmdbList[] = [
   { id: 'tips', name: 'Friends’ tips', updated: 'yesterday', shown: true },
   { id: 'club', name: 'Film club', updated: 'last week', shown: false },
   { id: 'together', name: 'Watch together', updated: 'last month', shown: false },
+  { id: 'docs', name: 'Documentaries', updated: 'last month', shown: false },
+  { id: 'kids', name: 'Kids’ night', updated: 'in August', shown: false },
 ];
 
 let state: AccountState = 'out';

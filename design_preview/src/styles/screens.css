@@ -1994,6 +1994,9 @@
   font-size: var(--t-min);
   color: var(--text-3);
 }
+.lists-past {
+  color: var(--star);
+}
 
 /* Streaming services (r2-services B, tiles) */
 .tgrid {
