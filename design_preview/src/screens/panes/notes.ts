@@ -3,6 +3,7 @@ import { h } from '../../core/dom';
 import { account } from '../../core/account';
 import { INBOX_URL, notes } from '../../core/notes';
 import { icon } from '../../ui/icons';
+import { qrSvg } from '../../ui/qr';
 import { button, segmented } from '../../ui/widgets';
 import { confirmDialog } from '../confirm';
 import type { Pane, PaneHost } from './pane';
@@ -56,9 +57,18 @@ export function notesPane(_host: PaneHost): Pane {
         on
           ? [
               h(
-                'div.kvs',
-                h('div.kv', h('span', 'Address'), h('b.notes-mono', INBOX_URL)),
-                h('div.kv', h('span', 'Pairing code'), h('b.notes-code', notes.code())),
+                'div.notes-setup',
+                h(
+                  'div.kvs',
+                  h('div.kv', h('span', 'Address'), h('b.notes-mono', INBOX_URL)),
+                  h('div.kv', h('span', 'Pairing code'), h('b.notes-code', notes.code())),
+                ),
+                // Scanned with the iPhone camera: http://<tv>:8765/setup#<code>, a page to copy both into the Shortcut.
+                h(
+                  'div.notes-qr',
+                  h('div.notes-qr-img', { html: qrSvg(200) }),
+                  h('div.notes-qr-cap', 'Scan with the iPhone camera to copy the address and code into the Shortcut'),
+                ),
               ),
               h('div.pane-note.pane-note--tiny', 'Plain HTTP on your home network: the code only lets a phone add titles to your lists.'),
               h(

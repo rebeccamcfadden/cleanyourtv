@@ -437,7 +437,7 @@ A ticked line goes to Seen. Off by default.
 | State | Pane | First focus |
 |---|---|---|
 | Off | "Send lists from your phones", what it does, an **On / Off** switch, "Off: the TV doesn’t listen for phones." | The switch |
-| On | The switch; amber "Sign in to TMDB in Account first…" while signed out; Address (`http://<tv>:8765/notes`) and Pairing code ("K7QM-4PXT", 8 characters without 0/O or 1/I/L); a tiny note that it is plain HTTP on the home network and the code only lets a phone add titles; **New code** (asks first: phones need the new one) and **How to set up a phone**; Last sends, one row per list (when, lines, added, and an amber "3 not matched" with the lines that matched nothing as written, to fix in the note) | The switch |
+| On | The switch; amber "Sign in to TMDB in Account first…" while signed out; Address (`http://<tv>:8765/notes`) and Pairing code ("K7QM-4PXT", 8 characters without 0/O or 1/I/L) beside a QR that opens `http://<tv>:8765/setup#<code>` on the iPhone, a page to copy both into the Shortcut (the code stays in the link's fragment; the project lead, 2026-10-31); a tiny note that it is plain HTTP on the home network and the code only lets a phone add titles; **New code** (asks first: phones need the new one) and **How to set up a phone**; Last sends, one row per list (when, lines, added, and an amber "3 not matched" with the lines that matched nothing as written, to fix in the note) | The switch |
 
 The dev bar's Jump to → "Phone notes · a phone sends a note" plays a send; `?notes=on` starts with it on.
 
