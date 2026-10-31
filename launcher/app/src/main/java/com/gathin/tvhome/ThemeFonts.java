@@ -17,6 +17,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,10 +28,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The theme's fonts (Theme.uiFont and displayFont) from Google Fonts, through the platform's downloadable-fonts
- * provider (FontsContract, API 26, no library). Each file is copied into filesDir/fonts/ once, so every later start
- * reads it from disk before the first view is built. Until a face is on the TV, on a TV without Play services, and
- * with the System font option on, the launcher shows Roboto.
+ * The theme's fonts (Theme.uiFont and displayFont) from Google Fonts: through the platform's downloadable-fonts
+ * provider (FontsContract, API 26, no library), or straight from Google Fonts over HTTPS when Play services can't serve
+ * the family (older ones don't list newer families) or isn't on the TV. Each file is copied into filesDir/fonts/ once,
+ * so every later start reads it from disk before the first view is built. Until a face is on the TV, offline, and with
+ * the System font option on, the launcher shows Roboto.
  */
 final class ThemeFonts {
     private ThemeFonts() {}
@@ -36,6 +40,8 @@ final class ThemeFonts {
     private static final String AUTHORITY = "com.google.android.gms.fonts";
     private static final String PROVIDER = "com.google.android.gms";
     private static final String DIR = "fonts";
+    /** A font file from the web larger than this is not a face we asked for (the largest theme font is ~200 KB). */
+    private static final long MAX_FONT_BYTES = 2L * 1024 * 1024;
 
     /** Faces read this process, by file name, so a recreate doesn't parse them again. Main thread only. */
     private static final Map<String, Typeface> LOADED = new HashMap<>();
@@ -44,7 +50,7 @@ final class ThemeFonts {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static Runnable onFetched;
     private static boolean fetchedAny;
-    /** No provider on this TV (no Play services): not asked again until the launcher restarts. */
+    /** No provider on this TV (no Play services): only Google Fonts is asked until the launcher restarts. */
     private static boolean noProvider;
 
     /**
@@ -68,10 +74,9 @@ final class ThemeFonts {
     /**
      * Fetches the theme's faces that aren't on the TV yet, in the background, and runs then on the main thread once
      * every fetch under way is done and at least one face arrived. A later call's then replaces an earlier one's.
-     * Quietly does nothing more when the TV has no provider or is offline: the next start tries again.
+     * Quietly does nothing more offline: the next start tries again.
      */
     static void fetch(Context ctx, Theme t, Runnable then) {
-        if (noProvider) return;
         File dir = dir(ctx);
         List<FontFaces.Face> missing = new ArrayList<>();
         for (FontFaces.Face f : FontFaces.distinct(FontFaces.of(t, ThemeStore.systemFont(ctx)))) {
@@ -83,17 +88,27 @@ final class ThemeFonts {
         Context app = ctx.getApplicationContext();
         new Thread(() -> {
             boolean any = false;
-            boolean noApp = false;
+            boolean noApp = noProvider;
             List<List<byte[]>> certs = certs(app.getResources());
             for (FontFaces.Face f : missing) {
-                try {
-                    any |= download(app, dir, certs, f);
-                } catch (PackageManager.NameNotFoundException e) {
-                    noApp = true;
-                    break;
-                } catch (IOException | RuntimeException e) {
-                    // Offline, or the provider failed: Roboto stays, and the next start asks again.
+                boolean got = false;
+                if (!noApp) {
+                    try {
+                        got = download(app, dir, certs, f);
+                    } catch (PackageManager.NameNotFoundException e) {
+                        noApp = true;
+                    } catch (IOException | RuntimeException e) {
+                        // The provider failed: Google Fonts is asked directly below.
+                    }
                 }
+                if (!got) {
+                    try {
+                        got = downloadWeb(dir, f);
+                    } catch (IOException | RuntimeException e) {
+                        // Offline: Roboto stays, and the next start asks again.
+                    }
+                }
+                any |= got;
             }
             boolean arrived = any, missingProvider = noApp;
             MAIN.post(() -> {
@@ -173,6 +188,62 @@ final class ThemeFonts {
             return true;
         }
         return false;
+    }
+
+    /**
+     * One face straight from Google Fonts into dir: its CSS API names the TrueType file, which is downloaded and kept
+     * if it reads as a font. A family without that weight is asked for the nearest one. Runs off the main thread.
+     */
+    private static boolean downloadWeb(File dir, FontFaces.Face f) throws IOException {
+        for (int w : FontFaces.weightsToTry(f.weight)) {
+            String css = fetchText(new FontFaces.Face(f.family, w).cssUrl());
+            String ttf = FontFaces.ttfUrl(css);
+            if (ttf == null) continue;
+            if (!dir.isDirectory() && !dir.mkdirs()) return false;
+            File part = new File(dir, f.fileName() + ".part");
+            HttpURLConnection c = open(ttf);
+            try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(part)) {
+                byte[] buf = new byte[16 * 1024];
+                long total = 0;
+                for (int n; (n = in.read(buf)) > 0; ) {
+                    total += n;
+                    if (total > MAX_FONT_BYTES) throw new IOException("too big");
+                    out.write(buf, 0, n);
+                }
+            } finally {
+                c.disconnect();
+            }
+            if (read(part) != null && part.renameTo(new File(dir, f.fileName()))) return true;
+            part.delete();
+            return false;
+        }
+        return false;
+    }
+
+    /** The CSS for one face, or null when Google Fonts doesn't have it (it answers 400 for a missing weight). */
+    private static String fetchText(String url) throws IOException {
+        HttpURLConnection c = open(url);
+        try {
+            if (c.getResponseCode() != HttpURLConnection.HTTP_OK) return null;
+            try (InputStream in = c.getInputStream()) {
+                byte[] buf = new byte[8 * 1024];
+                StringBuilder b = new StringBuilder();
+                for (int n; (n = in.read(buf)) > 0 && b.length() < 64 * 1024; ) {
+                    b.append(new String(buf, 0, n, StandardCharsets.UTF_8));
+                }
+                return b.toString();
+            }
+        } finally {
+            c.disconnect();
+        }
+    }
+
+    private static HttpURLConnection open(String url) throws IOException {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        c.setConnectTimeout(10_000);
+        c.setReadTimeout(20_000);
+        c.setInstanceFollowRedirects(true);
+        return c;
     }
 
     /** The provider's signing certificates (res/values/font_certs.xml), as FontRequest wants them. */
