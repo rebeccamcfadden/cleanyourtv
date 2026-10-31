@@ -101,6 +101,16 @@ final class ServiceTable {
     }
 
     /**
+     * Every service, subscription or store, with an app in {@code installed} (package names): a store whose app is on
+     * the TV wins a tie for Cheapest ({@link PriceCards#order}).
+     */
+    Set<ServiceId> installed(Collection<String> installed) {
+        Set<ServiceId> out = EnumSet.noneOf(ServiceId.class);
+        for (ServiceId s : ServiceId.values()) if (isInstalled(s, installed)) out.add(s);
+        return Collections.unmodifiableSet(out);
+    }
+
+    /**
      * The services the household has, so their SUB offers count as included. With an {@code override} (the
      * subscribed_services config key, lowercase ids) exactly the services it names, unknown ids ignored. Without
      * one, every subscription service whose app is installed, plus YouTube when installed: its FREE offers are

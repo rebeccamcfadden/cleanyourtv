@@ -104,7 +104,7 @@ public class PriceCardsTest {
 
     @Test
     public void includedFirstThenRentalsCheapestFirstThenPurchasesThenUnpriced() {
-        List<PriceCards.Card> cards = PriceCards.cards(moon(), MAX_ONLY, null);
+        List<PriceCards.Card> cards = PriceCards.cards(moon(), MAX_ONLY, null, null);
         assertEquals(Arrays.asList(
                 "max: Included; With your subscription",
                 "sfanytime: Cheapest; Rent 39 kr · Buy 129 kr   HD",
@@ -119,7 +119,7 @@ public class PriceCardsTest {
     public void rentalsComeBeforeCheaperPurchases() {
         Title t = title(Kind.MOVIE, buy(ServiceId.APPLETV, HD, 29), rent(ServiceId.SFANYTIME, HD, 99),
                 buy(ServiceId.SFANYTIME, HD, 149));
-        List<PriceCards.Card> cards = PriceCards.cards(t, MAX_ONLY, null);
+        List<PriceCards.Card> cards = PriceCards.cards(t, MAX_ONLY, null, null);
         assertEquals(ServiceId.SFANYTIME, cards.get(0).offers.service);
         assertTrue(cards.get(0).cheapest);
         assertTrue(cards.get(0).isGreen(0, OfferType.RENT));
@@ -131,7 +131,7 @@ public class PriceCardsTest {
     public void purchasesAreOrderedByPriceAndTheCheapestPurchaseIsGreen() {
         Title t = title(Kind.MOVIE, buy(ServiceId.APPLETV, HD, 149), buy(ServiceId.AMAZONVIDEO, UHD, 169),
                 buy(ServiceId.SFANYTIME, HD, 99));
-        List<PriceCards.Card> cards = PriceCards.cards(t, MAX_ONLY, null);
+        List<PriceCards.Card> cards = PriceCards.cards(t, MAX_ONLY, null, null);
         assertEquals(Arrays.asList(
                 "sfanytime: Cheapest; Buy 99 kr   HD",
                 "appletv: Buy 149 kr   HD",
@@ -144,7 +144,7 @@ public class PriceCardsTest {
     public void theGreenAmountIsTheDecidingPriceOnItsOwnLine() {
         // SD costs more than HD here: the green rental is HD's, on the second line.
         Title t = title(Kind.MOVIE, rent(ServiceId.APPLETV, SD, 59, HD, 39), rent(ServiceId.SFANYTIME, HD, 49));
-        PriceCards.Card apple = PriceCards.cards(t, MAX_ONLY, null).get(0);
+        PriceCards.Card apple = PriceCards.cards(t, MAX_ONLY, null, null).get(0);
         assertEquals(ServiceId.APPLETV, apple.offers.service);
         assertFalse(apple.isGreen(0, OfferType.RENT));
         assertTrue(apple.isGreen(1, OfferType.RENT));
@@ -153,11 +153,11 @@ public class PriceCardsTest {
     @Test
     public void cheapestNeedsTwoPricedStores() {
         Title one = title(Kind.MOVIE, sub(ServiceId.MAX), rent(ServiceId.APPLETV, HD, 49), rent(ServiceId.RAKUTEN));
-        for (PriceCards.Card c : PriceCards.cards(one, MAX_ONLY, null)) {
+        for (PriceCards.Card c : PriceCards.cards(one, MAX_ONLY, null, null)) {
             assertFalse(c.cheapest);
             assertEquals(-1, c.greenLine);
         }
-        assertNull(PriceCards.cheapestStore(PriceCards.order(Offers.byService(one, MAX_ONLY))));
+        assertNull(PriceCards.cheapestStore(PriceCards.order(Offers.byService(one, MAX_ONLY), null)));
     }
 
     @Test
@@ -189,7 +189,7 @@ public class PriceCardsTest {
     public void aShowsSeasonPricesSayPerSeason() {
         Title show = title(Kind.SHOW, priced(ServiceId.APPLETV, OfferType.BUY, true, HD, 199),
                 priced(ServiceId.SFANYTIME, OfferType.BUY, true, HD, 219));
-        List<PriceCards.Card> cards = PriceCards.cards(show, MAX_ONLY, null);
+        List<PriceCards.Card> cards = PriceCards.cards(show, MAX_ONLY, null, null);
         assertEquals(Arrays.asList("appletv: Cheapest; Buy 199 kr   HD; Per season", "sfanytime: Buy 219 kr   HD; Per season"),
                 describe(cards));
     }
@@ -199,13 +199,13 @@ public class PriceCardsTest {
         Offer youtube = new Offer(ServiceId.YOUTUBE, OfferType.FREE, 0, "HD", null, false, true);
         Title t = title(Kind.MOVIE, sub(ServiceId.NETFLIX), rent(ServiceId.APPLETV, HD, 49), youtube);
         assertEquals(Arrays.asList("youtube: Free; Free with ads; HD", "appletv: Rent 49 kr   HD",
-                        "netflix: Subscription"), describe(PriceCards.cards(t, MAX_ONLY, null)));
+                        "netflix: Subscription"), describe(PriceCards.cards(t, MAX_ONLY, null, null)));
     }
 
     @Test
     public void untickedStoresAreLeftOutEverywhere() {
         Set<ServiceId> noSf = EnumSet.of(ServiceId.APPLETV, ServiceId.AMAZONVIDEO, ServiceId.VIAPLAY, ServiceId.RAKUTEN);
-        List<PriceCards.Card> cards = PriceCards.cards(moon(), MAX_ONLY, noSf);
+        List<PriceCards.Card> cards = PriceCards.cards(moon(), MAX_ONLY, noSf, null);
         assertEquals(5, cards.size());
         assertEquals(ServiceId.VIAPLAY, cards.get(1).offers.service);
         assertTrue(cards.get(1).cheapest);
@@ -218,6 +218,70 @@ public class PriceCardsTest {
         // Nothing left out: the same title.
         assertTrue(t == PriceCards.ticked(t, EnumSet.of(ServiceId.VIAPLAY)));
         assertTrue(t == PriceCards.ticked(t, null));
+    }
+
+    // ---- A tie for Cheapest (2026-10-31) ---------------------------------------------------------------------------
+
+    /** SF Anytime and the Apple TV Store tie on a 39 kr rental, in TMDB's order; the Viaplay Store rents for 45. */
+    private static Title tie() {
+        return title(Kind.MOVIE, sub(ServiceId.MAX), rent(ServiceId.SFANYTIME, HD, 39), buy(ServiceId.SFANYTIME, HD, 129),
+                rent(ServiceId.APPLETV, HD, 39, UHD, 49), rent(ServiceId.VIAPLAY, HD, 45));
+    }
+
+    @Test
+    public void aTieForCheapestGoesToAnInstalledStore() {
+        List<PriceCards.Card> cards = PriceCards.cards(tie(), MAX_ONLY, null, EnumSet.of(ServiceId.APPLETV));
+        assertEquals(Arrays.asList(
+                "max: Included; With your subscription",
+                "appletv: Cheapest; Rent 39 kr   HD; Rent 49 kr   4K",
+                "sfanytime: Rent 39 kr · Buy 129 kr   HD",
+                "viaplay: Rent 45 kr   HD"), describe(cards));
+        assertTrue(cards.get(1).isGreen(0, OfferType.RENT));
+        assertEquals(-1, cards.get(2).greenLine);
+        // Purchases alone: the same.
+        Title buys = title(Kind.MOVIE, buy(ServiceId.SFANYTIME, HD, 99), buy(ServiceId.RAKUTEN, HD, 99),
+                buy(ServiceId.APPLETV, HD, 99), buy(ServiceId.VIAPLAY, HD, 89));
+        assertEquals(Arrays.asList(ServiceId.VIAPLAY, ServiceId.SFANYTIME, ServiceId.RAKUTEN, ServiceId.APPLETV),
+                services(PriceCards.cards(buys, MAX_ONLY, null, EnumSet.of(ServiceId.APPLETV))));
+        Title buyTie = title(Kind.MOVIE, buy(ServiceId.SFANYTIME, HD, 99), buy(ServiceId.RAKUTEN, HD, 99),
+                buy(ServiceId.APPLETV, HD, 99));
+        List<PriceCards.Card> bought = PriceCards.cards(buyTie, MAX_ONLY, null, EnumSet.of(ServiceId.APPLETV));
+        assertEquals(Arrays.asList(ServiceId.APPLETV, ServiceId.SFANYTIME, ServiceId.RAKUTEN), services(bought));
+        assertTrue(bought.get(0).cheapest);
+        assertTrue(bought.get(0).isGreen(0, OfferType.BUY));
+    }
+
+    @Test
+    public void aTieWithNeitherOrBothInstalledKeepsTmdbsOrder() {
+        List<ServiceId> tmdb = Arrays.asList(ServiceId.MAX, ServiceId.SFANYTIME, ServiceId.APPLETV, ServiceId.VIAPLAY);
+        for (Set<ServiceId> installed : Arrays.<Set<ServiceId>>asList(null, EnumSet.noneOf(ServiceId.class),
+                EnumSet.of(ServiceId.VIAPLAY, ServiceId.MAX), EnumSet.of(ServiceId.SFANYTIME, ServiceId.APPLETV),
+                EnumSet.of(ServiceId.SFANYTIME))) {
+            List<PriceCards.Card> cards = PriceCards.cards(tie(), MAX_ONLY, null, installed);
+            assertEquals(String.valueOf(installed), tmdb, services(cards));
+            assertTrue(cards.get(1).cheapest);
+            assertFalse(cards.get(2).cheapest);
+        }
+    }
+
+    @Test
+    public void installedAppsDontMoveStoresWithoutATie() {
+        // Moon: SF Anytime alone is cheapest; Apple and Amazon tie at 49 kr, which decides nothing, so they keep
+        // TMDB's order whichever is installed.
+        List<String> plain = describe(PriceCards.cards(moon(), MAX_ONLY, null, null));
+        assertEquals(plain, describe(PriceCards.cards(moon(), MAX_ONLY, null,
+                EnumSet.of(ServiceId.AMAZONVIDEO, ServiceId.VIAPLAY, ServiceId.RAKUTEN))));
+        assertEquals(plain, describe(PriceCards.cards(moon(), MAX_ONLY, null, EnumSet.allOf(ServiceId.class))));
+        // A cheaper purchase in an installed store doesn't beat a rental.
+        Title t = title(Kind.MOVIE, rent(ServiceId.SFANYTIME, HD, 99), buy(ServiceId.APPLETV, HD, 99));
+        assertEquals(Arrays.asList(ServiceId.SFANYTIME, ServiceId.APPLETV),
+                services(PriceCards.cards(t, MAX_ONLY, null, EnumSet.of(ServiceId.APPLETV))));
+    }
+
+    private static List<ServiceId> services(List<PriceCards.Card> cards) {
+        List<ServiceId> out = new ArrayList<>();
+        for (PriceCards.Card c : cards) out.add(c.offers.service);
+        return out;
     }
 
     // ---- The credit -----------------------------------------------------------------------------------------------
@@ -301,27 +365,41 @@ public class PriceCardsTest {
     }
 
     @Test
+    public void theDialogNamesTheInstalledStoreOfATie() {
+        Title t = tie();
+        List<ServiceOffers> all = Offers.byService(t, MAX_ONLY);
+        Set<ServiceId> apple = EnumSet.of(ServiceId.APPLETV);
+        assertEquals("SF Anytime has it for 39 kr (HD).",
+                PriceCards.cheaperElsewhere(all, offers(t, ServiceId.VIAPLAY), null, table));
+        assertEquals("Apple TV Store has it for 39 kr (HD).",
+                PriceCards.cheaperElsewhere(all, offers(t, ServiceId.VIAPLAY), apple, table));
+        // The tied store hears of nothing cheaper either way.
+        assertEquals("", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.SFANYTIME), apple, table));
+        assertEquals("", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.APPLETV), null, table));
+    }
+
+    @Test
     public void theDialogNamesACheaperStore() {
         Title t = moon();
         List<ServiceOffers> all = Offers.byService(t, MAX_ONLY);
-        assertEquals("SF Anytime has it for 39 kr (HD).", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.APPLETV), table));
+        assertEquals("SF Anytime has it for 39 kr (HD).", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.APPLETV), null, table));
         assertEquals("Payment finishes in the Apple TV app. SF Anytime has it for 39 kr (HD).",
-                PriceCards.paymentNote("Apple TV", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.APPLETV), table)));
+                PriceCards.paymentNote("Apple TV", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.APPLETV), null, table)));
         // The cheapest store itself, and a store no source priced, which still hears of the cheaper one.
-        assertEquals("", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.SFANYTIME), table));
-        assertEquals("SF Anytime has it for 39 kr (HD).", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.RAKUTEN), table));
+        assertEquals("", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.SFANYTIME), null, table));
+        assertEquals("SF Anytime has it for 39 kr (HD).", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.RAKUTEN), null, table));
         assertEquals("Payment finishes in the Rakuten TV app.", PriceCards.paymentNote("Rakuten TV", ""));
         // Equal rentals: nothing cheaper.
         Title equal = title(Kind.MOVIE, rent(ServiceId.SFANYTIME, HD, 49), rent(ServiceId.APPLETV, HD, 49));
-        assertEquals("", PriceCards.cheaperElsewhere(Offers.byService(equal, MAX_ONLY), offers(equal, ServiceId.APPLETV), table));
+        assertEquals("", PriceCards.cheaperElsewhere(Offers.byService(equal, MAX_ONLY), offers(equal, ServiceId.APPLETV), null, table));
         // The Viaplay Store is named as a store.
         Title via = title(Kind.MOVIE, rent(ServiceId.VIAPLAY, HD, 29), rent(ServiceId.APPLETV, HD, 49));
         assertEquals("Viaplay Store has it for 29 kr (HD).",
-                PriceCards.cheaperElsewhere(Offers.byService(via, MAX_ONLY), offers(via, ServiceId.APPLETV), table));
+                PriceCards.cheaperElsewhere(Offers.byService(via, MAX_ONLY), offers(via, ServiceId.APPLETV), null, table));
         // SD at HD's price isn't named: the quality is HD.
         Title sd = title(Kind.MOVIE, rent(ServiceId.SFANYTIME, SD, 39, HD, 39, UHD, 39), rent(ServiceId.APPLETV, HD, 49));
         assertEquals("SF Anytime has it for 39 kr (HD).",
-                PriceCards.cheaperElsewhere(Offers.byService(sd, MAX_ONLY), offers(sd, ServiceId.APPLETV), table));
+                PriceCards.cheaperElsewhere(Offers.byService(sd, MAX_ONLY), offers(sd, ServiceId.APPLETV), null, table));
     }
 
     // ---- The card line --------------------------------------------------------------------------------------------

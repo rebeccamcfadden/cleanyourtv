@@ -80,7 +80,8 @@ milestones: [docs/rework.md](docs/rework.md).
     Answers are kept on disk and used stale offline. Seen on the emulator with real keys (2026-10-30).
   - **Design 07-prices A (cards):** Where to watch shows one card per service: included and free first, then the
     stores, rentals with a price cheapest first, purchases with a price, stores with no price last; with two or more
-    priced stores the first is tagged a green Cheapest with its deciding price green. A line per quality ("Rent 49 kr
+    priced stores the first is tagged a green Cheapest with its deciding price green; a tie on that price goes to a
+    store whose app is installed, else to TMDB's order (2026-10-31). A line per quality ("Rent 49 kr
     · Buy 149 kr   HD", a second for 4K when it costs more, "HD · 4K" when it doesn't, "Per season" for a show); an
     unpriced store reads "Rent · Buy", "Price shown in the app". Offline the credit adds "Saved today 19:52, prices
     may be out of date", from when the prices were fetched (the disk copy's time). The rent/buy dialog has the HD /

@@ -90,7 +90,8 @@ final class RentDialog {
         box.addView(actions, below(40));
 
         TextView detail = Ui.text(ctx, Ui.T_MIN, Ui.TEXT_3, Ui.REGULAR);
-        detail.setText(PriceCards.paymentNote(app, PriceCards.cheaperElsewhere(all, s, data.table)));
+        detail.setText(PriceCards.paymentNote(app,
+                PriceCards.cheaperElsewhere(all, s, data.services.installed(), data.table)));
         TitlePreview.lineHeight(detail, 27);
         box.addView(detail, below(12));
 

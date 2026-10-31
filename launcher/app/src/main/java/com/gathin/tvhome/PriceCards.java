@@ -90,19 +90,50 @@ final class PriceCards {
     /**
      * The cards' order (README, Cheapest rule, 2026-10-30): included and free services first, in the offers' order;
      * then the stores: rentals with a price, cheapest first; purchases with a price, cheapest first; stores with no
-     * price; last, subscriptions the household doesn't have. Equal ones keep the offers' order.
+     * price; last, subscriptions the household doesn't have. Equal ones keep the offers' order, except that when
+     * stores tie on the price that decides Cheapest (2026-10-31), the first of them whose app is in
+     * {@code installed} (null for none known) leads, and so is tagged.
      */
-    static List<ServiceOffers> order(List<ServiceOffers> services) {
+    static List<ServiceOffers> order(List<ServiceOffers> services, Set<ServiceId> installed) {
         List<ServiceOffers> out = new ArrayList<>(services);
         // List.sort is stable, so equal ranks keep the order Offers.byService gave.
         out.sort((a, b) -> {
             int ra = rank(a), rb = rank(b);
             if (ra != rb) return Integer.compare(ra, rb);
-            if (ra == 1) return cheapest(a.rent).compareTo(cheapest(b.rent));
-            if (ra == 2) return cheapest(a.buy).compareTo(cheapest(b.buy));
+            if (ra == 1 || ra == 2) return deciding(a).compareTo(deciding(b));
             return 0;
         });
+        installedLeads(out, installed);
         return Collections.unmodifiableList(out);
+    }
+
+    /** A priced store's deciding price: its cheapest rental, else its cheapest purchase. */
+    private static Money deciding(ServiceOffers s) {
+        Money rent = cheapest(s.rent);
+        return rent != null ? rent : cheapest(s.buy);
+    }
+
+    /**
+     * Moves the first installed store of those tied with the leading priced store on its deciding price to the
+     * lead, when the leading one isn't installed itself; the others keep their order.
+     */
+    private static void installedLeads(List<ServiceOffers> sorted, Set<ServiceId> installed) {
+        if (installed == null || installed.isEmpty()) return;
+        int lead = 0;
+        while (lead < sorted.size() && rank(sorted.get(lead)) == 0) lead++;
+        if (lead == sorted.size()) return;
+        ServiceOffers first = sorted.get(lead);
+        int r = rank(first);
+        if ((r != 1 && r != 2) || installed.contains(first.service)) return;
+        Money price = deciding(first);
+        for (int i = lead + 1; i < sorted.size(); i++) {
+            ServiceOffers s = sorted.get(i);
+            if (rank(s) != r || deciding(s).compareTo(price) != 0) return;
+            if (installed.contains(s.service)) {
+                sorted.add(lead, sorted.remove(i));
+                return;
+            }
+        }
     }
 
     /** 0 included or free, 1 a priced rental, 2 a priced purchase, 3 a store with no price, 4 anything else. */
@@ -115,7 +146,7 @@ final class PriceCards {
 
     /**
      * The store tagged Cheapest: the first priced store of {@link #order}'s list (the cheapest rental, else the
-     * cheapest purchase), once two or more stores have a price; null otherwise.
+     * cheapest purchase; an installed one of equals), once two or more stores have a price; null otherwise.
      */
     static ServiceId cheapestStore(List<ServiceOffers> ordered) {
         ServiceOffers first = null;
@@ -232,9 +263,12 @@ final class PriceCards {
         }
     }
 
-    /** The title's Where to watch cards, in {@link #order}, with the ticks applied. */
-    static List<Card> cards(Title t, Set<ServiceId> subscribed, Set<ServiceId> stores) {
-        List<ServiceOffers> ordered = order(Offers.byService(ticked(t, stores), subscribed));
+    /**
+     * The title's Where to watch cards, in {@link #order}, with the ticks applied; {@code installed}, the services
+     * whose app is on the TV, settles a tie for Cheapest.
+     */
+    static List<Card> cards(Title t, Set<ServiceId> subscribed, Set<ServiceId> stores, Set<ServiceId> installed) {
+        List<ServiceOffers> ordered = order(Offers.byService(ticked(t, stores), subscribed), installed);
         ServiceId best = cheapestStore(ordered);
         List<Card> out = new ArrayList<>(ordered.size());
         for (ServiceOffers s : ordered) out.add(card(s, s.service == best));
@@ -396,9 +430,11 @@ final class PriceCards {
     /**
      * The cheaper store the dialog names, "SF Anytime has it for 39 kr (HD).": the Cheapest store's rental when it
      * isn't this store and costs less than this store's rental (or this store has no priced one); "" otherwise.
+     * {@code installed} picks the Cheapest store as Where to watch does.
      */
-    static String cheaperElsewhere(List<ServiceOffers> services, ServiceOffers here, ServiceTable table) {
-        List<ServiceOffers> ordered = order(services);
+    static String cheaperElsewhere(List<ServiceOffers> services, ServiceOffers here, Set<ServiceId> installed,
+                                   ServiceTable table) {
+        List<ServiceOffers> ordered = order(services, installed);
         ServiceId best = cheapestStore(ordered);
         if (best == null || best == here.service) return "";
         ServiceOffers b = null;

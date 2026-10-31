@@ -71,6 +71,15 @@ public class ServiceTableTest {
     }
 
     @Test
+    public void installedCountsStoresToo() {
+        // The Apple TV app is both Apple TV+ and the Apple TV store; a store's own app counts as installed.
+        assertEquals(EnumSet.of(ServiceId.APPLETVPLUS, ServiceId.APPLETV),
+                table.installed(installed("com.apple.atve.androidtv.appletv")));
+        assertTrue(table.installed(installed("com.google.android.videos")).contains(ServiceId.GOOGLETV));
+        assertTrue(table.installed(installed()).isEmpty());
+    }
+
+    @Test
     public void everyAppInstalledGivesThePrototypesSetAndSwedensServices() {
         Set<String> all = new HashSet<>();
         for (ServiceId s : ServiceId.values()) all.addAll(table.packages(s));

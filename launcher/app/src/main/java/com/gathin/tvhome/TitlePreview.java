@@ -737,7 +737,7 @@ final class TitlePreview extends Screen {
      * credit below the row, "Availability: JustWatch · Prices: Apple", and offline when the prices were saved.
      */
     private View whereToWatch() {
-        List<PriceCards.Card> services = PriceCards.cards(t, subscribed, data.stores());
+        List<PriceCards.Card> services = PriceCards.cards(t, subscribed, data.stores(), data.services.installed());
         View body;
         if (services.isEmpty()) {
             body = emptyNote(t.detailed ? R.string.prices_where_none : R.string.preview_not_loaded);
