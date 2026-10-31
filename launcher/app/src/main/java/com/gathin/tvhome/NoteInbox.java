@@ -25,7 +25,8 @@ import java.util.Locale;
  * lines into titles on that person's TMDB list. Off unless note_inbox is on; plain HTTP on the home network, so the
  * code only lets a caller add titles to the household's lists.
  *
- * <p>One request at a time on a single low-priority thread: {@code POST /notes} only, from a private, loopback or
+ * <p>One request at a time on a single low-priority thread: {@code POST /notes} (and {@code GET /setup}, the static page
+ * the Phone notes QR opens, which holds nothing secret) only, from a private, loopback or
  * link-local address only, at most {@link #MAX_BODY} bytes, all of it within {@link #REQUEST_DEADLINE_MS} (JSON at most
  * {@link #MAX_DEPTH} deep). The body is JSON,
  * {@code {"list": "Rebecca", "text": "…"}}, or the note's text itself with the list in {@code ?list=}. After
@@ -50,16 +51,27 @@ final class NoteInbox {
         final int status;
         final String message;
         final int lines, fresh;
+        /** A page to send instead of the JSON answer (GET /setup), or null. */
+        final String html;
 
         Reply(int status, String message, int lines, int fresh) {
+            this(status, message, lines, fresh, null);
+        }
+
+        private Reply(int status, String message, int lines, int fresh, String html) {
             this.status = status;
             this.message = message;
             this.lines = lines;
             this.fresh = fresh;
+            this.html = html;
         }
 
         static Reply error(int status, String message) {
             return new Reply(status, message, 0, 0);
+        }
+
+        static Reply page(String html) {
+            return new Reply(200, "", 0, 0, html);
         }
 
         String json() {
@@ -80,15 +92,26 @@ final class NoteInbox {
     private final String code;
     private final Handler handler;
     private final Clock clock;
+    /** The setup page the Phone notes QR opens (GET /setup), or null for none. */
+    private final String setupPage;
     private int wrong;
     private long lockedUntil;
     private volatile ServerSocket socket;
     private Thread thread;
 
     NoteInbox(String code, Handler handler, Clock clock) {
+        this(code, handler, clock, null);
+    }
+
+    /**
+     * @param setupPage what GET /setup answers: a static page that reads the code from the address's #fragment, which
+     *     the phone never sends, so the page holds nothing secret and needs no code to fetch
+     */
+    NoteInbox(String code, Handler handler, Clock clock, String setupPage) {
         this.code = code;
         this.handler = handler;
         this.clock = clock;
+        this.setupPage = setupPage;
     }
 
     // ---- The pairing code ----------------------------------------------------------------------------------------
@@ -198,6 +221,7 @@ final class NoteInbox {
     synchronized Reply handle(Request q) {
         long now = clock.now();
         if (now < lockedUntil) return Reply.error(429, "Too many wrong codes. Try again in a few minutes.");
+        if (setupPage != null && "GET".equals(q.method) && "/setup".equals(q.path)) return Reply.page(setupPage);
         if (!"POST".equals(q.method) || !"/notes".equals(q.path)) {
             return Reply.error(404, "Send notes to /notes with POST.");
         }
@@ -279,11 +303,14 @@ final class NoteInbox {
     }
 
     private static void write(OutputStream out, Reply r) throws IOException {
-        byte[] body = r.json().getBytes(StandardCharsets.UTF_8);
+        byte[] body = (r.html != null ? r.html : r.json()).getBytes(StandardCharsets.UTF_8);
         String head = "HTTP/1.1 " + r.status + " " + reason(r.status) + "\r\n"
-                + "Content-Type: application/json; charset=utf-8\r\n"
+                + "Content-Type: " + (r.html != null ? "text/html" : "application/json") + "; charset=utf-8\r\n"
                 + "Content-Length: " + body.length + "\r\n"
                 + "Cache-Control: no-store\r\n"
+                // The setup page runs only its own inline script and fetches nothing.
+                + (r.html != null ? "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; "
+                        + "style-src 'unsafe-inline'\r\nReferrer-Policy: no-referrer\r\n" : "")
                 + "Connection: close\r\n\r\n";
         out.write(head.getBytes(StandardCharsets.US_ASCII));
         out.write(body);

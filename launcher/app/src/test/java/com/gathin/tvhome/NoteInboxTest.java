@@ -142,6 +142,41 @@ public class NoteInboxTest {
     }
 
     @Test
+    public void setupPageNeedsNoCodeAndHoldsNoSecret() throws IOException {
+        NoteInbox withPage = new NoteInbox(CODE, (list, text) -> {
+            got.add(list);
+            return new NoteInbox.Reply(200, "ok", 0, 0);
+        }, () -> now, "<html>setup</html>");
+        NoteInbox.Reply r = withPage.handle(request("GET /setup HTTP/1.1\r\nHost: tv\r\n\r\n"));
+        assertEquals(200, r.status);
+        assertEquals("<html>setup</html>", r.html);
+        assertTrue(got.isEmpty());
+        // Only GET /setup: posting a note there, or any other GET, is still refused.
+        assertEquals(404, withPage.handle(request("GET /notes HTTP/1.1\r\n\r\n")).status);
+        assertEquals(404, withPage.handle(request(post(CODE, "application/json", "{\"list\":\"A\",\"text\":\"Dune\"}")
+                .replace("POST /notes", "POST /setup"))).status);
+        // Without a page (as in the other tests) there is no setup route at all.
+        assertEquals(404, handle("GET /setup HTTP/1.1\r\n\r\n").status);
+    }
+
+    @Test
+    public void setupPageIsServedAsHtmlOverLoopback() throws Exception {
+        NoteInbox withPage = new NoteInbox(CODE, (list, text) -> new NoteInbox.Reply(200, "ok", 0, 0), () -> now,
+                "<html>setup</html>");
+        int port = withPage.start(0);
+        try (Socket s = new Socket(InetAddress.getLoopbackAddress(), port)) {
+            s.getOutputStream().write("GET /setup HTTP/1.1\r\nHost: tv\r\n\r\n".getBytes(StandardCharsets.US_ASCII));
+            String answer = readAll(s.getInputStream());
+            assertTrue(answer, answer.startsWith("HTTP/1.1 200 OK\r\n"));
+            assertTrue(answer, answer.contains("Content-Type: text/html; charset=utf-8\r\n"));
+            assertTrue(answer, answer.contains("Content-Security-Policy: default-src 'none'"));
+            assertTrue(answer, answer.endsWith("<html>setup</html>"));
+        } finally {
+            withPage.stop();
+        }
+    }
+
+    @Test
     public void malformedRequestsAreRefused() {
         for (String raw : new String[] {"garbage\r\n\r\n", "POST /notes HTTP/1.1\r\nContent-Length: x\r\n\r\n",
                 "POST /notes HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n", "POST /notes HTTP/1.1\r\nContent-Length: 10\r\n\r\nshort"}) {

@@ -184,9 +184,12 @@ milestones: [docs/rework.md](docs/rework.md).
   `http://<tv>:8765/notes` with the pairing code. Launcher settings' **Phone notes** section, after Account, has the On /
   Off switch (`note_inbox` in `config.xml` or a pushed `config.json` is the default, off; the household's choice is
   saved on the TV and wins), the TV's Wi-Fi address (Ethernet when there is no Wi-Fi; "Not on Wi-Fi" without either),
-  the pairing code (8 characters without 0/O or 1/I/L, made when it is first turned on), New code (asks first), How to
-  set up a phone, and each list's last send with the lines that matched nothing; the row reads Off, On or, in amber,
-  "3 not matched". While on, `NoteInbox` listens on port 8765 for `POST /notes` from private addresses only, one
+  the pairing code (8 characters without 0/O or 1/I/L, made when it is first turned on), a QR beside them (the project
+  lead, 2026-10-31) that opens `http://<tv>:8765/setup#<code>` on the iPhone, a fixed page to copy the address and
+  `Authorization` value from (the code stays in the link's fragment, never sent to the TV), New code (asks first),
+  How to set up a phone, and each list's last send with the lines that matched nothing; the row reads Off, On or, in amber,
+  "3 not matched". While on, `NoteInbox` listens on port 8765 for `POST /notes` (and `GET /setup`, the QR's page)
+  from private addresses only, one
   request at a time, with a five-minute lockout after five wrong codes; it is opened and closed off the main thread by
   one owner for the process (`Notes`), so a rebuilt Home never opens it twice, and a port another app holds is said in
   the pane. A note is answered at once ("Sent: 12 lines, 3 new", or signed out "The TV will add these once it's

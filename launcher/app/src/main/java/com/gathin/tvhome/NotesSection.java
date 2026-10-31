@@ -7,6 +7,7 @@ import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -22,6 +23,9 @@ import java.util.Locale;
  * "3 not matched". The state is {@link Notes}'s; this only draws it, and draws again when it changes.
  */
 final class NotesSection implements SettingsSection {
+    /** The setup QR's side, in px at 1080p: smaller than the sign-in QR, as it sits beside the address and code. */
+    private static final int QR = 220;
+
     private static final String GROUP = "notes";
 
     private final Router router;
@@ -124,9 +128,10 @@ final class NotesSection implements SettingsSection {
         }
     }
 
-    /** The address and code to type into a phone, and what to do with them. */
+    /** The address and code to type into a phone, and what to do with them; or the QR that opens both on a phone. */
     private void inbox() {
-        String address = NoteWords.address(Notes.localAddress(ctx), NoteInbox.DEFAULT_PORT);
+        String ip = Notes.localAddress(ctx);
+        String address = NoteWords.address(ip, NoteInbox.DEFAULT_PORT);
         LinearLayout kvs = PaneParts.column(ctx);
         kvs.addView(PaneParts.keyValue(ctx, ctx.getString(R.string.notes_address),
                 address != null ? address : ctx.getString(R.string.notes_no_wifi)), PaneParts.wide(0));
@@ -137,7 +142,31 @@ final class NotesSection implements SettingsSection {
             value.setLetterSpacing(0.12f);
         }
         kvs.addView(code, PaneParts.wide(0));
-        column.addView(kvs, PaneParts.wide(18));
+        String setup = NoteWords.setupUrl(ip, NoteInbox.DEFAULT_PORT, notes.code());
+        if (setup == null) {
+            column.addView(kvs, PaneParts.wide(18));
+        } else {
+            // The QR beside the address and code: scanned with the iPhone camera, it opens a page to copy both from.
+            LinearLayout row = PaneParts.across(ctx);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.addView(kvs, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            LinearLayout qrBox = PaneParts.column(ctx);
+            qrBox.setGravity(Gravity.CENTER_HORIZONTAL);
+            ImageView qr = new ImageView(ctx);
+            qr.setImageBitmap(AccountSection.qrBitmap(Qr.encode(setup), Ui.px(QR)));
+            qr.setContentDescription(ctx.getString(R.string.notes_qr_description));
+            qr.setBackground(Ui.round(0xFFFFFFFF, Ui.RADIUS_M));
+            qr.setClipToOutline(true);
+            qrBox.addView(qr, new LinearLayout.LayoutParams(Ui.px(QR), Ui.px(QR)));
+            TextView caption = Ui.line(ctx, Ui.T_MIN, Ui.TEXT_3, Ui.REGULAR);
+            caption.setText(R.string.notes_qr_caption);
+            caption.setGravity(Gravity.CENTER_HORIZONTAL);
+            caption.setMaxWidth(Ui.px(QR + 40));
+            caption.setSingleLine(false);
+            qrBox.addView(caption, PaneParts.below(10));
+            row.addView(qrBox, PaneParts.after(32));
+            column.addView(row, PaneParts.wide(18));
+        }
         if (notes.portTaken()) {
             column.addView(amber(ctx.getString(R.string.notes_port_taken, NoteInbox.DEFAULT_PORT)), PaneParts.wide(16));
         }

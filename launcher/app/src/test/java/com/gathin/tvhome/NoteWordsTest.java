@@ -98,5 +98,9 @@ public class NoteWordsTest {
         assertEquals("http://192.168.1.50:8765/notes", NoteWords.address("192.168.1.50", NoteInbox.DEFAULT_PORT));
         assertNull(NoteWords.address(null, NoteInbox.DEFAULT_PORT));
         assertNull(NoteWords.address("", NoteInbox.DEFAULT_PORT));
+        assertEquals("the code after the #, as typed without the dash", "http://192.168.1.50:8765/setup#K7QM4PXT",
+                NoteWords.setupUrl("192.168.1.50", NoteInbox.DEFAULT_PORT, "k7qm-4pxt"));
+        assertNull(NoteWords.setupUrl(null, NoteInbox.DEFAULT_PORT, "K7QM-4PXT"));
+        assertNull(NoteWords.setupUrl("192.168.1.50", NoteInbox.DEFAULT_PORT, ""));
     }
 }

@@ -126,4 +126,14 @@ final class NoteWords {
         if (ipv4 == null || ipv4.isEmpty()) return null;
         return "http://" + ipv4 + ":" + port + "/notes";
     }
+
+    /**
+     * What the pane's QR holds: the setup page, with the pairing code after the # so a phone keeps it to itself
+     * ("http://192.168.1.50:8765/setup#K7QM4PXT"); null without an address or a code.
+     */
+    static String setupUrl(String ipv4, int port, String code) {
+        String c = NoteInbox.normalize(code);
+        if (ipv4 == null || ipv4.isEmpty() || c.isEmpty()) return null;
+        return "http://" + ipv4 + ":" + port + "/setup#" + c;
+    }
 }

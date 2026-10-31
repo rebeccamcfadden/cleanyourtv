@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send to TV · setup</title>
+<style>
+  body { font: 17px -apple-system, system-ui, sans-serif; margin: 0; padding: 24px 20px 40px; background: #0d1117; color: #e6e9ee; line-height: 1.45; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  p { color: #adb5c0; margin: 6px 0 16px; }
+  label { display: block; font-size: 14px; color: #adb5c0; margin: 18px 0 6px; }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; font: 16px ui-monospace, Menlo, monospace; padding: 10px 12px; border-radius: 10px; border: 1px solid #2c3440; background: #161c24; color: #e6e9ee; }
+  button { font: 600 15px -apple-system, system-ui, sans-serif; padding: 10px 14px; border-radius: 10px; border: 0; background: #c4ddf7; color: #101820; }
+  ol { padding-left: 22px; color: #cfd5dd; }
+  li { margin: 6px 0; }
+  code { font: 15px ui-monospace, Menlo, monospace; color: #e6e9ee; }
+  .warn { color: #f2c46d; }
+</style>
+</head>
+<body>
+<h1>Send to TV</h1>
+<p>Copy these two into the <b>Send to TV</b> Shortcut on this iPhone. Then share a watch-list note to it from Notes or Keep.</p>
+
+<label for="url">Address (Get Contents of URL)</label>
+<div class="row"><input id="url" readonly><button data-copy="url">Copy</button></div>
+
+<label for="auth">Authorization header value</label>
+<div class="row"><input id="auth" readonly><button data-copy="auth">Copy</button></div>
+<p id="nocode" class="warn" hidden>No pairing code in this link: scan the QR in the TV's Launcher settings → Phone notes again.</p>
+
+<ol>
+  <li>In Shortcuts, make a shortcut named <b>Send to TV</b>; in its details turn on <b>Show in Share Sheet</b> (Text and Notes).</li>
+  <li>Add <b>Get Text from Input</b>, then <b>Text</b> with your list's name, e.g. <code>Rebecca</code>.</li>
+  <li>Add <b>Get Contents of URL</b>: paste the address, Method <b>POST</b>, a header <code>Authorization</code> with the value above, and a JSON body with <code>list</code> (the Text) and <code>text</code> (the note's text).</li>
+  <li>Add <b>Get Dictionary Value</b> for <code>message</code>, then <b>Show Notification</b>.</li>
+</ol>
+<p>The code stays on this phone: it is in the link after the #, which is never sent to the TV.</p>
+<script>
+  // The code is in the fragment (never sent over the network); the address is this page's own origin.
+  var raw = (location.hash || '').slice(1), code = '';
+  try { code = decodeURIComponent(raw); } catch (e) { code = raw; }
+  code = code.replace(/[^0-9A-Za-z-]/g, '').slice(0, 16);
+  document.getElementById('url').value = location.origin + '/notes';
+  document.getElementById('auth').value = code ? 'Bearer ' + code : '';
+  if (!code) document.getElementById('nocode').hidden = false;
+  [].forEach.call(document.querySelectorAll('[data-copy]'), function (b) {
+    b.addEventListener('click', function () {
+      var input = document.getElementById(b.getAttribute('data-copy'));
+      input.focus();
+      input.setSelectionRange(0, input.value.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      b.textContent = ok ? 'Copied' : 'Select and copy';
+    });
+  });
+</script>
+</body>
+</html>

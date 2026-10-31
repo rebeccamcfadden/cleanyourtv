@@ -24,6 +24,8 @@
     <string name="notes_new_code_body">Phones with the old code can’t send until their Shortcut has the new one.</string>
     <string name="notes_cancel">Cancel</string>
     <string name="notes_help">How to set up a phone</string>
+    <string name="notes_qr_caption">Scan with the iPhone camera to copy the address and code into the Shortcut</string>
+    <string name="notes_qr_description">QR code that opens a setup page with this address and code</string>
     <string name="notes_help_toast">docs/phone-notes.md: the “Send to TV” Shortcut, step by step</string>
     <string name="notes_last_sends">Last sends</string>
     <string name="notes_nothing_sent">Nothing sent yet.</string>

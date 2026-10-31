@@ -22,13 +22,16 @@ added. Lines that matched nothing are listed in **Launcher settings → Phone no
    with your TV's own address) and a **pairing code** (`K7QM-4PXT`). Phone notes is off until it is turned on here
    (or by `note_inbox` in the TV's `config.xml` or `config.json`). "Not on Wi-Fi" in place of the address means the
    TV has no address on the home network yet; if another app on the TV holds port 8765, the pane says so.
+   Beside them is a **QR code**: scan it with the iPhone camera and a setup page opens on the phone with the address
+   and the header value ready to copy into the Shortcut (below).
 3. In your router, give the TV a fixed address (a "DHCP reservation"), so the address in the Shortcut keeps working.
 
 **New code** makes a new pairing code; each phone's Shortcut then needs the new one.
 
 ## On each iPhone, once
 
-In the **Shortcuts** app, tap **+** for a new shortcut and name it **Send to TV**.
+Scan the QR in the TV's Phone notes pane first: the page it opens has the address and the `Authorization` value to
+copy, so nothing needs typing. Then, in the **Shortcuts** app, tap **+** for a new shortcut and name it **Send to TV**.
 
 1. Tap the **ⓘ** (Details) and turn on **Show in Share Sheet**. Under the share sheet types, keep **Text** and
    **Notes** ticked (or Any).
@@ -76,6 +79,8 @@ year, or paste the title's themoviedb.org link) and send again; a changed line i
 
 - The TV listens only while Phone notes is **On**, only for phones on the home network (private addresses), and only
   for `POST /notes` with the pairing code. After five wrong codes it stops listening for five minutes.
+- The QR opens `GET /setup`, a fixed page with no code in it: the code rides in the QR's link after the `#`, which a
+  phone keeps to itself and never sends to the TV.
 - It is plain HTTP on your home network: someone on your Wi-Fi who sees the code could add titles to your lists, and
   nothing more. The code never leaves the TV and the Shortcuts; don't share screenshots of it.
 - The TV keeps each line's text and what it matched, so it doesn't look the same line up twice, and the latest note

@@ -129,12 +129,24 @@ final class Notes {
         return on() && portTaken;
     }
 
+    /** The page the pane's QR opens on a phone (res/raw/notes_setup.html), or null if it can't be read. */
+    private String setupPage() {
+        try (java.io.InputStream in = app.getResources().openRawResource(R.raw.notes_setup)) {
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            return new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException | android.content.res.Resources.NotFoundException e) {
+            return null;
+        }
+    }
+
     private void open() {
         if (code().isEmpty()) prefs.edit().putString(CODE, NoteInbox.newCode(new SecureRandom())).apply();
         String code = code();
         control.execute(() -> {
             if (inbox != null) inbox.stop();
-            inbox = new NoteInbox(code, this::accept, System::currentTimeMillis);
+            inbox = new NoteInbox(code, this::accept, System::currentTimeMillis, setupPage());
             boolean taken = true;
             // A port just let go can take a moment to be free again; another app's stays taken.
             for (int i = 0; i < 3 && taken; i++) {
