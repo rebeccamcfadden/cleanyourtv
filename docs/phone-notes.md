@@ -19,7 +19,9 @@ added. Lines that matched nothing are listed in **Launcher settings → Phone no
 
 1. Sign in to TMDB: **Launcher settings → Account**. The lists live on the account.
 2. **Launcher settings → Phone notes → On.** The pane shows the TV's **address** (`http://192.168.1.50:8765/notes`,
-   with your TV's own address) and a **pairing code** (`K7QM-4PXT`).
+   with your TV's own address) and a **pairing code** (`K7QM-4PXT`). Phone notes is off until it is turned on here
+   (or by `note_inbox` in the TV's `config.xml` or `config.json`). "Not on Wi-Fi" in place of the address means the
+   TV has no address on the home network yet; if another app on the TV holds port 8765, the pane says so.
 3. In your router, give the TV a fixed address (a "DHCP reservation"), so the address in the Shortcut keeps working.
 
 **New code** makes a new pairing code; each phone's Shortcut then needs the new one.
@@ -76,8 +78,9 @@ year, or paste the title's themoviedb.org link) and send again; a changed line i
   for `POST /notes` with the pairing code. After five wrong codes it stops listening for five minutes.
 - It is plain HTTP on your home network: someone on your Wi-Fi who sees the code could add titles to your lists, and
   nothing more. The code never leaves the TV and the Shortcuts; don't share screenshots of it.
-- The TV keeps each line's text and what it matched, so it doesn't look the same line up twice, and nothing else
-  from the note.
+- The TV keeps each line's text and what it matched, so it doesn't look the same line up twice, and the latest note
+  of each list until its titles are on the list (a note sent while the TV is signed out or offline waits there), and
+  nothing else from the note.
 
 ## When it fails
 
@@ -88,3 +91,8 @@ year, or paste the title's themoviedb.org link) and send again; a changed line i
 | "Too many wrong codes" | Wait five minutes. |
 | "Say which list the note is for" | The Shortcut's `list` field is empty. |
 | Nothing new appears on the TV | The lines were sent before (only new lines count), or the TV isn't signed in to TMDB yet: they wait until it is. |
+| "The TV will add these once it's signed in to TMDB." | Sign in on the TV (**Launcher settings → Account**). The note waits on the TV and is added after the first sync. |
+| "The TV found no titles in that note." | The note had only its title, headings or blank lines. |
+
+On the TV, an amber pill that ends "waiting for the internet", "couldn't reach TMDB" or "waiting for TMDB sign-in"
+means the note is kept and tried again after the next send or when the TV next reads its lists; nothing is lost.
