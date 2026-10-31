@@ -87,7 +87,7 @@ final class CachedHttp implements HttpGet {
     volatile boolean refresh;
     /**
      * When the oldest answer handed out since the price thread last reset it was fetched: a kept copy's time, or now
-     * for one from the network; {@link Long#MAX_VALUE} for none. Where to watch says it offline ("Saved today 19:52").
+     * for one from the network (a 404 included); {@link Long#MAX_VALUE} for none. Where to watch says it offline ("Saved today 19:52").
      */
     volatile long oldestServed = Long.MAX_VALUE;
 
@@ -146,6 +146,7 @@ final class CachedHttp implements HttpGet {
         }
         if (r.code == 404) {
             cache.write(url, new byte[0]);
+            oldestServed = Math.min(oldestServed, clock.getAsLong());
             return null;
         }
         if (kept != null) return served(kept);

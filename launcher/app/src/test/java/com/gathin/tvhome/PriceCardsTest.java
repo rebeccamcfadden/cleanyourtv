@@ -402,6 +402,24 @@ public class PriceCardsTest {
                 PriceCards.cheaperElsewhere(Offers.byService(sd, MAX_ONLY), offers(sd, ServiceId.APPLETV), null, table));
     }
 
+    @Test
+    public void theDialogSetsRentAgainstRentAndBuyAgainstBuy() {
+        // No priced rental anywhere: Cheapest goes on the cheapest purchase, and the dialog names it as one.
+        Title t = title(Kind.MOVIE, rent(ServiceId.SFANYTIME), buy(ServiceId.SFANYTIME, HD, 129, UHD, 159),
+                buy(ServiceId.APPLETV, HD, 149));
+        List<ServiceOffers> all = Offers.byService(t, MAX_ONLY);
+        assertEquals("SF Anytime has it for 129 kr to buy (HD).",
+                PriceCards.cheaperElsewhere(all, offers(t, ServiceId.APPLETV), null, table));
+        assertEquals("", PriceCards.cheaperElsewhere(all, offers(t, ServiceId.SFANYTIME), null, table));
+        // Equal purchases: nothing cheaper.
+        Title equal = title(Kind.MOVIE, buy(ServiceId.SFANYTIME, HD, 149), buy(ServiceId.APPLETV, HD, 149));
+        assertEquals("", PriceCards.cheaperElsewhere(Offers.byService(equal, MAX_ONLY), offers(equal, ServiceId.APPLETV), null, table));
+        // A rental decides Cheapest: a store that only sells hears of it, its own cheaper purchase not set against it.
+        Title mixed = title(Kind.MOVIE, rent(ServiceId.SFANYTIME, HD, 39), buy(ServiceId.APPLETV, HD, 29));
+        assertEquals("SF Anytime has it for 39 kr (HD).", PriceCards.cheaperElsewhere(Offers.byService(mixed, MAX_ONLY),
+                offers(mixed, ServiceId.APPLETV), null, table));
+    }
+
     // ---- The card line --------------------------------------------------------------------------------------------
 
     @Test

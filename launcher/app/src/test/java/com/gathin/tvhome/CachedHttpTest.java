@@ -168,6 +168,21 @@ public class CachedHttpTest {
     }
 
     @Test
+    public void aNotFoundNotesWhenItWasFetched() throws IOException {
+        CachedHttp h = http(StreamingAvailabilityPrices.ID);
+        long fetched = now;
+        next = new CachedHttp.Response(404, null);
+        assertNull(h.get("https://x/404", Collections.emptyMap()));
+        assertEquals(fetched, h.oldestServed);
+        // Kept and handed out again later, it keeps that time.
+        now += D;
+        h.oldestServed = Long.MAX_VALUE;
+        assertNull(h.get("https://x/404", Collections.emptyMap()));
+        assertEquals(fetched, h.oldestServed);
+        assertEquals(1, asked.size());
+    }
+
+    @Test
     public void everyReplySyncsTheServersCount() throws IOException {
         CachedHttp h = http(StreamingAvailabilityPrices.ID);
         next = ok("{}", "x-quota-granted", "1000", "x-quota-used", "41", "x-quota-reset", "2026-11-01T00:00:00Z");

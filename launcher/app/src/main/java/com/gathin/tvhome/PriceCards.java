@@ -334,11 +334,13 @@ final class PriceCards {
     /** The qualities the dialog can switch between, SD first; SD only when it costs something different from HD. */
     static List<Quality> qualities(ServiceOffers s) {
         Map<Quality, Money> rent = prices(s.rent), buy = prices(s.buy);
-        Set<Quality> all = EnumSet.noneOf(Quality.class);
-        all.addAll(rent.keySet());
-        all.addAll(buy.keySet());
-        if (sdIsNoCheaper(rent, buy)) all.remove(Quality.SD);
-        return Collections.unmodifiableList(new ArrayList<>(all));
+        boolean skipSd = sdIsNoCheaper(rent, buy);
+        List<Quality> all = new ArrayList<>(QUALITIES.length);
+        for (Quality q : QUALITIES) {
+            if (q == Quality.SD && skipSd) continue;
+            if (rent.containsKey(q) || buy.containsKey(q)) all.add(q);
+        }
+        return Collections.unmodifiableList(all);
     }
 
     /**
@@ -428,9 +430,11 @@ final class PriceCards {
     }
 
     /**
-     * The cheaper store the dialog names, "SF Anytime has it for 39 kr (HD).": the Cheapest store's rental when it
-     * isn't this store and costs less than this store's rental (or this store has no priced one); "" otherwise.
-     * {@code installed} picks the Cheapest store as Where to watch does.
+     * The cheaper store the dialog names, "SF Anytime has it for 39 kr (HD)." or, for a purchase, "SF Anytime has it
+     * for 129 kr to buy (HD).": the Cheapest store's deciding offer (its rental, else its purchase) when that store
+     * isn't this one and costs less than this store's offer of the same type (or this store has no priced one); ""
+     * otherwise. Rent is only set against rent, buy against buy. {@code installed} picks the Cheapest store as Where
+     * to watch does.
      */
     static String cheaperElsewhere(List<ServiceOffers> services, ServiceOffers here, Set<ServiceId> installed,
                                    ServiceTable table) {
@@ -439,12 +443,16 @@ final class PriceCards {
         if (best == null || best == here.service) return "";
         ServiceOffers b = null;
         for (ServiceOffers s : ordered) if (s.service == best) b = s;
-        Money there = b == null ? null : cheapest(b.rent);
+        if (b == null) return "";
+        boolean rent = cheapest(b.rent) != null;
+        Offer offer = rent ? b.rent : b.buy;
+        Money there = cheapest(offer);
         if (there == null) return "";
-        Money mine = cheapest(here.rent);
+        Money mine = cheapest(rent ? here.rent : here.buy);
         if (mine != null && there.compareTo(mine) >= 0) return "";
-        Quality q = shownQuality(qualities(b), b.rent);
-        return table.storeName(best) + " has it for " + there.format() + (q == null ? "" : " (" + q.label + ")") + ".";
+        Quality q = shownQuality(qualities(b), offer);
+        return table.storeName(best) + " has it for " + there.format() + (rent ? "" : " to buy")
+                + (q == null ? "" : " (" + q.label + ")") + ".";
     }
 
     /** "Payment finishes in the Apple TV app. SF Anytime has it for 39 kr (HD)." */
