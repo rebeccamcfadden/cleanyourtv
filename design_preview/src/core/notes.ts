@@ -54,6 +54,13 @@ export const notes = {
   on: () => on,
   setOn(v: boolean) {
     on = v;
+    // Off: the TV stops listening, and a note being imported stops with it.
+    if (!v) {
+      clearInterval(timer);
+      clearTimeout(finishTimer);
+      importing = null;
+      finished = null;
+    }
     emit();
   },
   code: () => code,
@@ -76,7 +83,7 @@ export const notes = {
   },
   /**
    * A phone sends a note (dev bar): `lines` new lines, of which `misses` match nothing. Offline, the lines wait and
-   * the pill says so. One import at a time; a second send waits for the first, as on the TV.
+   * the pill says so. One import at a time: in this mock, a send during an import is dropped (the TV queues it).
    */
   simulate(list: string, lines: number, misses: string[]) {
     if (!on || importing) return;

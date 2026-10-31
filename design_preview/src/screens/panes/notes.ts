@@ -12,9 +12,7 @@ import type { Pane, PaneHost } from './pane';
  * address and pairing code to type into the "Send to TV" Shortcut, and see each list's last send with the lines that
  * matched nothing. Off by default.
  */
-export function notesPane(host: PaneHost): Pane {
-  notes.listen(() => host.rerender());
-
+export function notesPane(_host: PaneHost): Pane {
   const onOff = segmented<'on' | 'off'>({
     options: [
       ['on', 'On'],

@@ -230,6 +230,8 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
     net.on(() => rerender()),
     // A new period (the dev bar's date, or midnight) changes Seasonal's label and swatches.
     theme.on(() => rerender()),
+    // Phone notes' sends and imports change the pane and its section value.
+    notes.listen(() => rerender()),
     account.onTick(() => {
       const c = scroll.querySelector('[data-countdown]');
       if (c) c.textContent = account.countdown();
