@@ -253,7 +253,7 @@ From the old launcher; not in V1 by decision.
 - **Launcher settings page:** V1 opens the old `LauncherSettingsActivity`, cut to Animations, Open on start,
   Follow theme, Default Home and TV settings; V2 Phase 4 added Weather location and Temperature unit as plain rows.
   Wanted: the new page in the new UI, with designed pickers; the lead is drafting it in Figma.
-- **Network icon state:** the nav shows Wi-Fi, Ethernet or Wi-Fi crossed out when offline, which since 06-states A
+- **Network icon state:** the nav shows the prototype's Wi-Fi arcs, on Ethernet too (the project lead, 2026-10-31), or the arcs crossed out when offline, which since 06-states A
   includes a network with no internet behind it. The old pill could also
   tint by state (`wifi_status_color`, `wifi_status_warnings`); not designed for the new nav.
 - **README card:** since M1b `tools/gen_tables.py` no longer counts languages, and `docs/card.jpg` and
