@@ -47,9 +47,12 @@ final class HomeRowEdit {
         return true;
     }
 
-    /** Adds an app at the end of the row, picked up so it can be placed. False when it is on the row already. */
+    /**
+     * Adds an app at the end of the row, picked up so it can be placed. False when it is on the row already or the row
+     * is full ({@link AppRow#MAX}).
+     */
     boolean add(String pkg) {
-        if (visible().contains(pkg)) return false;
+        if (visible().contains(pkg) || visible().size() >= AppRow.MAX) return false;
         before = new ArrayList<>(full);
         full = AppRow.add(AppRow.remove(full, pkg), pkg);
         moving = pkg;

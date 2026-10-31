@@ -90,4 +90,13 @@ public class HomeRowEditTest {
         assertFalse(e.pickUp("b.gone"));
         assertNull(e.moving());
     }
+
+    @Test
+    public void addingStopsAtSeven() {
+        HomeRowEdit e = new HomeRowEdit(list("a", "b", "c", "d", "e", "f", "g"),
+                installed("a", "b", "c", "d", "e", "f", "g", "x"));
+        assertFalse(e.add("x"));
+        assertEquals(7, e.visible().size());
+        assertNull(e.moving());
+    }
 }

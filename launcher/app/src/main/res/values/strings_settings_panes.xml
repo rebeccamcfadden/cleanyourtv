@@ -90,7 +90,8 @@
     <!-- Home row apps -->
     <string name="home_apps_eyebrow">Home</string>
     <string name="home_apps_sub">The apps on Home’s row. OK on one picks it up to move it.</string>
-    <string name="home_apps_on_home">On Home · %1$d</string>
+    <string name="home_apps_on_home">On Home · %1$d of %2$d</string>
+    <string name="home_apps_full">Home\'s row is full (%1$d): take an app off to add another</string>
     <string name="home_apps_hint">OK picks an app up, as Hold OK → Move does on Home.</string>
     <string name="home_apps_hint_moving">← → moves it · OK puts it down · ↓ takes it off Home · Back cancels</string>
     <string name="home_apps_others">Other apps</string>

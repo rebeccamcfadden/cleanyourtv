@@ -128,7 +128,7 @@ final class HomeAppsSection implements SettingsSection {
         column.addView(PaneParts.title(ctx, ctx.getString(R.string.settings_home_apps), 40), PaneParts.below(10));
         column.addView(PaneParts.sub(ctx, ctx.getString(R.string.home_apps_sub)), PaneParts.below(8));
 
-        column.addView(PaneParts.groupHeader(ctx, ctx.getString(R.string.home_apps_on_home, on.size())),
+        column.addView(PaneParts.groupHeader(ctx, ctx.getString(R.string.home_apps_on_home, on.size(), AppRow.MAX)),
                 PaneParts.wide(26));
         List<View> home = new ArrayList<>();
         for (int i = 0; i < on.size(); i++) home.add(tile(on.get(i), true, i == 0));
@@ -180,6 +180,8 @@ final class HomeAppsSection implements SettingsSection {
                 String moving = edit.moving();
                 edit.putDown();
                 changed(moving, false);
+            } else if (!onHome && edit.visible().size() >= AppRow.MAX) {
+                host.shell().toast(ctx.getString(R.string.home_apps_full, AppRow.MAX));
             } else if (onHome ? edit.pickUp(pkg) : edit.add(pkg)) {
                 changed(pkg, !onHome);
             }
