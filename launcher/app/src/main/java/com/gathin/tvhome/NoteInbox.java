@@ -37,6 +37,8 @@ final class NoteInbox {
     static final int MAX_BODY = 64 * 1024, MAX_HEADERS = 8 * 1024, READ_TIMEOUT_MS = 5000;
     static final int MAX_WRONG = 5;
     static final long LOCKOUT_MS = 5 * 60_000L;
+    /** How long {@link #stop} waits for the listening thread to let the port go. */
+    static final long STOP_WAIT_MS = 2000;
 
     /** Takes a note for a list, off the main thread; returns what to tell the phone. */
     interface Handler {
@@ -124,17 +126,31 @@ final class NoteInbox {
         return s.getLocalPort();
     }
 
-    synchronized void stop() {
-        ServerSocket s = socket;
-        socket = null;
-        if (s != null) {
-            try {
-                s.close();
-            } catch (IOException ignored) {
-                // Closing anyway.
+    /**
+     * Stops listening, and waits (briefly) for the listening thread to end: on Android the port is let go only once
+     * that thread has left accept, and New code opens the inbox again at once.
+     */
+    void stop() {
+        Thread t;
+        synchronized (this) {
+            ServerSocket s = socket;
+            socket = null;
+            if (s != null) {
+                try {
+                    s.close();
+                } catch (IOException ignored) {
+                    // Closing anyway.
+                }
             }
+            t = thread;
+            thread = null;
         }
-        thread = null;
+        if (t == null || t == Thread.currentThread()) return;
+        try {
+            t.join(STOP_WAIT_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     boolean running() {
