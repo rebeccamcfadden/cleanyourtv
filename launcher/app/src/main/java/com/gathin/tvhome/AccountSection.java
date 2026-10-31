@@ -33,14 +33,13 @@ import java.util.Map;
  * lists; src/screens/panes/account.ts): the whole TMDB sign-in in the pane, drawn from {@link Accounts#flow()}.
  * Signed out: what signing in brings and "Sign in with your phone". Getting a code: a turning arc where the QR code
  * goes. Waiting: the QR code (486 px) beside three steps, the countdown with its bar, Cancel and New code. Approved:
- * "Signing in…". Signed in: the username, the lists' counts, Household, Friends and the last sync, Sync now, Choose
- * lists (a sub-state; Back leaves it) and Sign out, which asks first. Expired: New code. Failed: Try again and Wi-Fi
- * settings.
+ * "Signing in…". Signed in: the username, the lists' counts, the lists shown as chips and the last sync, Sync now,
+ * Choose lists (a sub-state with a Show / Hidden switch per TMDB list; Back leaves it) and Sign out, which asks first.
+ * Expired: New code. Failed: Try again and Wi-Fi settings.
  *
  * <p>Replaces the temporary AccountPage; the logic stays in Accounts and SignInFlow. ← to the sections keeps a code
  * waiting (polled while the settings page is open, the row reading "Waiting…" in amber); closing the page stops it
- * ({@link #onClose}). Nothing here waits on the network: the lists for Household, Friends and Choose lists arrive
- * when TMDB answers.
+ * ({@link #onClose}). Nothing here waits on the network: the lists for Choose lists arrive when TMDB answers.
  */
 final class AccountSection implements SettingsSection {
     /** The QR code's side, quiet zone included (screens.css .qr-wrap): a phone reads it from the sofa. */
@@ -222,7 +221,8 @@ final class AccountSection implements SettingsSection {
         if (phase != SignInFlow.Phase.SIGNED_IN) choosing = false;
         if (phase == SignInFlow.Phase.SIGNED_IN && lists == null && !listsLoading && !listsFailed) loadLists();
         String key = phase + "|" + accounts.username() + "|" + flow.failure() + "|" + choosing + "|"
-                + flow.approveUrl() + "|" + (lists == null ? listsFailed : lists.size()) + "|" + accounts.lastSynced();
+                + flow.approveUrl() + "|" + (lists == null ? listsFailed : lists.size()) + "|" + accounts.lastSynced()
+                + "|" + shownValue();
         if (key.equals(drawn)) {
             tick();
             return;
@@ -444,10 +444,7 @@ final class AccountSection implements SettingsSection {
         kvs.addView(PaneParts.keyValue(ctx, ctx.getString(R.string.account_kv_lists),
                 ctx.getString(R.string.account_kv_lists_value, size(mine, SyncList.MY_LIST), size(mine, SyncList.SEEN),
                         size(mine, SyncList.FAVORITES))), PaneParts.wide(0));
-        kvs.addView(PaneParts.keyValue(ctx, ctx.getString(R.string.account_role_household), listValue(ListId.HOUSEHOLD)),
-                PaneParts.wide(0));
-        kvs.addView(PaneParts.keyValue(ctx, ctx.getString(R.string.account_role_friends), listValue(ListId.FRIENDS)),
-                PaneParts.wide(0));
+        kvs.addView(PaneParts.keyValue(ctx, ctx.getString(R.string.account_kv_shown), shownValue()), PaneParts.wide(0));
         kvs.addView(PaneParts.keyValue(ctx, ctx.getString(R.string.account_kv_last_synced), lastSynced()),
                 PaneParts.wide(0));
         column.addView(kvs, PaneParts.wide(18));
@@ -480,8 +477,9 @@ final class AccountSection implements SettingsSection {
     }
 
     /**
-     * Choose lists (r2-account B): a back crumb, then one row per TMDB list with a Household / Friends / Not used
-     * switch; OK picks, and a role given to one list leaves the list that had it ({@link Accounts#choose}).
+     * Choose lists (r2-account B's rows): a back crumb, then one row per TMDB list with a Show / Hidden switch; any
+     * number can show, and shown lists become chips in Movies, TV Shows and Pick for me by their TMDB names, in this
+     * order ({@link Accounts#setShown}).
      */
     private void chooseLists() {
         // The back crumb, focusable so the sub-state always has somewhere to land while the lists load.
@@ -498,11 +496,13 @@ final class AccountSection implements SettingsSection {
             column.addView(PaneParts.note(ctx, ctx.getString(note), false), PaneParts.wide(28));
             return;
         }
-        String override = overrideNote();
-        if (!override.isEmpty()) column.addView(PaneParts.note(ctx, override, false), PaneParts.wide(16));
-        CharSequence[] roles = {ctx.getString(R.string.account_role_household),
-                ctx.getString(R.string.account_role_friends), ctx.getString(R.string.account_role_not_used)};
-        ListChoices.Role[] values = ListChoices.Role.values();
+        if (accounts.overridden()) {
+            column.addView(PaneParts.note(ctx, ctx.getString(R.string.account_lists_override), false),
+                    PaneParts.wide(16));
+        }
+        CharSequence[] options = {ctx.getString(R.string.account_list_show),
+                ctx.getString(R.string.account_list_hidden)};
+        List<TmdbAccountParse.ListInfo> all = lists;
         LinearLayout rows = PaneParts.column(ctx);
         for (TmdbAccountParse.ListInfo l : lists) {
             LinearLayout row = PaneParts.across(ctx);
@@ -518,11 +518,10 @@ final class AccountSection implements SettingsSection {
             ct.setText(ctx.getResources().getQuantityString(R.plurals.account_list_items, l.items, l.items));
             name.addView(ct, PaneParts.below(2));
             row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            int selected = accounts.role(l.id).ordinal();
-            View seg = PaneParts.segmented(ctx, roles, selected, true, "list-" + l.id, rows.getChildCount() == 0,
+            int selected = accounts.isShown(l.id) ? 0 : 1;
+            View seg = PaneParts.segmented(ctx, options, selected, true, "list-" + l.id, rows.getChildCount() == 0,
                     i -> {
-                        accounts.choose(l.id, values[i]);
-                        // Another list may have lost its role: draw them all again, focus staying on this option.
+                        accounts.setShown(l.id, i == 0, all);
                         drawn = null;
                         render();
                         host.valueChanged();
@@ -634,18 +633,13 @@ final class AccountSection implements SettingsSection {
         return ids == null ? 0 : ids.size();
     }
 
-    /** "Our picks · 24 titles", the name config.xml gives, "List 8221116" before the lists arrive, or Not used. */
-    private String listValue(ListId list) {
-        ListRef ref = accounts.ref(list);
-        if (ref.isNone()) return ctx.getString(R.string.account_role_not_used);
-        long id = ref.resolve(lists);
-        if (lists != null) {
-            for (TmdbAccountParse.ListInfo l : lists) {
-                if (l.id == id) return ctx.getString(R.string.account_kv_list_value, l.name,
-                        ctx.getResources().getQuantityString(R.plurals.account_list_items, l.items, l.items));
-            }
+    /** The lists shown as chips, by name ("Family picks, Friends' tips"), or None. */
+    private String shownValue() {
+        String out = null;
+        for (ShownList l : router.data().household.shownLists()) {
+            out = out == null ? l.name : ctx.getString(R.string.library_lists_comma, out, l.name);
         }
-        return !ref.name.isEmpty() ? ref.name : ctx.getString(R.string.account_kv_list_number, ref.id);
+        return out == null ? ctx.getString(R.string.account_kv_shown_none) : out;
     }
 
     private String lastSynced() {
@@ -657,15 +651,6 @@ final class AccountSection implements SettingsSection {
         }
         int hours = (int) Math.min(Integer.MAX_VALUE, minutes / 60);
         return ctx.getResources().getQuantityString(R.plurals.account_synced_hours, hours, hours);
-    }
-
-    /** "Household is set in config.xml." when a role comes from config.xml, so a choice here doesn't change it. */
-    private String overrideNote() {
-        boolean h = accounts.overridden(ListId.HOUSEHOLD), f = accounts.overridden(ListId.FRIENDS);
-        if (h && f) return ctx.getString(R.string.account_lists_override_both);
-        if (h) return ctx.getString(R.string.account_lists_override, ctx.getString(R.string.account_role_household));
-        if (f) return ctx.getString(R.string.account_lists_override, ctx.getString(R.string.account_role_friends));
-        return "";
     }
 
     private void openWifi() {

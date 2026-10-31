@@ -35,7 +35,15 @@ final class ScrollBox {
     }
 
     static ViewGroup horizontal(Context ctx, float padDesign) {
-        return new Horizontal(ctx, padDesign);
+        return new Horizontal(ctx, padDesign, false);
+    }
+
+    /**
+     * A horizontal box whose first focusable item, when revealed, scrolls the box back to its start, so whatever
+     * comes before that item (a row's label) shows again (library.ts, the chips' onFocus).
+     */
+    static ViewGroup horizontalFromStart(Context ctx, float padDesign) {
+        return new Horizontal(ctx, padDesign, true);
     }
 
     /** Scrolls every ScrollBox above v so v is inside it with the box's padding. Before layout, once it is laid out. */
@@ -131,11 +139,13 @@ final class ScrollBox {
 
     private static final class Horizontal extends HorizontalScrollView implements Box {
         private final float pad;
+        private final boolean firstShowsStart;
         private ValueAnimator anim;
 
-        Horizontal(Context ctx, float padDesign) {
+        Horizontal(Context ctx, float padDesign, boolean firstShowsStart) {
             super(ctx);
             pad = padDesign;
+            this.firstShowsStart = firstShowsStart;
             setFillViewport(false);
             setUp(this);
         }
@@ -145,6 +155,7 @@ final class ScrollBox {
             stop();
             float[] r = Focus.rectIn(d, this);
             int dx = delta(r[0], r[2], getWidth(), Ui.px(pad));
+            if (firstShowsStart && isFirst(d)) dx = -getScrollX();
             if (dx == 0) return;
             View child = getChildCount() > 0 ? getChildAt(0) : null;
             int max = child == null ? 0 : Math.max(0, child.getWidth() + getPaddingLeft() + getPaddingRight() - getWidth());
@@ -160,6 +171,11 @@ final class ScrollBox {
         private void stop() {
             if (anim != null) anim.cancel();
             anim = null;
+        }
+
+        private boolean isFirst(View d) {
+            java.util.List<View> all = Focus.all(this);
+            return !all.isEmpty() && all.get(0) == d;
         }
 
         @Override
