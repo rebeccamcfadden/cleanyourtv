@@ -14,11 +14,26 @@ import android.widget.LinearLayout;
  * rebuilt, as the page closes.
  */
 final class MotionSection implements SettingsSection {
-    private final Config config;
+    private Config config;
+    /** Whether config was read with no Motion saved, so it holds config.xml's and config.json's own values. */
+    private boolean unsaved;
     private View first;
 
     MotionSection(Config config) {
         this.config = config;
+    }
+
+    /**
+     * The config a choice resolves against. Config folds a saved Motion into its values, so once About's Follow theme
+     * drops that choice the config is read again, once, to get the file's own values back.
+     */
+    private MotionChoice choice(Context ctx) {
+        if (!unsaved && !ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
+                .contains(MotionChoice.KEY)) {
+            config = Config.load(ctx);
+            unsaved = true;
+        }
+        return MotionPrefs.load(ctx, config);
     }
 
     @Override
@@ -38,7 +53,7 @@ final class MotionSection implements SettingsSection {
 
     @Override
     public CharSequence value(Context ctx) {
-        return ctx.getString(systemOff(ctx) ? R.string.motion_reduced : label(MotionPrefs.load(ctx, config)));
+        return ctx.getString(systemOff(ctx) ? R.string.motion_reduced : label(choice(ctx)));
     }
 
     @Override
@@ -54,7 +69,7 @@ final class MotionSection implements SettingsSection {
             codes[i] = all[i].code;
             labels[i] = ctx.getString(label(all[i]));
         }
-        View seg = SettingsKit.segmented(ctx, "seg-motion", codes, labels, MotionPrefs.load(ctx, config).code, false,
+        View seg = SettingsKit.segmented(ctx, "seg-motion", codes, labels, choice(ctx).code, false,
                 value -> {
                     MotionPrefs.save(ctx, MotionChoice.parse(value));
                     host.valueChanged();

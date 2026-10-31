@@ -11,9 +11,12 @@ import android.widget.TextView;
  * Launcher settings' About section (design_preview/src/screens/panes/misc.ts aboutPane): the launcher's version, and
  * the notices the data's terms ask for. TMDB's, wherever its data shows: only in builds with a TMDB token, as are
  * Where to watch's sources (JustWatch through TMDB, Apple's prices, and any keyed price source). Open-Meteo's credit
- * for the weather always. Nothing to focus.
+ * for the weather always. Then Follow theme (Config.followTheme), which hands Motion and Open on start back to the
+ * config.
  */
 final class AboutSection implements SettingsSection {
+    private View follow;
+
     @Override
     public String id() {
         return "about";
@@ -55,12 +58,20 @@ final class AboutSection implements SettingsSection {
             SettingsKit.add(pane, SettingsKit.note(ctx, prices), 22);
         }
         SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.about_open_meteo)), 22);
+        follow = SettingsKit.button(ctx, ctx.getString(R.string.follow_theme), 0, false, "about", "follow-theme", true,
+                v -> {
+                    boolean dropped = Config.followTheme(ctx);
+                    host.shell().toast(ctx.getString(dropped ? R.string.follow_theme_done : R.string.follow_theme_nothing));
+                    if (dropped) host.valueChanged();
+                });
+        SettingsKit.add(pane, SettingsKit.actions(ctx, follow), 36);
+        SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.follow_theme_hint)), 12);
         return pane;
     }
 
     @Override
     public View firstFocus() {
-        return null;
+        return follow;
     }
 
     /** {@code .kv}: a name and its value across the pane, over a line (22 px). */

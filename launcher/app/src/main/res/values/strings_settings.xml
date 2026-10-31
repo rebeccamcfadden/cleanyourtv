@@ -84,4 +84,9 @@
     <string name="wifi_saved">Saved</string>
     <string name="wifi_switching">Switching to %1$s…</string>
     <string name="wifi_switch_refused">This TV did not let the launcher switch networks</string>
+    <!-- About: Follow theme. -->
+    <string name="follow_theme">Follow theme (reset on-TV choices)</string>
+    <string name="follow_theme_hint">Motion and Open on start go back to what config.xml or a pushed config.json says. The Theme, weather, account, services and stores stay as they are.</string>
+    <string name="follow_theme_done">Motion and Open on start follow the config again</string>
+    <string name="follow_theme_nothing">Nothing to reset: the config already decides</string>
 </resources>
