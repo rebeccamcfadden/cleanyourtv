@@ -196,7 +196,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         root.addView(backdrop, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        backdrops = new Backdrops(this, backdrop);
+        backdrops = new Backdrops(this, backdrop, root);
         Overlays.add(root, this, theme);
         stage = new FrameLayout(this);
         root.addView(stage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,

@@ -128,6 +128,8 @@ final class HomePage extends Screen {
         dim = new View(ctx);
         dim.setBackgroundColor(Ui.theme().homeDim);
         dim.setAlpha(0f);
+        // One fill, so its fade needs no full-screen offscreen layer to draw the same.
+        dim.forceHasOverlappingRendering(false);
         dim.setTag(R.id.ui_still, Boolean.TRUE);
         root.addView(dim, match());
 
@@ -427,7 +429,9 @@ final class HomePage extends Screen {
         scrolled = on;
         long ms = Ui.ms(Ui.SLOW_MS);
         content.animate().translationY(on ? -Ui.px(SHIFT) : 0f).setDuration(ms).setInterpolator(Ui.EASE).start();
-        hero.animate().alpha(on ? 0f : 1f).setDuration(ms).setInterpolator(null).start();
+        // On a layer drawn once: a fading view group otherwise gets an offscreen copy every frame, which on a tiling
+        // TV GPU splits the frame (the TCL's trace: swap 13 ms with it, 2 ms without).
+        hero.animate().alpha(on ? 0f : 1f).setDuration(ms).setInterpolator(null).withLayer().start();
         dim.animate().alpha(on ? 1f : 0f).setDuration(ms).setInterpolator(null).start();
     }
 

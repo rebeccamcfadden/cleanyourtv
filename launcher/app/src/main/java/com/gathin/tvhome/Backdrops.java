@@ -16,6 +16,7 @@ import android.os.Looper;
 import android.os.Process;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
+import android.view.View;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -81,6 +82,8 @@ final class Backdrops {
 
     private final Activity activity;
     private final ImageView view;
+    /** The view whose plain bg fill lies under the picture (MainActivity's root). */
+    private final View under;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final File filesDir;
     private final Runnable hourly = this::refresh;
@@ -95,10 +98,22 @@ final class Backdrops {
     private boolean visible;
     private ValueAnimator fade;
 
-    Backdrops(Activity activity, ImageView view) {
+    Backdrops(Activity activity, ImageView view, View under) {
         this.activity = activity;
         this.view = view;
+        this.under = under;
         this.filesDir = activity.getFilesDir();
+    }
+
+    /**
+     * An opaque picture covering the screen leaves the bg under it unseen, and on a TV's GPU each full-screen fill
+     * costs every frame: the fill goes while such a picture is shown alone, and comes back under anything else.
+     */
+    private void covered(Drawable shown) {
+        boolean opaque = shown instanceof BitmapDrawable && ((BitmapDrawable) shown).getBitmap() != null
+                && !((BitmapDrawable) shown).getBitmap().hasAlpha();
+        if (opaque) under.setBackground(null);
+        else under.setBackgroundColor(Ui.BG);
     }
 
     /** Shows a theme's backdrop. Main thread. */
@@ -158,6 +173,7 @@ final class Backdrops {
         main.removeCallbacks(hourly);
         view.setImageDrawable(null);
         view.setImageAlpha(255);
+        covered(null);
     }
 
     /** Stops a fade-in where it is; cleared first, so its end leaves the sky under the picture alone. */
@@ -210,11 +226,15 @@ final class Backdrops {
         if (imageShown && old != null && ms > 0) {
             TransitionDrawable t = new TransitionDrawable(new Drawable[] {old, d});
             t.setCrossFadeEnabled(true);
+            // Two pictures part see-through mid-crossfade show the bg between them, as they always did.
+            covered(null);
             view.setImageDrawable(t);
             t.startTransition((int) ms);
             // The old picture goes once the crossfade is over, so only one stays in memory.
             view.postDelayed(() -> {
-                if (view.getDrawable() == t) view.setImageDrawable(d);
+                if (view.getDrawable() != t) return;
+                view.setImageDrawable(d);
+                covered(d);
             }, ms + 50);
             return;
         }
@@ -223,6 +243,7 @@ final class Backdrops {
         if (ms <= 0) {
             view.setImageAlpha(255);
             view.setBackground(null);
+            covered(d);
             return;
         }
         view.setImageAlpha(0);
@@ -234,7 +255,9 @@ final class Backdrops {
             public void onAnimationEnd(Animator animation) {
                 view.setImageAlpha(255);
                 // The picture covers the screen: the sky under it would only be a second full-screen fill per frame.
-                if (fade == a) view.setBackground(null);
+                if (fade != a) return;
+                view.setBackground(null);
+                covered(d);
             }
         });
         fade = a;
