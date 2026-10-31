@@ -5,13 +5,17 @@ import android.provider.Settings;
 import android.view.View;
 import android.widget.LinearLayout;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Launcher settings' Motion section (design_preview/src/screens/panes/misc.ts motionPane): Full, Reduced or Off, the
  * same choice as the quick-settings dropdown's Motion row (MotionChoice, saved by MotionPrefs). Reduced and Off are
  * Config#reducedMotion for now: pages, menus, Home's scroll and focus switch at once, without moving (Ui.ms); the
- * spec's Reduced keeps the fades (BACKLOG.md). A saved choice wins over config.xml's reduced_motion; only Android's
- * animations turned off keep motion reduced whatever is chosen here, and the pane says so. Takes effect when Home is
- * rebuilt, as the page closes.
+ * spec's Reduced keeps the fades (BACKLOG.md). A saved choice wins over the old Animations switch. A TV whose config
+ * sets reduced_motion is never Full (MotionChoice.resolve), so the pane offers only Reduced and Off there, as the
+ * quick-settings row does, and says why; Android's animations turned off keep motion reduced whatever is chosen here,
+ * and the pane says so too. Takes effect when Home is rebuilt, as the page closes.
  */
 final class MotionSection implements SettingsSection {
     private Config config;
@@ -24,8 +28,8 @@ final class MotionSection implements SettingsSection {
     }
 
     /**
-     * The config a choice resolves against. Config folds a saved Motion into its values, so once About's Follow theme
-     * drops that choice the config is read again, once, to get the file's own values back.
+     * The config a choice resolves against. Config folds a saved Motion into its Animations switch, so once About's
+     * Follow theme drops that choice the config is read again, once, to get the file's own value back.
      */
     private MotionChoice choice(Context ctx) {
         if (!unsaved && !ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
@@ -62,20 +66,24 @@ final class MotionSection implements SettingsSection {
         pane.addView(SettingsKit.eyebrow(ctx, ctx.getString(R.string.settings_motion)));
         SettingsKit.add(pane, SettingsKit.title(ctx, ctx.getString(R.string.settings_motion), false), 10);
         SettingsKit.add(pane, SettingsKit.sub(ctx, ctx.getString(R.string.motion_sub)), 8);
-        MotionChoice[] all = MotionChoice.values();
-        String[] codes = new String[all.length];
-        CharSequence[] labels = new CharSequence[all.length];
-        for (int i = 0; i < all.length; i++) {
-            codes[i] = all[i].code;
-            labels[i] = ctx.getString(label(all[i]));
+        MotionChoice now = choice(ctx);
+        boolean configReduced = config.reducedMotion;
+        List<MotionChoice> offered = new ArrayList<>();
+        for (MotionChoice m : MotionChoice.values()) if (!configReduced || m != MotionChoice.FULL) offered.add(m);
+        String[] codes = new String[offered.size()];
+        CharSequence[] labels = new CharSequence[offered.size()];
+        for (int i = 0; i < offered.size(); i++) {
+            codes[i] = offered.get(i).code;
+            labels[i] = ctx.getString(label(offered.get(i)));
         }
-        View seg = SettingsKit.segmented(ctx, "seg-motion", codes, labels, choice(ctx).code, false,
+        View seg = SettingsKit.segmented(ctx, "seg-motion", codes, labels, now.code, false,
                 value -> {
                     MotionPrefs.save(ctx, MotionChoice.parse(value));
                     host.valueChanged();
                 });
         SettingsKit.add(pane, seg, 22);
         first = SettingsKit.selectedOption(seg);
+        if (configReduced) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.motion_forced_config)), 22);
         if (systemOff(ctx)) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.motion_forced_system)), 22);
         return pane;
     }
