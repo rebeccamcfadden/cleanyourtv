@@ -15,11 +15,11 @@ import java.util.function.Predicate;
 final class LibraryLists {
     private LibraryLists() {}
 
-    /** The list chips, in their order: All lists, My list, then the shown lists. */
+    /** The list chips, in their order: All lists, My list, then the first six shown lists. */
     static List<ShownList> choices(ListMembership lists) {
         List<ShownList> out = new ArrayList<>();
         out.add(ShownList.ALL);
-        out.addAll(lists.lists());
+        out.addAll(lists.chipLists());
         return out;
     }
 

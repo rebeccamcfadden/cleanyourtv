@@ -155,12 +155,15 @@ milestones: [docs/rework.md](docs/rework.md).
 - **V2 Phase 3, first:** Household and Friends chosen on the TV from the account's TMDB lists (one list per role).
 - **V2 Phase 3, by name** (docs/rework.md, Lists by name, 2026-10-31): the lists are the account's own. Once signed
   in, the Account pane's Choose lists has one row per TMDB list with a Show / Hidden switch; any number can show,
-  saved on the TV (`ListChoices`), and each shown list is a chip in Movies, TV Shows and Pick for me after All lists
-  and My list, under its TMDB name and in the account's order (`ShownList`, `ImportedLists`, `LibraryLists`). The
+  saved on the TV (`ListChoices`), and the first six shown lists are chips in Movies, TV Shows and Pick for me after
+  All lists and My list, under their TMDB names and in the account's order (`ShownList`, `ImportedLists`,
+  `LibraryLists`; the cap of six is the project lead's, 2026-10-31, `ListMembership.CHIP_CAP`). A list shown past six
+  has no chip but stays in All lists, the scope line and prices; Choose lists says "n of 6 chips" and marks it "No
+  chip: in All lists", and the Account pane adds "+1 in All lists". The
   chip row scrolls sideways with focus when it doesn't fit, and back on All lists returns to its start; a chosen
   list that is hidden or gone falls back to All lists. The page's context line names the lists ("My list, Family
   picks & Friends' tips"; past four, "My list, Family picks & 4 more"), the scope line counts them, and a card names
-  the first list in chip order that holds it. Pick for me offers My list and the shown lists, with My list and the
+  the first list in chip order that holds it. Pick for me offers My list and the chip lists, with My list and the
   first shown list ticked. `tmdb_shown_lists` in `config.xml` (or a pushed `config.json`) overrides the choice: list
   numbers, themoviedb.org/list links or names in the signed-in account, comma- or newline-separated, in its order (a
   public list by number is read without signing in, and its chip takes the list's TMDB name once read). The older

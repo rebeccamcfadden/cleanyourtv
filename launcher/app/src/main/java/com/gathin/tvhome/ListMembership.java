@@ -23,12 +23,26 @@ interface ListMembership {
         return list.mock != null && t.isOn(list.mock);
     }
 
-    /** My list, then {@link #shownLists}: the chips after All lists, and Pick for me's lists. */
+    /** My list, then {@link #shownLists}, past the chip cap included: what All lists, prices and provenance read. */
     default List<ShownList> lists() {
         List<ShownList> out = new ArrayList<>();
         out.add(ShownList.MY);
         out.addAll(shownLists());
         return out;
+    }
+
+    /** At most this many shown lists get a chip (the project lead, 2026-10-31); the rest are still in All lists. */
+    int CHIP_CAP = 6;
+
+    /** My list, then the first {@link #CHIP_CAP} shown lists: the chips after All lists, and Pick for me's lists. */
+    default List<ShownList> chipLists() {
+        List<ShownList> all = lists();
+        return new ArrayList<>(all.subList(0, Math.min(all.size(), 1 + CHIP_CAP)));
+    }
+
+    /** Shown lists past the cap: no chip, but in All lists. */
+    default int pastCap() {
+        return Math.max(0, shownLists().size() - CHIP_CAP);
     }
 
     /** Whether t is on any of them: what All lists shows. */

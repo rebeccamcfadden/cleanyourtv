@@ -156,8 +156,18 @@ public class LibraryListsTest {
         assertEquals("Family picks", chips.get(2).name);
         assertEquals(Collections.singletonList(catalog.get("arrival")),
                 LibraryLists.under(LibraryLists.pool(catalog.all(), Kind.MOVIE, m), chips.get(2), m));
-        assertEquals("no cap", 12, LibraryLists.choices(signedIn(tmdb(1, "a"), tmdb(2, "b"), tmdb(3, "c"),
-                tmdb(4, "d"), tmdb(5, "e"), tmdb(6, "f"), tmdb(7, "g"), tmdb(8, "h"), tmdb(9, "i"), tmdb(10, "j"))).size());
+        ListMembership ten = signedIn(tmdb(1, "a"), tmdb(2, "b"), tmdb(3, "c"), tmdb(4, "d"), tmdb(5, "e"),
+                tmdb(6, "f"), tmdb(7, "g", "arrival"), tmdb(8, "h"), tmdb(9, "i"), tmdb(10, "j"));
+        assertEquals("capped: All lists, My list and the first six, in the account's order",
+                Arrays.asList("all", "my", "tmdb-1", "tmdb-2", "tmdb-3", "tmdb-4", "tmdb-5", "tmdb-6"),
+                keys(LibraryLists.choices(ten)));
+        assertEquals(4, ten.pastCap());
+        assertEquals("a list past the cap is still in All lists", Collections.singletonList(catalog.get("arrival")),
+                LibraryLists.pool(catalog.all(), Kind.MOVIE, ten));
+        assertEquals("and still counts as a watchlist", 11, ten.lists().size());
+        assertEquals("a chosen chip past the cap falls back to All lists",
+                "all", LibraryLists.choice("tmdb-7", LibraryLists.choices(ten)).key);
+        assertEquals(0, m.pastCap());
         assertEquals("none shown: All lists and My list", Arrays.asList("all", "my"), keys(LibraryLists.choices(signedIn())));
     }
 

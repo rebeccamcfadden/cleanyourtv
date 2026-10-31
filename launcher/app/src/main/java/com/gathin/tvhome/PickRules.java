@@ -90,7 +90,7 @@ final class PickRules {
      * under 2 hours, Drama + Sci-fi, 7.0 and above, up to R.
      */
     static State defaults(Kind kind, ListMembership household) {
-        State s = new State(kind, household.lists());
+        State s = new State(kind, household.chipLists());
         for (int i = 0; i < Math.min(2, s.offered.size()); i++) s.lists.add(s.offered.get(i).key);
         int[] start = {1, 1, 1, 2, 0, 0};
         System.arraycopy(start, 0, s.values, 0, start.length);

@@ -487,8 +487,17 @@ final class AccountSection implements SettingsSection {
                 GROUP, "acc-crumb", false, v -> onBack());
         column.addView(crumb, PaneParts.below(0));
         first = crumb;
-        column.addView(PaneParts.title(ctx, ctx.getString(R.string.account_choose_lists), 40), PaneParts.below(10));
-        column.addView(PaneParts.sub(ctx, ctx.getString(R.string.account_lists_sub)), PaneParts.below(8));
+        LinearLayout head = PaneParts.across(ctx);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(PaneParts.title(ctx, ctx.getString(R.string.account_choose_lists), 40),
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        List<ShownList> chipped = router.data().household.chipLists();
+        TextView count = Ui.line(ctx, Ui.T_SMALL, Ui.TEXT_3, Ui.REGULAR);
+        count.setText(ctx.getString(R.string.account_lists_chips, chipped.size() - 1, ListMembership.CHIP_CAP));
+        head.addView(count);
+        column.addView(head, PaneParts.wide(10));
+        column.addView(PaneParts.sub(ctx, ctx.getString(R.string.account_lists_sub, ListMembership.CHIP_CAP)),
+                PaneParts.below(8));
 
         if (lists == null || lists.isEmpty()) {
             int note = lists != null ? R.string.account_lists_none
@@ -515,7 +524,17 @@ final class AccountSection implements SettingsSection {
             nm.setText(l.name);
             name.addView(nm);
             TextView ct = Ui.line(ctx, Ui.T_MIN, Ui.TEXT_3, Ui.REGULAR);
-            ct.setText(ctx.getResources().getQuantityString(R.plurals.account_list_items, l.items, l.items));
+            String items = ctx.getResources().getQuantityString(R.plurals.account_list_items, l.items, l.items);
+            if (pastCap(l.id, chipped)) {
+                // A shown list past the cap: amber, as the prototype's "No chip: in All lists".
+                SpannableString s = new SpannableString(ctx.getString(R.string.library_lists_comma, items,
+                        ctx.getString(R.string.account_list_past)));
+                s.setSpan(new ForegroundColorSpan(Ui.STAR), items.length(), s.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ct.setText(s);
+            } else {
+                ct.setText(items);
+            }
             name.addView(ct, PaneParts.below(2));
             row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             int selected = accounts.isShown(l.id) ? 0 : 1;
@@ -532,6 +551,13 @@ final class AccountSection implements SettingsSection {
         }
         column.addView(rows, PaneParts.wide(28));
         column.addView(PaneParts.note(ctx, ctx.getString(R.string.account_lists_pane_note), false), PaneParts.wide(22));
+    }
+
+    /** Shown in Choose lists, but past the chip cap: no chip, still in All lists. */
+    private boolean pastCap(long listId, List<ShownList> chipped) {
+        if (!accounts.isShown(listId)) return false;
+        for (ShownList c : chipped) if (c.tmdbId == listId) return false;
+        return true;
     }
 
     // ---- Pieces -----------------------------------------------------------------------------------------------------
@@ -633,13 +659,22 @@ final class AccountSection implements SettingsSection {
         return ids == null ? 0 : ids.size();
     }
 
-    /** The lists shown as chips, by name ("Family picks, Friends' tips"), or None. */
+    /**
+     * The lists shown as chips: by name while three or fewer ("Family picks, Friends' tips"), else a count ("6 lists"),
+     * plus "+1 in All lists" for those past the cap; or None.
+     */
     private String shownValue() {
+        ListMembership h = router.data().household;
+        List<ShownList> chips = h.chipLists().subList(1, h.chipLists().size());
+        if (chips.isEmpty()) return ctx.getString(R.string.account_kv_shown_none);
         String out = null;
-        for (ShownList l : router.data().household.shownLists()) {
-            out = out == null ? l.name : ctx.getString(R.string.library_lists_comma, out, l.name);
+        if (chips.size() <= 3) {
+            for (ShownList l : chips) out = out == null ? l.name : ctx.getString(R.string.library_lists_comma, out, l.name);
+        } else {
+            out = ctx.getResources().getQuantityString(R.plurals.account_kv_shown_count, chips.size(), chips.size());
         }
-        return out == null ? ctx.getString(R.string.account_kv_shown_none) : out;
+        int past = h.pastCap();
+        return past == 0 ? out : ctx.getString(R.string.account_kv_shown_past, out, past);
     }
 
     private String lastSynced() {

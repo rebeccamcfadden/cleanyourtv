@@ -339,6 +339,28 @@ public class PickRulesTest {
         for (Title t : matches(s)) assertFalse(t.id, t.lists.isEmpty() && !seed.inMyList(t.id));
     }
 
+    /** Pick for me offers the chip lists only: My list and the first six shown lists. */
+    @Test
+    public void pickOffersTheChipListsOnly() {
+        ListMembership ten = new ListMembership() {
+            @Override
+            public boolean inMyList(String id) {
+                return false;
+            }
+
+            @Override
+            public List<ShownList> shownLists() {
+                List<ShownList> out = new java.util.ArrayList<>();
+                for (int i = 1; i <= 10; i++) out.add(ShownList.tmdb(i, "", "list " + i));
+                return out;
+            }
+        };
+        PickRules.State s = PickRules.defaults(Kind.MOVIE, ten);
+        assertEquals(7, s.offered.size());
+        assertEquals("my", s.offered.get(0).key);
+        assertEquals("tmdb-6", s.offered.get(6).key);
+    }
+
     /** "My services": everything included on a subscribed service, catalogue-only titles too; the lists don't count. */
     @Test
     public void servicesSource() {

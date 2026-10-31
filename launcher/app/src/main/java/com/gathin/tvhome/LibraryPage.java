@@ -371,8 +371,8 @@ final class LibraryPage extends Screen {
             chipsBuilt = chipKey.toString();
             buildChips(choices, empty ? null : counts);
         }
-        context.setText(ctx.getString(R.string.library_context, listNames(choices)));
-        scope.setText(scopeText(choices.size() - 1));
+        context.setText(ctx.getString(R.string.library_context, listNames(data.household.lists())));
+        scope.setText(scopeText(data.household.lists().size()));
 
         // Offline, the scope line becomes the amber pill: with the time of the saved copy, or just "Offline".
         scope.setVisibility(offline ? View.GONE : View.VISIBLE);
