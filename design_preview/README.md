@@ -87,7 +87,7 @@ one option for each (2026-10-30). The prototype builds these:
 | 07-prices A, "cards" | Where to watch cards with kronor, a line per picture quality and a Cheapest tag; "Rent from 39 kr · 3 stores" on cards; the rent/buy dialog with an HD/4K switch | [Prices](#prices) |
 | 05-settings A, "split" | Launcher settings: sections on the left, the focused section's pane on the right | [Launcher settings](#launcher-settings) |
 | 01-setup B, "checklist" | First run: one page of setup rows with their guessed values and a help pane | [First run](#first-run) |
-| r2-account A, with B's Choose lists | The TMDB sign-in inside the Account pane: QR, steps and countdown; signed in; Choose lists with a Household / Friends / Not used switch per list | [Account](#account) |
+| r2-account A, with B's Choose lists | The TMDB sign-in inside the Account pane: QR, steps and countdown; signed in; Choose lists with a Show / Hidden switch per list (B's rows, with a two-way switch instead of the Household / Friends roles) | [Account](#account) |
 | r2-services B, "tiles" | Streaming services as a grid of tiles with ticks and Installed / No app / Free | [Streaming services and stores](#streaming-services-and-stores) |
 | r2-services A, "rows" (stores) | Stores for rent and buy as checkbox rows, each saying which app it opens | [Streaming services and stores](#streaming-services-and-stores) |
 | r2-weather A, "summary" | The place, Change city (keyboard and matches in the pane), Use default, the unit; B's now showing / quick picks as the empty match list | [Weather](#weather) |
@@ -96,8 +96,12 @@ one option for each (2026-10-30). The prototype builds these:
 
 ## Product decisions
 
-- **V1 is lists-only.** Movies and TV Shows show the household's imported watchlists (My list, Household,
-  Friends). The Explore versions (Trending, New releases and so on) are parked, not cut.
+- **V1 is lists-only.** Movies and TV Shows show the household's imported watchlists (My list, then the TMDB
+  lists chosen to show; the mock Household and Friends before any sign-in). The Explore versions (Trending, New
+  releases and so on) are parked, not cut.
+- **The lists are the account's own** (2026-10-31): signed in, every TMDB list ticked Show in Account → Choose
+  lists becomes a chip under its TMDB name, in the account's order, with no cap. Before any sign-in the mock
+  Household and Friends stand in; after a sign-out only My list is left.
 - **Title preview is Option C:** a popup with the art across the top, the essentials and actions on the card, and
   tabs for everything else. Options A (cinematic, scroll for the rest) and B (side panel) are parked in Figma.
 - **The title preview is a popup, not a page.** The page it was opened from stays visible, dimmed, around its
@@ -236,13 +240,17 @@ clunky.) Rows are 72 px; the panel is opaque (no blur).
 
 ### Movies and TV Shows (V1)
 
-- Title, "Your collection · My list, Household & Friends", and a **Pick for me** button.
-- Scope line ("3 imported watchlists · All 8 services") and the active filters with a **Filters · n** button.
-- List chips with counts: All lists, My list, Household, Friends. Up from any chip, and Right from the last one,
-  goes to **Pick for me**, so it comes before the nav and instead of the grid.
+- Title, "Your collection · My list, Family picks & Friends’ tips" (the shown lists; past four, "My list, Family
+  picks & 4 more"), and a **Pick for me** button.
+- Scope line ("3 imported watchlists · All 8 services", counting My list and the shown lists) and the active
+  filters with a **Filters · n** button.
+- List chips with counts: All lists, My list, then each shown TMDB list by name (Household and Friends before any
+  sign-in). One row: when the chips don't fit it scrolls with focus, and back on All lists it returns to its start.
+  A list hidden while chosen falls back to All lists. Up from any chip, and Right from the last one, goes to
+  **Pick for me**, so it comes before the nav and instead of the grid.
 - A four-column grid of title cards: art, name, service and "Included", "Free" or a price ("Rent 39 kr", "Buy from
-  99 kr", or just "Rent" for a store with no known price), runtime or seasons · rating · score, and which list and
-  genre it comes from.
+  99 kr", or just "Rent" for a store with no known price), runtime or seasons · rating · score, and the first list
+  in chip order that holds it, and its genre.
 - **Filters drawer** (from the right): Availability, Review score, Genre, Length (movies only), Watch state. ←/→
   changes a value, and the grid behind updates live. Clear all and Done. The default is "Included only · Review
   7.0+".
@@ -252,7 +260,8 @@ clunky.) Rows are 72 px; the panel is opaque (no blur).
 
 ### Pick for me
 
-- **Setup:** choose from My watchlists or My services; pick one or more lists; Movies or TV Shows; six fields that
+- **Setup:** choose from My watchlists or My services; pick one or more lists (My list and the shown lists, as on
+  the chips; My list and the first of them to start); Movies or TV Shows; six fields that
   OK steps through (length, genre pair, review score, content rating, watch state, availability). A card on the
   right shows how many picks match ("4 picks, just for tonight") and the **Find picks** button.
 - **Results:** four random matches with a short blurb each, the filter line, Reroll, and Adjust filters (Back to
@@ -398,14 +407,14 @@ r2-account A, with r2-account B's Choose lists. The whole TMDB sign-in happens i
 
 | State | Pane | First focus |
 |---|---|---|
-| Signed out | "Sign in to TMDB", three benefits (lists in step; Household and Friends; your password stays with TMDB), **Sign in with your phone**, "Not signed in, My list and Seen are kept on this TV only." | Sign in |
+| Signed out | "Sign in to TMDB", three benefits (lists in step; all your TMDB lists, by name; your password stays with TMDB), **Sign in with your phone**, "Not signed in, My list and Seen are kept on this TV only." | Sign in |
 | Getting a code | The QR's 486 px place held by a dashed box with a turning arc, "Getting a code from TMDB…"; the three steps; **Cancel** | Cancel |
 | Waiting | The QR (486 px) beside the steps (1 current), a countdown ("14:32 left on this code") with a bar, **Cancel** and **New code**, and "← goes to the sections and keeps this code waiting." The section reads "Waiting…" in amber; leaving for another section keeps the code. Closing Launcher settings stops it | Cancel |
-| Approved | A green "Approved on your phone" in the QR's place, "Signing in…", steps 1–2 ticked, "Importing your lists… 3 of 5" with a green bar | Unchanged (often the list) |
-| Signed in | Avatar and username, "Signed in to TMDB", My list · Seen · Favorites counts, Household, Friends, Last synced; **Sync now**, **Choose lists**, **Sign out** (asks first) | Sync now |
+| Approved | A green "Approved on your phone" in the QR's place, "Signing in…", steps 1–2 ticked, "Importing your lists… 3 of 5" with a green bar (My list, Seen, Favorites, then each shown list) | Unchanged (often the list) |
+| Signed in | Avatar and username, "Signed in to TMDB", My list · Seen · Favorites counts, Shown as chips (the shown lists' names, or None), Last synced; **Sync now**, **Choose lists**, **Sign out** (asks first) | Sync now |
 | Code expired | The QR dimmed under "Code expired", "That code has expired", **New code**, Cancel | New code |
 | Couldn’t reach TMDB | "No code" in amber, "Couldn’t reach TMDB", **Try again**, Wi-Fi settings. Offline, Sign in lands here | Try again |
-| Choose lists | A sub-state of Signed in, with a back crumb: one row per TMDB list (name, titles, updated) with a Household / Friends / Not used switch. Giving a list a role takes it from the list that had it | The first list's role |
+| Choose lists | A sub-state of Signed in, with a back crumb: one row per TMDB list (name, titles, updated) with a Show / Hidden switch. Any number can show; shown lists become chips by their TMDB names, in this order | The first list's switch |
 
 The QR is a look-alike (finder and alignment patterns over seeded noise); it doesn't scan. The dev bar's Account
 menu steps the states.
@@ -570,6 +579,7 @@ width with 243 px art.
 | `src/core/settings.ts` | Launcher settings the prototype acts on (Motion, Open on start, Home row apps, ticked services and stores, weather place and unit, theme, typeface and moving details, sleep timer) |
 | `src/core/theme.ts` | The themes, the Seasonal periods by date, and what applies one to the page: `data-theme` and `data-period` on `<html>`, its fonts and its backdrop |
 | `src/core/account.ts` | The mocked TMDB sign-in and lists, behind the Account pane and the dev bar's Account menu |
+| `src/core/lists.ts` | The lists Movies, TV Shows and Pick for me show: My list, then the account's shown TMDB lists (or the mock Household and Friends before a sign-in) |
 | `src/core/net.ts` | The simulated network and data state behind the dev bar's State menu |
 | `src/data/` | Mock catalogue, services (and the services and stores to tick), weather places, and offer rules in kronor (`bestOffer`, `offersByService`, `cardLine`, `priceLines`, `cheapestStore`, `offersOf`) |
 | `src/screens/` | One module per screen; `dropdown.ts` holds the top-bar menus, `quickSettings.ts` the Settings icon's, `rent.ts` the rent/buy dialog, `settings.ts` Launcher settings, `setup.ts` First run |
