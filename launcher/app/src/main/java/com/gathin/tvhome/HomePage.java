@@ -589,7 +589,9 @@ final class HomePage extends Screen {
     private static LinearLayout group(Context ctx, int heading) {
         LinearLayout box = new LinearLayout(ctx);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setClipChildren(true);
+        // Inputs shows at most four tiles (TvInputs.HOME_TILES), which fit the box: nothing needs cutting, and a
+        // theme's focus glow (up to ~32 px) reaches past the 8 px room the tiles have.
+        Kit.unclip(box);
         TextView h = Ui.line(ctx, Ui.T_H3, Ui.TEXT_1, Ui.REGULAR);
         h.setText(heading);
         LinearLayout.LayoutParams lp = wrap();
