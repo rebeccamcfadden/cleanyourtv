@@ -17,13 +17,19 @@ final class WeatherPrefs {
 
     static WeatherSettings load(Context ctx) {
         return WeatherSettings.resolve(prefs(ctx).getAll(), BuildConfig.WEATHER_LATITUDE,
-                BuildConfig.WEATHER_LONGITUDE, regionFahrenheit());
+                BuildConfig.WEATHER_LONGITUDE, defaultFahrenheit());
     }
 
-    /** The TV default unit: the TV's region's, or tv.properties' temperature_unit on a TV without a region. */
-    static boolean regionFahrenheit() {
+    /** The TV default unit: tv.properties' temperature_unit when set, else the TV's region's. */
+    static boolean defaultFahrenheit() {
         Locale l = Locale.getDefault();
-        return WeatherSettings.regionFahrenheit(l.getCountry(), l.getUnicodeLocaleType("mu"), BuildConfig.FAHRENHEIT);
+        return WeatherSettings.defaultFahrenheit(BuildConfig.TEMPERATURE_UNIT, l.getCountry(), l.getUnicodeLocaleType("mu"));
+    }
+
+    /** What the place from tv.properties is called: its weather_city when set, else the string fallback. */
+    static String defaultName(Context ctx, int fallback) {
+        String city = BuildConfig.WEATHER_CITY.trim();
+        return city.isEmpty() ? ctx.getString(fallback) : city;
     }
 
     /**

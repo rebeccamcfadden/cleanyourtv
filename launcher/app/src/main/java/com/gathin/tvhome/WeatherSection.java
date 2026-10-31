@@ -58,7 +58,7 @@ final class WeatherSection implements SettingsSection {
     private Search state = Search.IDLE;
     private final List<WeatherPlace> found = new ArrayList<>();
     /** Counts searches; an answer for an older one than the latest is dropped. */
-    private int generation;
+    private volatile int generation;
 
     // The summary's card, painted again when the weather arrives.
     private WeatherStore store;
@@ -88,7 +88,7 @@ final class WeatherSection implements SettingsSection {
     @Override
     public CharSequence value(Context ctx) {
         WeatherPlace p = WeatherPrefs.load(ctx).place;
-        return p != null ? p.name : ctx.getString(R.string.weather_default_value);
+        return p != null ? p.name : WeatherPrefs.defaultName(ctx, R.string.weather_default_value);
     }
 
     @Override
@@ -181,7 +181,7 @@ final class WeatherSection implements SettingsSection {
         names.setOrientation(LinearLayout.VERTICAL);
         TextView name = Ui.line(ctx, 34, Ui.TEXT_1, Ui.REGULAR);
         name.setGravity(Gravity.START);
-        name.setText(place != null ? place.name : ctx.getString(R.string.weather_default_name));
+        name.setText(place != null ? place.name : WeatherPrefs.defaultName(ctx, R.string.weather_default_name));
         names.addView(name);
         TextView detail = Ui.line(ctx, Ui.T_SMALL, Ui.TEXT_3, Ui.REGULAR);
         detail.setGravity(Gravity.START);
@@ -268,7 +268,7 @@ final class WeatherSection implements SettingsSection {
         render();
         focus(KEY_CHANGE);
         host.shell().toast(ctx.getString(R.string.weather_place_saved,
-                place != null ? place.label() : ctx.getString(R.string.weather_default_name)));
+                place != null ? place.label() : WeatherPrefs.defaultName(ctx, R.string.weather_default_name)));
     }
 
     private void focus(String key) {
@@ -425,24 +425,31 @@ final class WeatherSection implements SettingsSection {
         paintSearch();
     }
 
-    /** Searches for what is typed now, off the main thread; only the latest search's answer is shown. */
+    /**
+     * Searches for what is typed now, off the main thread, in each of {@link WeatherPlace#searchLanguages}; only the
+     * latest search's answer is shown, and it fails only when every language's search did.
+     */
     private void search() {
         String asked = query;
         int mine = ++generation;
-        String url = WeatherPlace.searchUrl(asked, Locale.getDefault().getLanguage());
+        Locale tv = Locale.getDefault();
+        List<String> languages = WeatherPlace.searchLanguages(tv.getLanguage());
         new Thread(() -> {
-            String body = WeatherStore.download(url);
-            List<WeatherPlace> places = null;
-            boolean unreadable = false;
-            if (body != null) {
+            List<List<WeatherPlace>> answers = new ArrayList<>();
+            boolean any = false, unreadable = false;
+            for (String language : languages) {
+                if (mine != generation) return;
+                String body = WeatherStore.download(WeatherPlace.searchUrl(asked, language));
+                if (body == null) continue;
                 try {
-                    places = WeatherPlace.parseSearch(body);
+                    answers.add(WeatherPlace.parseSearch(body, tv));
+                    any = true;
                 } catch (JSONException e) {
                     Log.w(TAG, "unexpected place search answer", e);
                     unreadable = true;
                 }
             }
-            List<WeatherPlace> answer = places;
+            List<WeatherPlace> answer = any ? WeatherPlace.merge(asked, answers) : null;
             boolean failed = unreadable;
             main.post(() -> {
                 if (mine != generation || !changing) return;
@@ -499,7 +506,7 @@ final class WeatherSection implements SettingsSection {
                 break;
             default:
                 head(R.string.weather_now_showing, 0);
-                result(now, now != null ? now.name : ctx.getString(R.string.weather_default_name), 0,
+                result(now, now != null ? now.name : WeatherPrefs.defaultName(ctx, R.string.weather_default_name), 0,
                         now != null ? now.detail() : ctx.getString(R.string.weather_default_detail), true, "wr-now",
                         true);
                 if (!empty) tip(ctx.getString(R.string.weather_more_letters));
@@ -525,8 +532,8 @@ final class WeatherSection implements SettingsSection {
             WeatherPlace p = picks.get(i);
             String line = p == null ? ctx.getString(R.string.weather_pick_default)
                     : ctx.getString(R.string.weather_pick_recent, p.detail());
-            result(p, p != null ? p.name : ctx.getString(R.string.weather_default_name), 0, line, false,
-                    "wr-pick-" + i, false);
+            result(p, p != null ? p.name : WeatherPrefs.defaultName(ctx, R.string.weather_default_name), 0, line,
+                    false, "wr-pick-" + i, false);
         }
     }
 

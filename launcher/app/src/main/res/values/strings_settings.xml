@@ -31,7 +31,7 @@
     <string name="weather_use_default">Use default</string>
     <string name="weather_already_default">Already showing the default place</string>
     <string name="weather_unit_label">Temperature</string>
-    <string name="weather_unit_sub">TV default follows the TV\'s region</string>
+    <string name="weather_unit_sub">TV default: tv.properties, else the TV\'s region</string>
     <string name="weather_unit_tv">TV default (%1$s)</string>
     <string name="weather_pane_note">Forecasts from Open-Meteo. Only the place name you type is sent.</string>
     <string name="weather_crumb">Weather · Change city</string>

@@ -7,12 +7,13 @@
 # The default is Stockholm. Launcher settings on the TV can choose another place, which then wins over these.
 latitude=59.3293
 longitude=18.0686
-# Optional: the city's name, for the quick-settings Weather row ("Stockholm · °C") while no place is chosen on the TV.
-# Leave it out and the row says Default. Written as it is spelled (the file is read as UTF-8), at most 60 characters.
+# Optional: the city's name, shown on the quick-settings Weather row ("Stockholm · °C") and in Launcher settings
+# while no place is chosen on the TV. Leave it out and they say Default. Written as it is spelled (the file is read as
+# UTF-8), at most 60 characters.
 weather_city=Stockholm
 
-# C for Celsius or F for Fahrenheit, used only on a TV with no region set: the launcher's TV default follows the
-# TV's region (°F in the US, °C in most places). Launcher settings on the TV can choose °C or °F too.
+# Optional: C for Celsius or F for Fahrenheit, the TV default unit. Left out, the TV default follows the TV's region
+# (°F in the US, °C in most places). Launcher settings › Weather on the TV can choose °C or °F too.
 temperature_unit=C
 
 # Optional: your TMDB "API Read Access Token" (the long v4 token from themoviedb.org, Settings, API), for the real

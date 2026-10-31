@@ -23,7 +23,7 @@ final class WeatherSettings {
     /** Saved as text ("57.70716"), so the stored file reads plainly. */
     static final String KEY_LATITUDE = "weather_latitude";
     static final String KEY_LONGITUDE = "weather_longitude";
-    /** "C" or "F"; absent for the TV default ({@link #regionFahrenheit}). */
+    /** "C" or "F"; absent for the TV default ({@link #defaultFahrenheit}). */
     static final String KEY_UNIT = "temperature_unit";
     /** The places picked before the current one, as JSON ({@link #recentJson}). */
     static final String KEY_RECENT = "weather_recent";
@@ -80,10 +80,17 @@ final class WeatherSettings {
             "US", "AS", "GU", "MP", "PR", "UM", "VI", "BS", "BZ", "KY", "LR", "FM", "MH", "PW");
 
     /**
-     * The TV default unit, which follows the TV's region (the project lead, M9): the unit its locale asks for (the
-     * "mu" extension Android 14's regional preferences set), else °F in {@link #FAHRENHEIT_REGIONS} and °C elsewhere.
-     * Without a region, tv.properties' temperature_unit.
+     * The TV default unit (the project lead, 2026-10-31): tv.properties' temperature_unit ("C" or "F") when it is set;
+     * otherwise the TV's region: the unit its locale asks for (the "mu" extension Android 14's regional preferences
+     * set), else °F in {@link #FAHRENHEIT_REGIONS} and °C elsewhere, and °C on a TV without a region.
      */
+    static boolean defaultFahrenheit(String configured, String region, String unitExtension) {
+        if ("F".equals(configured)) return true;
+        if ("C".equals(configured)) return false;
+        return regionFahrenheit(region, unitExtension, false);
+    }
+
+    /** The TV's region's unit (see {@link #defaultFahrenheit}); fallback when the TV has no region. */
     static boolean regionFahrenheit(String region, String unitExtension, boolean fallback) {
         if ("fahrenhe".equals(unitExtension)) return true;
         if ("celsius".equals(unitExtension)) return false;

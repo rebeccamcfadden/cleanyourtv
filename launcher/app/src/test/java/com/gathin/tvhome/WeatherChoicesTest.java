@@ -132,4 +132,17 @@ public class WeatherChoicesTest {
         assertEquals("Kiruna", back.get(0).name);
         assertEquals("", back.get(0).region);
     }
+
+    @Test
+    public void tvPropertiesUnitWinsWhenSet() {
+        // temperature_unit set: it is the TV default, whatever the TV's region says.
+        assertFalse(WeatherSettings.defaultFahrenheit("C", "US", null));
+        assertTrue(WeatherSettings.defaultFahrenheit("F", "SE", null));
+        assertFalse(WeatherSettings.defaultFahrenheit("C", "US", "fahrenhe"));
+        // Left out: the region decides, and °C without one.
+        assertTrue(WeatherSettings.defaultFahrenheit("", "US", null));
+        assertFalse(WeatherSettings.defaultFahrenheit("", "SE", null));
+        assertFalse(WeatherSettings.defaultFahrenheit("", "", null));
+        assertTrue(WeatherSettings.defaultFahrenheit(null, "SE", "fahrenhe"));
+    }
 }
