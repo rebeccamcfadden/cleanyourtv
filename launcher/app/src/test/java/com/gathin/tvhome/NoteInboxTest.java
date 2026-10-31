@@ -115,6 +115,33 @@ public class NoteInboxTest {
     }
 
     @Test
+    public void deeplyNestedJsonIsRefusedWithoutParsing() throws IOException {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < 30_000; i++) b.append('[');
+        assertEquals(400, handle(post(CODE, "application/json", b.toString())).status);
+        assertEquals(2, NoteInbox.depth("{\"a\":[1],\"b\":\"[[[[[[[[[[\"}"));
+        assertTrue(got.isEmpty());
+    }
+
+    @Test
+    public void aRequestTricklingInPastTheDeadlineIsCutOff() {
+        InputStream slow = new InputStream() {
+            @Override
+            public int read() {
+                return 'x';
+            }
+        };
+        try {
+            NoteInbox.Request.read(new NoteInbox.Deadline(slow, System.nanoTime() - 1));
+            fail("past the deadline");
+        } catch (java.net.SocketTimeoutException expected) {
+            // ok
+        } catch (IOException e) {
+            fail(e.toString());
+        }
+    }
+
+    @Test
     public void malformedRequestsAreRefused() {
         for (String raw : new String[] {"garbage\r\n\r\n", "POST /notes HTTP/1.1\r\nContent-Length: x\r\n\r\n",
                 "POST /notes HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n", "POST /notes HTTP/1.1\r\nContent-Length: 10\r\n\r\nshort"}) {

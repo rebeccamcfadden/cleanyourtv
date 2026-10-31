@@ -113,6 +113,8 @@ final class NoteImport {
             }
             Set<String> onList = items(id);
             NoteMatch.Memory copy = NoteMatch.Memory.fromJson(memory == null ? null : memory.toJson());
+            // A list made afresh (the old one deleted on TMDB) starts empty: every line counts as new again.
+            if (created) copy.forget(list);
             NoteMatch.Plan plan = new NoteMatch(this::fetch).plan(list, NoteLines.parse(text), copy, onList, progress);
             for (int i = 0; i < plan.add.size(); i += BATCH) {
                 TmdbAccountParse.done(send(TmdbAccountApi.listItems(id,

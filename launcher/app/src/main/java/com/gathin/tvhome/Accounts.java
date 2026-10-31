@@ -477,10 +477,13 @@ final class Accounts implements Household.Recorder {
         importing = false;
         notes.importEnded(p, o, quiet);
         if (o.listId > 0 && o.memory != null && s == session) {
-            // The list shows as a chip, and is read again so the chip fills.
+            // The list shows as a chip; read it again so the chip fills, but only when this import got somewhere: a
+            // failing search would otherwise sync, retry and fail again every few seconds.
             setShown(o.listId, true, o.accountLists);
-            main.removeCallbacks(fullSoon);
-            main.postDelayed(fullSoon, SyncPlan.DEBOUNCE);
+            if (o.status == NoteImport.Status.DONE || o.added > 0 || o.seen > 0) {
+                main.removeCallbacks(fullSoon);
+                main.postDelayed(fullSoon, SyncPlan.DEBOUNCE);
+            }
         }
         switch (o.status) {
             case DONE:

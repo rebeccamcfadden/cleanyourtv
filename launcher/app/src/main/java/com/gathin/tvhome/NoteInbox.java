@@ -26,7 +26,8 @@ import java.util.Locale;
  * code only lets a caller add titles to the household's lists.
  *
  * <p>One request at a time on a single low-priority thread: {@code POST /notes} only, from a private, loopback or
- * link-local address only, at most {@link #MAX_BODY} bytes, read within {@link #READ_TIMEOUT_MS}. The body is JSON,
+ * link-local address only, at most {@link #MAX_BODY} bytes, all of it within {@link #REQUEST_DEADLINE_MS} (JSON at most
+ * {@link #MAX_DEPTH} deep). The body is JSON,
  * {@code {"list": "Rebecca", "text": "…"}}, or the note's text itself with the list in {@code ?list=}. After
  * {@link #MAX_WRONG} wrong codes in a row the inbox refuses everything for {@link #LOCKOUT_MS}. The answer is JSON
  * with a {@code message} for the Shortcut to show. Plain Java over java.net, unit-tested over loopback
@@ -165,7 +166,7 @@ final class NoteInbox {
                 serve(c);
             } catch (SocketException e) {
                 if (socket == null) return;
-            } catch (IOException | RuntimeException e) {
+            } catch (IOException | RuntimeException | StackOverflowError e) {
                 // One bad request never stops the inbox; nothing is logged (the body is someone's note).
             }
         }
@@ -178,7 +179,7 @@ final class NoteInbox {
         } else {
             Request q;
             try {
-                q = Request.read(c.getInputStream());
+                q = Request.read(new Deadline(c.getInputStream(), System.nanoTime() + REQUEST_DEADLINE_MS * 1_000_000L));
             } catch (TooLarge e) {
                 r = Reply.error(413, "That note is too long for the TV.");
                 write(c.getOutputStream(), r);
@@ -211,11 +212,12 @@ final class NoteInbox {
         String list = q.query("list");
         String text = q.body;
         if (q.json()) {
+            if (depth(q.body) > MAX_DEPTH) return Reply.error(400, "The TV couldn't read that note.");
             try {
                 JSONObject o = new JSONObject(q.body);
                 list = o.optString("list", list == null ? "" : list);
                 text = o.optString("text", "");
-            } catch (JSONException e) {
+            } catch (JSONException | StackOverflowError e) {
                 return Reply.error(400, "The TV couldn't read that note.");
             }
         }
@@ -223,6 +225,30 @@ final class NoteInbox {
         if (list.isEmpty()) return Reply.error(400, "Say which list the note is for.");
         if (text == null || text.trim().isEmpty()) return Reply.error(400, "The note was empty.");
         return handler.accept(list, text);
+    }
+
+    /** A note is {"list", "text"}: anything nested deeper is refused before org.json, which parses recursively. */
+    static final int MAX_DEPTH = 8;
+
+    /** How deep the JSON's brackets go, outside strings. */
+    static int depth(String json) {
+        int depth = 0, max = 0;
+        boolean inString = false, escaped = false;
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (inString) {
+                if (escaped) escaped = false;
+                else if (c == '\\') escaped = true;
+                else if (c == '"') inString = false;
+            } else if (c == '"') {
+                inString = true;
+            } else if (c == '{' || c == '[') {
+                max = Math.max(max, ++depth);
+            } else if (c == '}' || c == ']') {
+                depth--;
+            }
+        }
+        return max;
     }
 
     private static boolean sameCode(String given, String code) {
@@ -290,6 +316,35 @@ final class NoteInbox {
     static final class TooLarge extends IOException {
         TooLarge() {
             super("too large");
+        }
+    }
+
+    /** A whole request must arrive within this, however slowly its bytes trickle in. */
+    static final long REQUEST_DEADLINE_MS = 10_000L;
+
+    /** Refuses to read past a deadline (System.nanoTime), so a slow sender can't hold the one-at-a-time inbox. */
+    static final class Deadline extends java.io.FilterInputStream {
+        private final long deadline;
+
+        Deadline(InputStream in, long deadlineNanos) {
+            super(in);
+            this.deadline = deadlineNanos;
+        }
+
+        private void check() throws IOException {
+            if (System.nanoTime() - deadline > 0) throw new java.net.SocketTimeoutException("request too slow");
+        }
+
+        @Override
+        public int read() throws IOException {
+            check();
+            return super.read();
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            check();
+            return super.read(b, off, len);
         }
     }
 

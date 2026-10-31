@@ -83,6 +83,11 @@ final class NoteMatch {
             m.put(line, id);
         }
 
+        /** Drops everything remembered for the list. */
+        void forget(String list) {
+            lists.remove(NoteLines.key(list));
+        }
+
         /** Lines remembered for the list, for the pane's "not matched" list. */
         Map<String, String> of(String list) {
             Map<String, String> m = lists.get(NoteLines.key(list));

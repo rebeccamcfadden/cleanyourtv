@@ -129,6 +129,17 @@ public class NoteImportTest {
     }
 
     @Test
+    public void aListDeletedOnTmdbIsMadeAgainWithEveryLine() {
+        NoteImport.Outcome first = run("Rebecca", "Dune\nFargo (tv)", null);
+        assertEquals(2, first.added);
+        tmdb.lists.remove(50L);
+        NoteImport.Outcome again = run("Rebecca", "Dune\nFargo (tv)", first.memory);
+        assertTrue(again.created);
+        assertEquals(2, again.added);
+        assertEquals(Arrays.asList("movie:438631", "tv:60622"), tmdb.lists.get(again.listId).items);
+    }
+
+    @Test
     public void aTitleTakenOffOnTheTvIsNotPutBack() {
         NoteImport.Outcome first = run("Rebecca", "Dune", null);
         tmdb.lists.get(50L).items.remove("movie:438631");
