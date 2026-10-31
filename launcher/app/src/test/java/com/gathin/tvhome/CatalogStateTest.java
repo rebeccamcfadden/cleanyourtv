@@ -69,7 +69,7 @@ public class CatalogStateTest {
         // Loading: every tab's skeleton.
         assertEquals(CatalogState.Tab.LOADING, CatalogState.tab(true, false, true, false, true));
         assertEquals(CatalogState.Tab.LOADING, CatalogState.tab(true, false, true, false, false));
-        // Failed: the tabs that need the details say so; the others show what the card knew.
+        // Failed: the tabs drawn from the details (Overview too) say so; More like this shows its own row.
         assertEquals(CatalogState.Tab.ERROR, CatalogState.tab(true, false, false, true, true));
         assertEquals(CatalogState.Tab.READY, CatalogState.tab(true, false, false, true, false));
         // Neither loading nor failed (a summary nobody asked about yet): as it is.
@@ -82,5 +82,16 @@ public class CatalogStateTest {
         assertFalse(CatalogState.headerLoading(true, true, true));
         assertFalse(CatalogState.headerLoading(true, false, false));
         assertFalse(CatalogState.headerLoading(false, false, true));
+    }
+
+    @Test
+    public void watchIsBlankUntilTheAvailabilityIsKnown() {
+        // A summary loading or failed, with no offers from the card: no label, not "Not on your services".
+        assertTrue(CatalogState.watchBlank(true, false, false));
+        // Loaded with no offers: "Not on your services" is true then.
+        assertFalse(CatalogState.watchBlank(true, true, false));
+        // The card knew offers, or the mock catalogue has everything: the real label.
+        assertFalse(CatalogState.watchBlank(true, false, true));
+        assertFalse(CatalogState.watchBlank(false, false, false));
     }
 }

@@ -38,14 +38,16 @@ milestones: [docs/rework.md](docs/rework.md).
   come), the amber "Offline · showing your lists as saved today 19:52" pill (the oldest saved copy's time) with
   "· prices may be out of date", or, offline with no title saved, the "nothing saved" block with Wi-Fi settings and
   Try again. The preview shows its gradient and skeletons while a summary's details load, and the amber error box in
-  Where to watch, Cast & crew and Episodes when they failed with no saved copy; Retry and the network coming back load
-  them again. Search offline looks at the saved titles only; Home's weather keeps the last forecast with "Offline ·
+  Overview, Where to watch, Cast & crew and Episodes when they failed with no saved copy; Retry and the network coming
+  back load them again. Until the availability is in, Watch shows only its play icon, with no label (OK on it after a
+  failure loads again): "Not on your services" only once it is in and there are no offers. Search offline looks at the saved titles only; Home's weather keeps the last forecast with "Offline ·
   updated 19:52". The nav's Wi-Fi icon is crossed out whenever Android reaches no internet. Still as before: More like
   this is an empty row until TMDB answers (it has no error state in the design), and a search card or a title whose
   artwork was never fetched keeps the raised placeholder offline.
   - **One request, one failure:** a title's details, cast, seasons and availability come in one TMDB request, so
     they fail together: the error box shows in every tab that needs them, not in one tab as the prototype's State
-    menu shows it. Overview keeps what the card that opened the preview knew.
+    menu shows it, Overview's too ("Couldn’t load details"; project lead, 2026-10-31). The header keeps what the card
+    that opened the preview knew.
   - **TMDB down, network up:** offline means Android reaches no internet. When TMDB alone fails, the lists show
     their saved copy without the amber pill, and a preview whose details never loaded shows the error box.
   - **Not built here:** Settings offline (the Account, Sync and Weather panes; with the new Launcher settings page),

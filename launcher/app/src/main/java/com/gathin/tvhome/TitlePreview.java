@@ -149,6 +149,7 @@ final class TitlePreview extends Screen {
 
         watch = Kit.button(ctx, PreviewRules.watchLabel(t, offer, subscribed, data.table), R.drawable.ic_ui_play,
                 Kit.PRIMARY, false, G_ACTIONS, KEY_WATCH, true, v -> watch());
+        paintWatch();
 
         tabs.add(Tab.OVERVIEW);
         if (!t.isMovie()) tabs.add(Tab.EPISODES);
@@ -236,7 +237,7 @@ final class TitlePreview extends Screen {
         detailsBox.removeAllViews();
         detailsBox.addView(details());
         Art.into(art, t.art, Ui.px(WIDTH), Ui.px(HEIGHT));
-        Kit.setLabel(watch, PreviewRules.watchLabel(t, offer, subscribed, data.table));
+        paintWatch();
         // 06-states A: the header's skeletons go, and a tab that showed its skeleton or an error is drawn again.
         refreshHeader();
         if (drawnState != tabState(active)) {
@@ -295,9 +296,20 @@ final class TitlePreview extends Screen {
     }
 
     private CatalogState.Tab tabState(Tab tab) {
-        boolean needsDetails = tab == Tab.WHERE || tab == Tab.CAST || tab == Tab.EPISODES;
+        boolean needsDetails = tab != Tab.MORE;
         return CatalogState.tab(data.catalog.isRemote(), t.detailed, data.catalog.pending(t.id),
                 data.catalog.failed(t.id), needsDetails);
+    }
+
+    /** Whether the title's availability is still unknown, so Watch shows only its play icon. */
+    private boolean watchBlank() {
+        return CatalogState.watchBlank(data.catalog.isRemote(), t.detailed, !t.offers.isEmpty());
+    }
+
+    /** Watch's label, or only its play icon while the availability isn't in (rather than "Not on your services"). */
+    private void paintWatch() {
+        Kit.setLabel(watch, PreviewRules.watchLabel(t, offer, subscribed, data.table));
+        StateUi.blank(watch, watchBlank(), ctx.getString(R.string.states_watch_unknown));
     }
 
     /**
@@ -319,6 +331,11 @@ final class TitlePreview extends Screen {
     /** Retry: focus waits on the tab while it loads again (its skeleton), then its content or the error again. */
     private void retry(Tab tab) {
         router.shell().focus(tabViews.get(tabs.indexOf(tab)));
+        reload();
+    }
+
+    /** Asks for the title's details again; the tab showing turns to its skeleton while they come. */
+    private void reload() {
         data.catalog.details(t, this::apply);
         if (active != null && drawnState != tabState(active)) redrawTab();
     }
@@ -378,15 +395,17 @@ final class TitlePreview extends Screen {
     }
 
     /**
-     * .inline-err, inside the failing tab only: "Couldn't load where to watch", that TMDB didn't answer, and Retry.
-     * The rest of the preview is what the catalogue had saved, or what the card that opened it knew.
+     * .inline-err, inside the failing tab only: "Couldn't load where to watch" (Overview: "Couldn't load details"),
+     * that TMDB didn't answer, and Retry. The rest of the preview is what the catalogue had saved, or what the card
+     * that opened it knew.
      */
     private View tabError(Tab tab) {
-        String name = ctx.getString(tabLabel(tab)).toLowerCase(java.util.Locale.getDefault());
+        String title = tab == Tab.OVERVIEW ? ctx.getString(R.string.states_overview_error)
+                : ctx.getString(R.string.states_tab_error,
+                        ctx.getString(tabLabel(tab)).toLowerCase(java.util.Locale.getDefault()));
         View retry = Kit.button(ctx, ctx.getString(R.string.states_retry), R.drawable.ic_state_retry, Kit.NORMAL,
                 false, null, "retry-" + tab.name(), false, v -> retry(tab));
-        return StateUi.errorBox(ctx, ctx.getString(R.string.states_tab_error, name),
-                ctx.getString(R.string.states_tab_error_note), retry);
+        return StateUi.errorBox(ctx, title, ctx.getString(R.string.states_tab_error_note), retry);
     }
 
     @Override
@@ -448,8 +467,15 @@ final class TitlePreview extends Screen {
 
     // ---- Actions --------------------------------------------------------------------------------------------------
 
-    /** Included (or free): open the service. Paid: the rent/buy dialog for that store. None: the Router's toast. */
+    /**
+     * Included (or free): open the service. Paid: the rent/buy dialog for that store. None: the Router's toast. Blank
+     * (the availability isn't in): nothing while it loads, and after a failure the details are asked for again.
+     */
     private void watch() {
+        if (watchBlank()) {
+            if (data.catalog.failed(t.id)) reload();
+            return;
+        }
         if (offer != null && !data.isIncluded(offer)) {
             ServiceOffers s = PreviewRules.forService(t, offer.service, subscribed);
             if (s != null) {

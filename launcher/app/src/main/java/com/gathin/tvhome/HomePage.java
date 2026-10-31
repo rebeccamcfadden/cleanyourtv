@@ -725,7 +725,7 @@ final class HomePage extends Screen {
         String updated = offline ? StateUi.updated(activity, weatherStore.fetchedAt()) : null;
         if (updated != null) {
             weatherDesc.setText(activity.getString(R.string.states_weather_updated, updated));
-            weatherDesc.setTextColor(StateUi.AMBER);
+            weatherDesc.setTextColor(StateUi.amber());
         } else {
             weatherDesc.setText(today == null ? words
                     : activity.getString(R.string.weather_summary, words, degrees(today.max), degrees(today.min)));

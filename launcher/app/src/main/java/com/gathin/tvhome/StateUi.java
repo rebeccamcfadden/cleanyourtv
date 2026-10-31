@@ -26,8 +26,10 @@ import java.util.function.Consumer;
 final class StateUi {
     private StateUi() {}
 
-    /** Offline and errors use the score star's amber (tokens.css --star). */
-    static final int AMBER = Ui.STAR;
+    /** Offline and errors use the score star's amber (tokens.css --star), read from Ui when a view is built. */
+    static int amber() {
+        return Ui.STAR;
+    }
     /** .offline-pill: the amber at 12%. */
     static final int AMBER_PILL = 0x1FF2C46D;
     /** .inline-err: the amber at 8%, with a 30% border. */
@@ -125,9 +127,9 @@ final class StateUi {
         pill.setGravity(Gravity.CENTER_VERTICAL);
         pill.setPadding(Ui.px(18), Ui.px(8), Ui.px(18), Ui.px(8));
         pill.setBackground(Ui.round(AMBER_PILL, Ui.RADIUS_PILL));
-        pill.addView(Ui.icon(ctx, R.drawable.ic_ui_wifi_off, 24, AMBER), new LinearLayout.LayoutParams(Ui.px(24),
+        pill.addView(Ui.icon(ctx, R.drawable.ic_ui_wifi_off, 24, amber()), new LinearLayout.LayoutParams(Ui.px(24),
                 Ui.px(24)));
-        TextView t = Ui.line(ctx, Ui.T_SMALL, AMBER, Ui.REGULAR);
+        TextView t = Ui.line(ctx, Ui.T_SMALL, amber(), Ui.REGULAR);
         t.setText(text);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -141,6 +143,32 @@ final class StateUi {
     static void setPill(View pill, CharSequence text) {
         ((TextView) ((ViewGroup) pill).getChildAt(1)).setText(text);
         pill.setContentDescription(text);
+    }
+
+    /**
+     * A Kit button showing only its icon, as a circle of its own height, while what its label would say isn't known
+     * (the preview's Watch before the title's availability is in); {@code blank} false brings its label and padding
+     * back. {@code said} is what accessibility services hear meanwhile. It stays focusable.
+     */
+    static void blank(View button, boolean blank, CharSequence said) {
+        View label = (View) button.getTag(R.id.kit_label);
+        if (label == null) return;
+        int[] padding = (int[]) button.getTag(R.id.states_padding);
+        if (blank && padding == null) {
+            button.setTag(R.id.states_padding, new int[]{button.getPaddingLeft(), button.getPaddingTop(),
+                    button.getPaddingRight(), button.getPaddingBottom()});
+            label.setVisibility(View.GONE);
+            button.setPadding(0, 0, 0, 0);
+            button.setMinimumWidth(button.getMinimumHeight());
+            ((LinearLayout) button).setGravity(Gravity.CENTER);
+        } else if (!blank && padding != null) {
+            button.setTag(R.id.states_padding, null);
+            label.setVisibility(View.VISIBLE);
+            button.setPadding(padding[0], padding[1], padding[2], padding[3]);
+            button.setMinimumWidth(0);
+            ((LinearLayout) button).setGravity(Gravity.CENTER_VERTICAL);
+        }
+        if (blank) button.setContentDescription(said);
     }
 
     /** .sk: a static grey block, radius 8, w × h design px. */
@@ -329,7 +357,7 @@ final class StateUi {
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setPadding(Ui.px(28), Ui.px(24), Ui.px(28), Ui.px(24));
         box.setBackground(Ui.round(AMBER_BOX, Ui.RADIUS_L, AMBER_LINE, 1));
-        ImageView icon = Ui.icon(ctx, R.drawable.ic_state_alert, 40, AMBER);
+        ImageView icon = Ui.icon(ctx, R.drawable.ic_state_alert, 40, amber());
         box.addView(icon, new LinearLayout.LayoutParams(Ui.px(40), Ui.px(40)));
         LinearLayout text = new LinearLayout(ctx);
         text.setOrientation(LinearLayout.VERTICAL);

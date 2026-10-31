@@ -49,9 +49,9 @@ final class CatalogState {
     }
 
     /**
-     * The state of a preview tab for a title. {@code needsDetails} is true for the tabs that show nothing without the
-     * title's details (Where to watch, Cast &amp; crew, Episodes); Overview and More like this show what the card that
-     * opened the preview knew, or their own row.
+     * The state of a preview tab for a title. {@code needsDetails} is true for the tabs drawn from the title's details
+     * (Overview, Where to watch, Cast &amp; crew, Episodes), which show the error box when they failed; More like this
+     * has its own request and shows its own row.
      */
     static Tab tab(boolean remote, boolean detailed, boolean pending, boolean failed, boolean needsDetails) {
         if (!remote || detailed) return Tab.READY;
@@ -62,5 +62,14 @@ final class CatalogState {
     /** The preview's header (details row, the actions after Watch, the art) shows skeletons while it loads. */
     static boolean headerLoading(boolean remote, boolean detailed, boolean pending) {
         return remote && !detailed && pending;
+    }
+
+    /**
+     * Whether the preview's Watch button is blank (its play icon, no label): the title's availability isn't known,
+     * because its details are still loading or failed and the card that opened it knew no offers. "Not on your
+     * services" is said only once the availability is in and there really are none.
+     */
+    static boolean watchBlank(boolean remote, boolean detailed, boolean hasOffers) {
+        return remote && !detailed && !hasOffers;
     }
 }

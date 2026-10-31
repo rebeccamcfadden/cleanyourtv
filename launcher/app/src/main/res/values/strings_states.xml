@@ -38,8 +38,12 @@
 
     <!-- The title preview. -->
     <string name="states_tab_error">Couldn’t load %1$s</string>
+    <!-- The Overview tab's box: the details are what it shows. -->
+    <string name="states_overview_error">Couldn’t load details</string>
     <string name="states_tab_error_note">TMDB didn’t answer. The rest of the page is from the saved copy.</string>
     <string name="states_retry">Retry</string>
+    <!-- What TalkBack says of the Watch button while it shows only its icon, before the title's availability is in. -->
+    <string name="states_watch_unknown">Watch, where to watch isn’t loaded yet</string>
     <string name="states_trailer_offline">Offline: the trailer needs the internet</string>
 
     <!-- Search. -->
