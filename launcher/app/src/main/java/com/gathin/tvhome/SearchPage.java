@@ -114,6 +114,12 @@ final class SearchPage extends Screen {
     private final Runnable askRemote = this::askRemote;
     /** Kept in a field: the catalogue holds its listeners weakly. */
     private final Runnable onCatalog;
+    /**
+     * Offline, the ids of the titles saved on the TV, worked out once rather than on every key press; dropped when
+     * the catalogue, the household's lists or the network change.
+     */
+    private java.util.Set<String> savedIds;
+    private final Household.Listener onHousehold = () -> savedIds = null;
 
     static SearchPage create(MainActivity activity, NavBar.Host host) {
         return new SearchPage(activity, activity, Pages.page(activity, host, Tab.SEARCH));
@@ -232,11 +238,27 @@ final class SearchPage extends Screen {
 
         // Recently viewed and From My list fill in as their titles' details arrive.
         onCatalog = () -> {
+            savedIds = null;
             if (shell.top() == this) render();
         };
         data.catalog.addListener(onCatalog);
+        // The household holds its listeners strongly: listen only while the page is on screen.
+        page.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                savedIds = null;
+                data.household.addListener(onHousehold);
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                data.household.removeListener(onHousehold);
+            }
+        });
+        if (page.isAttachedToWindow()) data.household.addListener(onHousehold);
         // Offline and back online change the page in place (06-states A); back online, TMDB is asked at once.
         StateUi.watchInternet(page, StateUi.navModel(ctx), online -> {
+            savedIds = null;
             if (online && !query.isEmpty()) {
                 view.removeCallbacks(askRemote);
                 view.post(askRemote);
@@ -410,8 +432,12 @@ final class SearchPage extends Screen {
         // 06-states A, offline: the results come from the titles saved on the TV, without people; with nothing saved,
         // the results area says so beside the keyboard.
         boolean offline = data.catalog.isRemote() && !StateUi.online(ctx);
-        java.util.Set<String> saved = offline ? OfflineSearch.savedIds(data.household.titleIds(), data.catalog.all())
-                : null;
+        if (!offline) {
+            savedIds = null;
+        } else if (savedIds == null) {
+            savedIds = OfflineSearch.savedIds(data.household.titleIds(), data.catalog.all());
+        }
+        java.util.Set<String> saved = savedIds;
         boolean nothingSaved = offline && nothingSaved(saved);
         results = query.isEmpty() ? null : index.search(query, offline ? null : remote());
         if (offline && results != null) {

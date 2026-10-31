@@ -178,7 +178,7 @@ final class LibraryPage extends Screen {
         View guide = Kit.guide(ctx, ctx.getString(data.catalog.isRemote() ? R.string.prices_library_guide
                         : R.string.library_guide_left),
                 ctx.getString(R.string.library_guide_right));
-        guideRight = (TextView) ((ViewGroup) guide).getChildAt(1);
+        guideRight = Kit.guideRight(guide);
         root.addView(guide);
 
         // Titles fill in as their details arrive: what is cached shows first, the rest as it comes.
