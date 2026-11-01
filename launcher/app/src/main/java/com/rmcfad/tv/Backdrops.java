@@ -113,7 +113,9 @@ final class Backdrops {
     void show(Theme t) {
         key = BackdropKeys.parse(t.backdrop);
         stop();
-        if (PerfChoices.current().plainBackdrop && key.kind != BackdropKeys.Kind.NONE) {
+        // F14: with Themes off in Features nothing is downloaded, so a downloaded picture is the plain sky too.
+        boolean noDownloads = !Features.isOn(Features.Feature.THEMES) && key.kind == BackdropKeys.Kind.URL;
+        if ((PerfChoices.current().plainBackdrop || noDownloads) && key.kind != BackdropKeys.Kind.NONE) {
             view.setBackground(sky(t));
             // Nothing to fetch, refresh or rotate hourly.
             key = BackdropKeys.Key.NONE;

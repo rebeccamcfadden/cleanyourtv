@@ -184,12 +184,12 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         Config cfg = Config.load(this);
         config = cfg;
         Ui.init(this, cfg.reducedMotion());
+        // F14: which features run, before anything that starts one is built (the theme among them).
+        Features.apply(FeaturePrefs.load(this));
         theme = ThemeStore.current(this);
         systemFont = ThemeStore.systemFont(this);
         Ui.apply(theme);
         PerfChoices.apply(PerfPrefs.load(this, cfg));
-        // F14: which features run, before anything that starts one is built.
-        Features.apply(FeaturePrefs.load(this));
         // The Phone notes inbox lives as long as the process: it opens or closes with the switches the launcher is
         // built with now.
         Notes.get(this).allow(Features.isOn(Features.Feature.NOTES));

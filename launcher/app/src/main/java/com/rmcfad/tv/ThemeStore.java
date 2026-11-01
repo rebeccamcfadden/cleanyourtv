@@ -32,7 +32,9 @@ final class ThemeStore {
         prefs(ctx).edit().putString(KEY_THEME, id).apply();
     }
 
+    /** The system font: chosen, or every theme's while Themes is off in Features (F14: no fonts are downloaded). */
     static boolean systemFont(Context ctx) {
+        if (!Features.isOn(Features.Feature.THEMES)) return true;
         return "system".equals(prefs(ctx).getString(KEY_FONT, "theme"));
     }
 
@@ -63,8 +65,13 @@ final class ThemeStore {
         return DayPhase.nextChange(now, w.latitude, w.longitude);
     }
 
-    /** Today's theme: the saved choice, resolved to today's period when it is Seasonal. */
+    /**
+     * Today's theme: the saved choice, resolved to today's period when it is Seasonal. While Themes is off in Features
+     * (F14), a choice that needs downloads (Landscapes, Seasonal) shows Midnight; the choice itself is kept.
+     */
     static Theme current(Context ctx) {
-        return Themes.resolve(themeId(ctx), LocalDate.now());
+        String id = themeId(ctx);
+        if (!Features.isOn(Features.Feature.THEMES) && !Themes.plain(id)) id = Themes.DEFAULT_ID;
+        return Themes.resolve(id, LocalDate.now());
     }
 }

@@ -51,7 +51,7 @@ final class ThemeSection implements SettingsSection {
 
     @Override
     public CharSequence value(Context ctx) {
-        String id = ThemeStore.themeId(ctx);
+        String id = shownId(ctx);
         LocalDate today = LocalDate.now();
         String name = name(ctx, id, today);
         SeasonCalendar.Period period = ThemeWords.shownPeriod(Themes.SEASONAL.contains(id), today);
@@ -62,6 +62,12 @@ final class ThemeSection implements SettingsSection {
     @Override
     public View firstFocus() {
         return first;
+    }
+
+    /** The saved theme, or Midnight while Themes is off and it needs downloads (as ThemeStore.current shows it). */
+    private static String shownId(Context ctx) {
+        String id = ThemeStore.themeId(ctx);
+        return FeaturePrefs.load(ctx).on(Features.Feature.THEMES) || Themes.plain(id) ? id : Themes.DEFAULT_ID;
     }
 
     /**
@@ -83,8 +89,11 @@ final class ThemeSection implements SettingsSection {
         first = null;
         classic.clear();
         seasonal.clear();
-        String saved = ThemeStore.themeId(ctx);
-        boolean systemFont = ThemeStore.systemFont(ctx);
+        // F14: with Themes off in Features, the Classic themes that need no download, in the system font, and no
+        // Seasonal row or typeface choice (nothing is downloaded); read from the saved switches, as Features shows them.
+        boolean themes = FeaturePrefs.load(ctx).on(Features.Feature.THEMES);
+        String saved = shownId(ctx);
+        boolean systemFont = !themes || ThemeStore.systemFont(ctx);
         LocalDate today = LocalDate.now();
 
         LinearLayout pane = Kit.unclip(new LinearLayout(ctx));
@@ -94,7 +103,7 @@ final class ThemeSection implements SettingsSection {
         title.setText(R.string.theme_pane_title);
         pane.addView(title, wrap());
         TextView sub = Ui.text(ctx, 22, Ui.TEXT_2, Ui.REGULAR);
-        sub.setText(R.string.theme_pane_sub);
+        sub.setText(themes ? R.string.theme_pane_sub : R.string.theme_pane_sub_plain);
         sub.setLineSpacing(0, 1.45f);
         LinearLayout.LayoutParams slp = wrap();
         slp.topMargin = Ui.px(8);
@@ -102,13 +111,16 @@ final class ThemeSection implements SettingsSection {
 
         List<View> swatches = new ArrayList<>();
         pane.addView(groupLabel(ctx, ctx.getString(R.string.theme_group_classic)), groupLabelParams());
-        pane.addView(swatchRow(ctx, host, Themes.CLASSIC, saved, systemFont, today, swatches, classic), wrap());
-        if (!Themes.SEASONAL.isEmpty()) {
+        List<String> classicIds = new ArrayList<>();
+        for (String id : Themes.CLASSIC) if (themes || Themes.plain(id)) classicIds.add(id);
+        pane.addView(swatchRow(ctx, host, classicIds, saved, systemFont, today, swatches, classic), wrap());
+        if (themes && !Themes.SEASONAL.isEmpty()) {
             String period = ctx.getString(ThemeWords.periodRes(SeasonCalendar.at(today)));
             pane.addView(groupLabel(ctx, ctx.getString(R.string.theme_group_seasonal, period)), groupLabelParams());
             pane.addView(swatchRow(ctx, host, Themes.SEASONAL, saved, systemFont, today, swatches, seasonal), wrap());
         }
         if (first == null && !swatches.isEmpty()) first = swatches.get(0);
+        if (!themes) return pane;
 
         LinearLayout options = Kit.unclip(new LinearLayout(ctx));
         options.setOrientation(LinearLayout.HORIZONTAL);

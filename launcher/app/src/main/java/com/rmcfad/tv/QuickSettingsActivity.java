@@ -27,11 +27,11 @@ public final class QuickSettingsActivity extends Activity {
         super.onCreate(state);
         Config cfg = Config.load(this);
         Ui.init(this, cfg.reducedMotion());
+        // F14: which features run, before anything that starts one is built (the theme among them).
+        Features.apply(FeaturePrefs.load(this));
         Theme theme = ThemeStore.current(this);
         Ui.apply(theme);
         PerfChoices.apply(PerfPrefs.load(this, cfg));
-        // F14: which features run, before anything that starts one is built.
-        Features.apply(FeaturePrefs.load(this));
         ThemeFonts.apply(this, theme);
         FrameLayout root = new FrameLayout(this);
         View catcher = new View(this);
