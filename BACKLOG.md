@@ -337,7 +337,7 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
 
 - **Daylight cycle (F22, 2026-11-01):** a Seasonal picture follows the part of the day: dawn, day, sunset and night,
   from sunrise and sunset at the Weather place (`DayPhase`, offline). Each period has four drawn pictures
-  (`seasonal/vector-3/<period>-<phase>.webp`, 3.9 MB for all 40 in the repo, about 0.5 MB per period downloaded;
+  (`seasonal/vector-4/<period>-<phase>.webp`, 3.9 MB for all 40 in the repo, about 0.5 MB per period downloaded;
   8-bit's 40 scenes are in the APK, 68 KB), with seasonal sunrise and sunset colours and the sun or moon in the same
   place for each phase. The picture swaps once at each edge, crossfading by Motion; nothing is drawn in between, so it
   costs no frames. The colours stay the period's, so Home doesn't rebuild. Theme › Time of day: Follow the sun (the
@@ -360,7 +360,7 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
   `theme_assets_url` (jsDelivr on this repository's `main`). The 8-bit scenes are in the APK. On the TCL, Cinema's,
   Landscapes' and Vector art's downloaded from `main`. Vector art's sky showed gradient banding there (the launcher
   decodes backdrops as RGB_565); since 2026-11-01 the pictures are dithered to that grid (`seasonal/vector-2/`, and
-  the daylight cycle's `seasonal/vector-3/`).
+  the daylight cycle's `seasonal/vector-4/`).
 - **Not shipped:** the Vector scenes alternative to Vector art, and the old Seasonal & festive themes (Figma pages kept).
 - **Card shadows:** every theme but Midnight draws a resting shadow under each artwork card. Measured on the TCL with
   `tools/bench.py` (main 24e8f119, 36 keys × 3, 2026-10-31):

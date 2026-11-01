@@ -1,9 +1,9 @@
 # Theme backdrops
 
 The pictures behind the launcher's pages for the themes that use a photo or a drawing: Daylight, Cinema and
-Landscapes (`classic/`), and Seasonal · Vector art (`seasonal/vector-3/<period>-<phase>.webp`: each period of
+Landscapes (`classic/`), and Seasonal · Vector art (`seasonal/vector-4/<period>-<phase>.webp`: each period of
 `SeasonCalendar` at dawn, day, sunset and night, for the daylight cycle). `seasonal/nature/` and `seasonal/vector-2/`
-are kept for TVs on an older build: Nature was removed and `vector-3` replaced `vector-2` on 2026-11-01. Who took each photo, and its licence, is in [CREDITS.md](CREDITS.md).
+are kept for TVs on an older build: Nature was removed and `vector-4` replaced `vector-2` on 2026-11-01. Who took each photo, and its licence, is in [CREDITS.md](CREDITS.md).
 
 They are **not built into the APK**: together they are about 3 MB and the launcher must stay under 1 MB. The
 launcher downloads the one a theme needs, once, from `theme_assets_url` in `launcher/tv.properties` (by default this
@@ -15,7 +15,7 @@ preview, which keep the same bytes.
 A file's path here is its key in the theme (`url:classic/daylight.webp`), so a renamed file needs the theme changed
 with it, and a changed picture needs a new name: a TV keeps the copy it downloaded. A Seasonal file is named after its
 period and part of the day (the theme's key says `<period>-{phase}`; the launcher fills in the phase and fetches the
-next period's by swapping the name), so a changed Seasonal set gets a new folder instead, as `vector-3` replaced
+next period's by swapping the name), so a changed Seasonal set gets a new folder instead, as `vector-4` replaced
 `vector-2`.
 
 ## Making them again
@@ -50,6 +50,6 @@ bayer = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
 t = np.tile(bayer, (src.shape[0] // 4 + 1, src.shape[1] // 4 + 1))[:src.shape[0], :src.shape[1]]
 for c, step in ((0, 8), (1, 4), (2, 8)):  # 5 bits of red, 6 of green, 5 of blue
     src[..., c] = np.clip(np.floor(src[..., c] / step + t + 0.5) * step, 0, 255)
-Image.fromarray(src.astype(np.uint8)).save("seasonal/vector-3/snow-dawn.webp", "WEBP", lossless=True, quality=100,
+Image.fromarray(src.astype(np.uint8)).save("seasonal/vector-4/snow-dawn.webp", "WEBP", lossless=True, quality=100,
                                            method=6)
 ```
