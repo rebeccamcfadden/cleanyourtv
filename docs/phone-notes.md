@@ -55,7 +55,8 @@ It reads "Get text from *Shortcut Input*"; leave it.
 
 **Send it to the TV.** Search `get contents`, add **Get Contents of URL**, then:
 
-1. Tap **URL** and enter the address from the TV's pane, e.g. `http://192.168.1.50:8765/notes`. It starts with
+1. Shortcuts fills the URL with the yellow **Text** chip from the step before. Tap that chip → **Clear Variable**,
+   then tap **URL** and enter the address from the TV's pane, e.g. `http://192.168.1.50:8765/notes`. It starts with
    `http://` (not https) and ends with `/notes`.
 2. Tap **›** on the action to show its options and set:
 
