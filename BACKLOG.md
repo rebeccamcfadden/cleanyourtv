@@ -118,9 +118,9 @@ milestones: [docs/rework.md](docs/rework.md).
   - **Cards name only the household's own (F1, the project lead, 2026-11-01):** a card's provider and line count
     a ticked subscription, a free service whose app is installed or that is ticked, and the ticked stores' rent and
     buy (`PriceCards.isYours`); with none of those the card shows no availability. The title page (Watch, Where to
-    watch) still shows every offer. **Open:** the Availability filter's "Included only" and Pick for me still count
-    every free service, so a title free only on an app that isn't installed passes "Included only" while its card
-    names a store's rental, or nothing.
+    watch) still shows every offer. "Included only" (Movies and TV Shows, Pick for me, Search) follows the same rule
+    for free services (`Offers.isOwnIncluded`): a title free only on an app that isn't installed or ticked doesn't
+    pass it.
 - **Still missing:** Viaplay's store has no price from any source. Shows are rarely priced (Apple's TV search finds
   no Swedish seasons). Prices are a week old at most, not live.
 - **Findings (2026-10-30):** in Sweden TMDB lists rent and buy at Apple TV, Viaplay, Rakuten TV, SF Anytime and

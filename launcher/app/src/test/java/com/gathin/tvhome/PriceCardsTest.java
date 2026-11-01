@@ -544,6 +544,31 @@ public class PriceCardsTest {
     }
 
     @Test
+    public void includedOnlyFollowsTheCardsRule() {
+        Set<ServiceId> none = EnumSet.noneOf(ServiceId.class);
+        Set<ServiceId> svt = EnumSet.of(ServiceId.SVTPLAY);
+        Title pluto = title(Kind.MOVIE, free(ServiceId.PLUTOTV));
+        Title svtFree = title(Kind.MOVIE, free(ServiceId.SVTPLAY));
+        Title netflix = title(Kind.MOVIE, sub(ServiceId.NETFLIX));
+        // A free service counts only when its app is installed or it is ticked; null installed counts every one.
+        assertFalse(Offers.isOwnIncluded(pluto, none, svt));
+        assertTrue(Offers.isOwnIncluded(svtFree, none, svt));
+        assertTrue(Offers.isOwnIncluded(pluto, EnumSet.of(ServiceId.PLUTOTV), none));
+        assertTrue(Offers.isOwnIncluded(pluto, none, null));
+        assertTrue(Offers.isOwnIncluded(netflix, EnumSet.of(ServiceId.NETFLIX), none));
+        assertFalse(Offers.isOwnIncluded(netflix, none, EnumSet.of(ServiceId.NETFLIX)));
+        // Movies and TV Shows' Availability › Included only.
+        LibraryFilters f = new LibraryFilters(Kind.MOVIE, Collections.emptyList(), none, svt, id -> false);
+        f.clear();
+        f.set(LibraryFilters.AVAILABILITY, 1);
+        assertFalse(f.passes(pluto));
+        assertTrue(f.passes(svtFree));
+        // Pick for me's Availability › Included only.
+        assertFalse(PickRules.test(PickRules.AVAIL, 1, pluto, null, none, svt));
+        assertTrue(PickRules.test(PickRules.AVAIL, 1, svtFree, null, none, svt));
+    }
+
+    @Test
     public void mockOffersKeepTheirDollarPriceUnderTheirQuality() {
         Offer apple = new Offer(ServiceId.APPLETV, OfferType.RENT, 3.99, "4K · Dolby Vision");
         assertEquals(Collections.singletonMap(UHD, new Money(399, "USD")), PriceCards.prices(apple));

@@ -64,8 +64,6 @@ export const offersOf = (t: Title) =>
 
 export const isIncludedOffer = (o: Offer) => o.type === 'free' || (o.type === 'sub' && isSubscribed(o.service));
 
-export const isIncluded = (t: Title) => offersOf(t).some(isIncludedOffer);
-
 /** A catalogue service the household ticked in the Streaming services pane. */
 const isTicked = (id: ServiceId) =>
   PICK_SERVICES.some((p) => p.catalog === id && settings.get().services.includes(p.id));
@@ -83,6 +81,9 @@ export const cardOffersOf = (t: Title) =>
   offersOf(t).filter((o) =>
     o.type === 'sub' ? isTicked(o.service) : o.type === 'free' ? isInstalled(o.service) || isTicked(o.service) : true,
   );
+
+/** "Included only" in Movies and TV Shows, Pick for me and Search: the cards' rule ({@link cardOffersOf}). */
+export const isOwnIncluded = (t: Title) => cardOffersOf(t).some(isIncludedOffer);
 
 /** The cheapest offer of a type: a priced one beats an unpriced one, which is only picked when none is priced. */
 function cheapestOf(offers: Offer[], type: OfferType): Offer | undefined {
