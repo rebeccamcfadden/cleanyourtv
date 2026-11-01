@@ -115,6 +115,61 @@ public class NoteImportTest {
     }
 
     @Test
+    public void aNoteWhoseEveryLineIsTickedOnlyMarksSeenAndMakesNoList() {
+        NoteImport.Outcome o = run("Grandma", "Watched\n☑ Arrival\n[x] Dune", null);
+        assertEquals(NoteImport.Status.DONE, o.status);
+        assertEquals(Arrays.asList("movie:10", "movie:438631"), seen);
+        assertEquals(0, o.listId);
+        assertFalse(o.created);
+        assertEquals(0, calls("POST https://api.themoviedb.org/4/list "));
+        assertNotNull("the lines are remembered", o.memory);
+    }
+
+    @Test
+    public void anAllTickedNoteForAnExistingListStillTakesThemOff() {
+        NoteImport.Outcome o = run("Rebecca", "☑ Arrival", null);
+        assertEquals(50, o.listId);
+        assertEquals(Collections.singletonList("movie:10"), seen);
+        assertTrue(tmdb.lists.get(50L).items.isEmpty());
+    }
+
+    @Test
+    public void aPickGoesOntoTheListAndIsRemembered() {
+        NoteMatch.Ask ask = new NoteMatch.Ask("zzyzx qq", "Zzyzx Qq", false, null);
+        NoteImport.Outcome o = new NoteImport(tmdb, SESSION, seen::addAll).pick("Rebecca", ask, "tv:60622", null);
+        assertEquals(NoteImport.Status.DONE, o.status);
+        assertEquals(50, o.listId);
+        assertEquals(1, o.added);
+        assertEquals(Arrays.asList("movie:10", "tv:60622"), tmdb.lists.get(50L).items);
+        assertEquals("tv:60622", o.memory.get("Rebecca", "zzyzx qq"));
+        // Picked again (or already there): nothing more is written.
+        tmdb.log.clear();
+        assertEquals(0, new NoteImport(tmdb, SESSION, seen::addAll).pick("Rebecca", ask, "tv:60622", o.memory).added);
+        assertEquals(0, calls("POST"));
+    }
+
+    @Test
+    public void aTickedPickGoesToSeenAndNoneOfTheseIsRemembered() {
+        NoteImport n = new NoteImport(tmdb, SESSION, seen::addAll);
+        NoteImport.Outcome o = n.pick("Rebecca", new NoteMatch.Ask("a", "A", true, null), "movie:10", null);
+        assertEquals(Collections.singletonList("movie:10"), seen);
+        assertEquals(0, o.listId);
+        assertEquals(0, calls("POST"));
+        NoteImport.Outcome none = n.pick("Rebecca", new NoteMatch.Ask("b", "B", false, null), null, null);
+        assertEquals(NoteImport.Status.DONE, none.status);
+        assertEquals(NoteMatch.DISMISSED, none.memory.get("Rebecca", "b"));
+        assertEquals(0, calls("POST"));
+    }
+
+    @Test
+    public void aPickForAListThatIsGoneMakesIt() {
+        NoteImport.Outcome o = new NoteImport(tmdb, SESSION, seen::addAll).pick("Grandma",
+                new NoteMatch.Ask("x", "X", false, null), "movie:438631", null);
+        assertTrue(o.created);
+        assertEquals(Collections.singletonList("movie:438631"), tmdb.lists.get(o.listId).items);
+    }
+
+    @Test
     public void theSameNoteAgainAddsNothingAndLooksNothingUp() {
         NoteImport.Outcome first = run("Rebecca", "Dune\nFargo (tv)\nZzyzx Qq", null);
         int searches = calls("GET https://api.themoviedb.org/3/search");
@@ -207,11 +262,12 @@ public class NoteImportTest {
     }
 
     @Test
-    public void progressCountsTheNewLines() {
+    public void progressCountsEveryLineFromTheStart() {
         NoteMatch.Memory memory = run("Rebecca", "Dune", null).memory;
         steps.clear();
+        // Dune is known, so it counts at once; the pill reads "0 of 3" before anything is looked up.
         run("Rebecca", "Dune\nFargo (tv)\nZzyzx Qq", memory);
-        assertEquals(Arrays.asList("0/2", "1/2", "2/2"), steps);
+        assertEquals(Arrays.asList("0/3", "1/3", "2/3", "3/3"), steps);
     }
 
     @Test

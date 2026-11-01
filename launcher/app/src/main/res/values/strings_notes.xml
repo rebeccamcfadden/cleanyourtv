@@ -54,4 +54,20 @@
     </plurals>
     <string name="notes_reply_signed_out">The TV will add these once it’s signed in to TMDB.</string>
     <string name="notes_reply_no_titles">The TV found no titles in that note.</string>
+
+    <!-- Last sends: a line not matched exactly, as a button that opens the picker. -->
+    <string name="notes_ask_choose">%1$s · Choose</string>
+    <string name="notes_ask_nothing">%1$s · Not on TMDB</string>
+    <!-- The picker (NotePicker). -->
+    <string name="notes_pick_title">Which one did you mean?</string>
+    <string name="notes_pick_title_none">Nothing close on TMDB</string>
+    <string name="notes_pick_line">“%1$s” in the note for %2$s matched nothing exactly.</string>
+    <string name="notes_pick_to_list">The one you pick goes onto %1$s.</string>
+    <string name="notes_pick_to_seen">It’s ticked, so the one you pick goes to Seen.</string>
+    <string name="notes_pick_nothing">Fix the line in the note and send it again, or stop asking about it.</string>
+    <string name="notes_pick_none">None of these</string>
+    <string name="notes_pick_stop">Stop asking</string>
+    <string name="notes_pick_movie">Movie</string>
+    <string name="notes_pick_show">TV show</string>
+    <string name="notes_pick_meta">%1$d · %2$s</string>
 </resources>

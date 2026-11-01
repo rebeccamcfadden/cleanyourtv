@@ -202,13 +202,15 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         root.addView(stage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         // Phone notes' import pill, over every page and never focusable (ImportPill).
-        root.addView(new ImportPill(this, Notes.get(this)), ImportPill.place());
+        ImportPill pill = new ImportPill(this, Notes.get(this));
+        root.addView(pill, ImportPill.place(false));
         setContentView(root);
         // root is opaque, so the window's own black under it would be a second full-screen fill on every frame.
         getWindow().setBackgroundDrawable(null);
         loadBackdrop();
 
         shell = new Shell(stage, this);
+        shell.setOnShown(() -> pill.atTop(shell.pillAtTop()));
         refreshNav();
         shell.goTab(Screen.Tab.HOME, false);
 

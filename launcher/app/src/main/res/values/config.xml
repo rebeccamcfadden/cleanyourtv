@@ -258,8 +258,9 @@
     <bool name="note_inbox">false</bool>
     <!-- The household's shared "Send to TV" shortcut, as an iCloud link (https://www.icloud.com/shortcuts/…; anything
          else is ignored). When set, the page the pane's QR opens has a "Get the shortcut" button beside "Pair this
-         phone"; empty, phones build the shortcut by hand (docs/phone-notes.md). A pushed config.json can set
-         "note_shortcut_url". -->
+         phone"; empty, phones build the shortcut by hand (docs/phone-notes.md). Usually set per household in
+         launcher/tv.properties instead, which wins over this; a pushed config.json's "note_shortcut_url" wins over
+         both. -->
     <string name="note_shortcut_url" translatable="false"></string>
 
     <!-- Kept for examples/*/config.json: keys those files set, so they keep their meaning. The current launcher

@@ -67,9 +67,9 @@ public class NoteBookTest {
     @Test
     public void eachListKeepsItsLastSendNewestFirst() {
         NoteBook b = new NoteBook();
-        b.record(new NoteBook.Send("Partner", 1, 14, 14, null));
-        b.record(new NoteBook.Send("Rebecca", 2, 12, 9, Arrays.asList("Zzyzx", "Qq", "Xy")));
-        b.record(new NoteBook.Send("partner", 3, 15, 1, Collections.singletonList("Nope")));
+        b.record(NoteBook.Send.ofLines("Partner", 1, 14, 14, null));
+        b.record(NoteBook.Send.ofLines("Rebecca", 2, 12, 9, Arrays.asList("Zzyzx", "Qq", "Xy")));
+        b.record(NoteBook.Send.ofLines("partner", 3, 15, 1, Collections.singletonList("Nope")));
         List<NoteBook.Send> sends = b.sends();
         assertEquals(2, sends.size());
         assertEquals("partner", sends.get(0).list);
@@ -81,7 +81,7 @@ public class NoteBookTest {
     @Test
     public void lastSendsSurviveARestart() {
         NoteBook b = new NoteBook();
-        b.record(new NoteBook.Send("Rebecca", 2, 12, 9, Arrays.asList("Zzyzx Qq", "Dune (1066)")));
+        b.record(NoteBook.Send.ofLines("Rebecca", 2, 12, 9, Arrays.asList("Zzyzx Qq", "Dune (1066)")));
         NoteBook back = NoteBook.restore(null, b.sendsJson());
         NoteBook.Send s = back.sends().get(0);
         assertEquals("Rebecca", s.list);
@@ -94,7 +94,7 @@ public class NoteBookTest {
     @Test
     public void onlyTheLatestSendsAreKept() {
         NoteBook b = new NoteBook();
-        for (int i = 0; i < NoteBook.MAX_SENDS + 3; i++) b.record(new NoteBook.Send("List " + i, i, 1, 1, null));
+        for (int i = 0; i < NoteBook.MAX_SENDS + 3; i++) b.record(NoteBook.Send.ofLines("List " + i, i, 1, 1, null));
         assertEquals(NoteBook.MAX_SENDS, b.sends().size());
         assertEquals("List " + (NoteBook.MAX_SENDS + 2), b.sends().get(0).list);
     }
@@ -106,5 +106,29 @@ public class NoteBookTest {
         assertEquals(1, b.sends().size());
         assertEquals(0, b.unmatched());
         assertTrue(NoteBook.restore("[{\"list\":\"Rebecca\",\"text\":\"\"}]", null).pending().isEmpty());
+    }
+
+    @Test
+    public void aResendKeepsTheAnswersOfLinesStillWaitingAndAnAnsweredLineLeaves() {
+        NoteBook b = new NoteBook();
+        NoteMatch.Candidate c = new NoteMatch.Candidate("movie:207", "Dead Poets Society", "", 1989, null, 4, 0);
+        b.record(new NoteBook.Send("Rebecca", 1, 3, 1, java.util.Arrays.asList(
+                new NoteMatch.Ask("dead poet society", "Dead poet society", false, java.util.Collections.singletonList(c)),
+                new NoteMatch.Ask("zzyzx qq", "Zzyzx Qq", false, null))));
+        // Sent again: those lines were looked up before, so come with no answers; the old ones are kept.
+        b.record(NoteBook.Send.ofLines("rebecca", 2, 3, 0, java.util.Arrays.asList("Dead poet society", "Zzyzx Qq")));
+        NoteBook.Send s = b.sends().get(0);
+        assertEquals(2, s.asks.size());
+        assertEquals("movie:207", s.asks.get(0).top.get(0).id);
+        assertTrue(s.asks.get(1).top.isEmpty());
+        assertTrue(b.answered("Rebecca", "dead poet society"));
+        assertEquals(java.util.Collections.singletonList("Zzyzx Qq"), b.sends().get(0).unmatched);
+        assertEquals(1, b.unmatched());
+        assertFalse(b.answered("Rebecca", "dead poet society"));
+        // Saved and read back with its answers; an older TV's plain lines still read.
+        NoteBook back = NoteBook.restore(null, b.sendsJson());
+        assertEquals("Zzyzx Qq", back.sends().get(0).asks.get(0).query);
+        NoteBook old = NoteBook.restore(null, "[{\"list\":\"A\",\"at\":1,\"lines\":2,\"added\":1,\"unmatched\":[\"Qq\"]}]");
+        assertEquals(java.util.Collections.singletonList("Qq"), old.sends().get(0).unmatched);
     }
 }

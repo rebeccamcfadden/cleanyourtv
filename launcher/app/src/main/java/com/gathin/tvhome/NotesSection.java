@@ -18,8 +18,8 @@ import java.util.Locale;
 /**
  * Launcher settings' Phone notes (design_preview/README.md, Phone notes; src/screens/panes/notes.ts; no Figma design
  * yet): the On / Off switch, and while on the TV's address and pairing code to type into each phone's "Send to TV"
- * Shortcut, New code (asks first), How to set up a phone, and each list's last send with the lines that matched
- * nothing. Signed out, an amber note says the lists are on the TMDB account. The row reads Off, On, or in amber
+ * Shortcut, New code (asks first), How to set up a phone, and each list's last send with the lines not matched
+ * exactly, each a button that opens {@link NotePicker}. Signed out, an amber note says the lists are on the TMDB account. The row reads Off, On, or in amber
  * "3 not matched". The state is {@link Notes}'s; this only draws it, and draws again when it changes.
  */
 final class NotesSection implements SettingsSection {
@@ -222,14 +222,21 @@ final class NotesSection implements SettingsSection {
             head.addView(miss, PaneParts.after(16));
         }
         box.addView(head, PaneParts.wide(0));
-        if (!s.unmatched.isEmpty()) {
-            TextView lines = Ui.text(ctx, Ui.T_SMALL, StateUi.amber(), Ui.REGULAR);
-            lines.setText(String.join("  ·  ", s.unmatched));
-            lines.setLineSpacing(0f, 1.45f);
-            lines.setMaxWidth(Ui.px(1000));
-            lines.setPadding(Ui.px(12), Ui.px(4), Ui.px(12), Ui.px(4));
-            lines.setBackground(Ui.round(Ui.alpha(Ui.STAR, 0x1A), Ui.RADIUS_S));
-            box.addView(lines, PaneParts.below(8));
+        // Each line not matched exactly is a button: OK opens the picker with TMDB's best answers (NotePicker). Being
+        // focusable, they also let the pane scroll down to Last sends.
+        for (int i = 0; i < s.asks.size(); i++) {
+            NoteMatch.Ask ask = s.asks.get(i);
+            String label = ctx.getString(ask.top.isEmpty() ? R.string.notes_ask_nothing : R.string.notes_ask_choose,
+                    ask.query);
+            View b = Kit.button(ctx, label, 0, Kit.SMALL, false, GROUP,
+                    "notes-ask-" + NoteLines.key(s.list) + "-" + ask.key, false,
+                    v -> host.shell().push(NotePicker.create(ctx, host.shell(), notes, s.list, ask)));
+            TextView text = (TextView) b.getTag(R.id.kit_label);
+            if (text != null) {
+                text.setMaxWidth(Ui.px(1000));
+                text.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            }
+            box.addView(b, PaneParts.below(i == 0 ? 12 : 8));
         }
         return box;
     }

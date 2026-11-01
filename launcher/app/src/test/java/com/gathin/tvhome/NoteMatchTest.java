@@ -105,17 +105,74 @@ public class NoteMatchTest {
     }
 
     @Test
-    public void aSlipOfTheKeyboardStillMatchesTmdbsFirstAnswer() throws Exception {
-        answer("movie:Inglorious basterds", movie(16869, "Inglourious Basterds", "2009-08-02", 60));
-        assertEquals("movie:16869", match.match(line("Inglorious basterds")));
+    public void aSlipOfTheKeyboardIsAskedWithTheRightOneFirst() throws Exception {
+        // Not exact, so asked on the TV (the project lead, 2026-11-01), with the near spelling offered first.
+        answer("movie:Inglorious basterds", movie(1, "Basterds Reunion", "2020", 90),
+                movie(16869, "Inglourious Basterds", "2009-08-02", 60));
+        NoteMatch.Found f = match.find(line("Inglorious basterds"));
+        assertNull(f.id);
+        assertEquals("movie:16869", f.top.get(0).id);
         answer("movie:Dead poet society", movie(207, "Dead Poets Society", "1989-06-02", 40));
-        assertEquals("movie:207", match.match(line("Dead poet society")));
-        answer("movie:Macfarland usa", movie(228203, "McFarland, USA", "2015-02-20", 15));
-        assertEquals("movie:228203", match.match(line("Macfarland usa")));
+        assertNull(match.match(line("Dead poet society")));
+        assertEquals("movie:207", match.find(line("Dead poet society")).top.get(0).id);
+        // A leading "The" is still exact: straight in.
         answer("movie:Birdcage", movie(11000, "The Birdcage", "1996-03-08", 20));
         assertEquals("movie:11000", match.match(line("Birdcage")));
         answer("movie:Angels and demons", movie(13448, "Angels & Demons", "2009-05-13", 30));
         assertEquals("movie:13448", match.match(line("Angels and demons")));
+    }
+
+    @Test
+    public void anAskOffersAtMostThreeWithTheirYearAndPoster() throws Exception {
+        answer("movie:Arival", movie(1, "Arrivals", "2020-01-01", 9).put("poster_path", "/a.jpg"),
+                movie(329865, "Arrival", "2016-11-10", 50).put("poster_path", "/b.jpg"),
+                movie(3, "Arrival Day", "2019", 5), movie(4, "Late Arrival", "2001", 1));
+        answer("tv:Arival", show(5, "Arrival TV", "2010", 2));
+        List<NoteMatch.Candidate> top = match.find(line("Arival")).top;
+        assertEquals(NoteMatch.ASK_TOP, top.size());
+        // "Arrival" is one letter from "Arival" (six letters), so it comes first; then TMDB's order.
+        assertEquals("movie:329865", top.get(0).id);
+        assertEquals("/b.jpg", top.get(0).poster);
+        assertEquals(2016, top.get(0).year);
+        assertEquals("movie:1", top.get(1).id);
+    }
+
+    @Test
+    public void aLinesYearPutsThatYearsAnswersFirst() throws Exception {
+        answer("movie:Little women", movie(1, "Little Women", "1994-12-21", 30), movie(331482, "Little Women",
+                "2019-12-25", 60));
+        // Exact with the year: straight in.
+        assertEquals("movie:1", match.match(line("Little women (1994)")));
+        answer("movie:Litle women", movie(331482, "Little Women", "2019-12-25", 60),
+                movie(1, "Little Women", "1994-12-21", 30));
+        assertEquals("movie:1", match.find(line("Litle women (1994)")).top.get(0).id);
+    }
+
+    @Test
+    public void aDismissedLineIsNeitherListedNorLookedUp() throws Exception {
+        NoteMatch.Memory memory = new NoteMatch.Memory();
+        memory.put("Rebecca", NoteLines.parse("Zzyzx Qq").get(0).key, NoteMatch.DISMISSED);
+        NoteMatch.Plan p = match.plan("Rebecca", NoteLines.parse("Zzyzx Qq"), memory, new HashSet<String>(), null);
+        assertTrue(p.unmatched.isEmpty());
+        assertTrue(p.asks.isEmpty());
+        assertTrue(asked.isEmpty());
+    }
+
+    @Test
+    public void anAskSurvivesSavingAndAnOldTvsPlainLine() throws Exception {
+        NoteMatch.Candidate c = new NoteMatch.Candidate("movie:207", "Dead Poets Society", "", 1989, "/p.jpg", 4, 0);
+        NoteMatch.Ask a = new NoteMatch.Ask("dead poet society", "Dead poet society", true, Collections.singletonList(c));
+        NoteMatch.Ask back = NoteMatch.Ask.fromJson(a.toJson());
+        assertEquals("dead poet society", back.key);
+        assertTrue(back.ticked);
+        assertEquals("movie:207", back.top.get(0).id);
+        assertEquals("/p.jpg", back.top.get(0).poster);
+        assertEquals(1989, back.top.get(0).year);
+        NoteMatch.Ask old = NoteMatch.Ask.fromJson("Zzyzx Qq");
+        assertEquals("Zzyzx Qq", old.query);
+        assertTrue(old.top.isEmpty());
+        assertTrue("only movie:N and tv:N ids are read back", NoteMatch.Ask.fromJson(new JSONObject().put("query", "x")
+                .put("top", new JSONArray().put(new JSONObject().put("id", "javascript:1")))).top.isEmpty());
     }
 
     @Test

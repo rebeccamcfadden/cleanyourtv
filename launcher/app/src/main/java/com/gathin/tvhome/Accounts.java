@@ -500,6 +500,33 @@ final class Accounts implements Household.Recorder {
         }
     }
 
+    /**
+     * The household answered a line asked about in Launcher settings (NotePicker): {@code id} onto the list, or to
+     * Seen for a ticked line, or null for "None of these". On the worker, after any import queued before it, so the
+     * lines' answers are never written by two at once. Main thread; {@code done} runs on it.
+     */
+    void runPick(String list, NoteMatch.Ask ask, String id, java.util.function.Consumer<NoteImport.Outcome> done) {
+        TmdbSession s = session;
+        if (s == null || !available()) {
+            done.accept(NoteImport.Outcome.stopped(NoteImport.Status.SIGNED_OUT, 0, null));
+            return;
+        }
+        NoteImport.Seen seen = ids -> main.post(() -> markSeen(ids));
+        worker.execute(() -> {
+            NoteMatch.Memory memory = readNoteMemory(s.accountObjectId);
+            NoteImport.Outcome o = new NoteImport(http, s, seen).pick(list, ask, id, memory);
+            if (o.memory != null) saveNoteMemory(s.accountObjectId, o.memory);
+            main.post(() -> {
+                if (o.listId > 0 && o.memory != null && s == session) {
+                    setShown(o.listId, true, o.accountLists);
+                    main.removeCallbacks(fullSoon);
+                    main.postDelayed(fullSoon, SyncPlan.DEBOUNCE);
+                }
+                done.accept(o);
+            });
+        });
+    }
+
     /** Titles ticked in a note go to Seen, each only if it isn't there yet (synced like a change on the TV). */
     private void markSeen(List<String> ids) {
         for (String id : ids) if (!household.isSeen(id)) household.toggleSeen(id);

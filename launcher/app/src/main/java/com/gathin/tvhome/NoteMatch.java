@@ -22,12 +22,13 @@ import java.util.Set;
  * lines, and a title taken off the list on the TV is not put back. Adding only: a line gone from the note takes
  * nothing off. A ticked line's title goes to Seen and comes off the list.
  *
- * <p>Matching: a TMDB link is the title. Otherwise TMDB's search (movies or shows when the line says which, with its
- * year), and the result whose title, or original title, is the line's (ignoring case, accents and punctuation) and,
- * when the line has a year, from that year or the next; the most popular of those. Without one, TMDB's first answer
- * counts only when its title and the line differ by a leading "The"; "Dune" never becomes "Dune: Part Two". Nothing
- * else is guessed: an unmatched line is listed for the household to fix in the note (a changed line is looked up
- * again; an unchanged one is not).
+ * <p>Matching: a TMDB link is the title. Otherwise TMDB's search (movies or shows when the line says which, shows or
+ * movies first under a heading, with its year), and the result whose title, or original title, is the line's (ignoring
+ * case, accents and punctuation) and, when the line has a year, from that year or the next; the most popular of those.
+ * TMDB's first answer also counts when it and the line differ only by a leading "The". Anything else is asked on the
+ * TV (the project lead, 2026-11-01): the line is kept with TMDB's best three answers ({@link Ask}) for Launcher
+ * settings' picker, a slip of the keyboard first; "None of these" is remembered ({@link #DISMISSED}) and not asked
+ * again. A changed line is looked up again; an unchanged one is not.
  * Blocking and pure Java over {@link Fetch}; unit-tested against canned TMDB answers (NoteMatchTest).
  */
 final class NoteMatch {
@@ -36,9 +37,81 @@ final class NoteMatch {
         JSONObject get(String path) throws IOException;
     }
 
-    /** How a run is going: lines looked up so far of the new ones. Called on the run's thread. */
+    /** How a run is going: lines dealt with so far of the note's lines. Called on the run's thread. */
     interface Progress {
         void step(int done, int total);
+    }
+
+    /** A line's remembered answer when the household picked "None of these": it isn't listed or asked again. */
+    static final String DISMISSED = "-";
+
+    /** TMDB answers offered for a line that wasn't matched exactly. */
+    static final int ASK_TOP = 3;
+
+    /**
+     * A line that wasn't matched exactly, as written, with TMDB's best answers to pick from on the TV (none when TMDB
+     * had none). {@link #key} is the line's key in {@link Memory}; a ticked line's pick goes to Seen.
+     */
+    static final class Ask {
+        final String key, query;
+        final boolean ticked;
+        final List<Candidate> top;
+
+        Ask(String key, String query, boolean ticked, List<Candidate> top) {
+            this.key = key;
+            this.query = query;
+            this.ticked = ticked;
+            this.top = top == null ? Collections.<Candidate>emptyList()
+                    : Collections.unmodifiableList(new ArrayList<>(top));
+        }
+
+        /** The same line with other answers. */
+        Ask with(List<Candidate> other) {
+            return new Ask(key, query, ticked, other);
+        }
+
+        JSONObject toJson() throws JSONException {
+            JSONArray a = new JSONArray();
+            for (Candidate c : top) {
+                a.put(new JSONObject().put("id", c.id).put("title", c.title).put("year", c.year)
+                        .put("poster", c.poster == null ? "" : c.poster));
+            }
+            return new JSONObject().put("key", key).put("query", query).put("ticked", ticked).put("top", a);
+        }
+
+        /** An ask as saved, or as an older TV saved an unmatched line (just its text); null if unreadable. */
+        static Ask fromJson(Object o) {
+            if (o instanceof String) {
+                String q = ((String) o).trim();
+                return q.isEmpty() ? null : new Ask(NoteLines.key(q), q, false, null);
+            }
+            if (!(o instanceof JSONObject)) return null;
+            JSONObject j = (JSONObject) o;
+            String q = j.optString("query", "").trim();
+            if (q.isEmpty()) return null;
+            List<Candidate> top = new ArrayList<>();
+            JSONArray a = j.optJSONArray("top");
+            for (int i = 0; a != null && i < a.length() && top.size() < ASK_TOP; i++) {
+                JSONObject c = a.optJSONObject(i);
+                String id = c == null ? "" : c.optString("id", "");
+                if (!id.matches("(movie|tv):\\d+")) continue;
+                String poster = c.optString("poster", "");
+                top.add(new Candidate(id, c.optString("title", ""), "", c.optInt("year", 0),
+                        TmdbApi.isImagePath(poster) ? poster : null, 0, i));
+            }
+            return new Ask(j.optString("key", NoteLines.key(q)), q, j.optBoolean("ticked", false), top);
+        }
+    }
+
+    /** What a line came to: its title id when matched, else TMDB's best answers to ask about. */
+    static final class Found {
+        final String id;
+        final List<Candidate> top;
+
+        Found(String id, List<Candidate> top) {
+            this.id = id;
+            this.top = top == null ? Collections.<Candidate>emptyList() : top;
+        }
     }
 
     /** What a note asks for, worked out. */
@@ -47,17 +120,22 @@ final class NoteMatch {
         final List<String> add;
         /** Titles ticked in the note: onto Seen, off the list. */
         final List<String> seen;
-        /** Lines that matched nothing, as written (without markers). */
+        /** Lines that matched nothing exactly, as written (without markers). */
         final List<String> unmatched;
+        /** The same lines, with what to ask about each. */
+        final List<Ask> asks;
         /** Lines in the note, and those looked up this time (the rest were known). */
         final int lines, looked;
         /** Lines that couldn't be looked up (offline): they are tried again next time. */
         final int failed;
 
-        Plan(List<String> add, List<String> seen, List<String> unmatched, int lines, int looked, int failed) {
+        Plan(List<String> add, List<String> seen, List<Ask> asks, int lines, int looked, int failed) {
             this.add = add;
             this.seen = seen;
-            this.unmatched = unmatched;
+            this.asks = asks;
+            List<String> u = new ArrayList<>();
+            for (Ask a : asks) u.add(a.query);
+            this.unmatched = u;
             this.lines = lines;
             this.looked = looked;
             this.failed = failed;
@@ -131,32 +209,36 @@ final class NoteMatch {
      * isn't added again.
      */
     Plan plan(String list, List<NoteLines.Line> lines, Memory memory, Set<String> onList, Progress progress) {
-        int total = 0;
-        for (NoteLines.Line l : lines) if (l.id == null && memory.get(list, l.key) == null) total++;
+        // Every line counts towards "6 of 12", the known ones at once, so the pill has its total from the start.
+        int total = lines.size();
         Set<String> add = new LinkedHashSet<>(), seen = new LinkedHashSet<>();
-        List<String> unmatched = new ArrayList<>();
-        int done = 0, failed = 0;
+        List<Ask> asks = new ArrayList<>();
+        int done = 0, looked = 0, failed = 0;
         if (progress != null) progress.step(0, total);
         for (NoteLines.Line l : lines) {
             String known = l.id != null ? l.id : memory.get(list, l.key);
             boolean fresh = known == null;
+            List<Candidate> top = null;
             if (fresh) {
                 try {
-                    known = match(l);
+                    Found f = find(l);
+                    known = f.id;
+                    top = f.top;
                 } catch (IOException e) {
                     failed++;
-                    done++;
-                    if (progress != null) progress.step(done, total);
+                    looked++;
+                    if (progress != null) progress.step(++done, total);
                     continue;
                 }
                 memory.put(list, l.key, known == null ? "" : known);
-                done++;
-                if (progress != null) progress.step(done, total);
+                looked++;
             } else if (l.id != null) {
                 memory.put(list, l.key, l.id);
             }
+            if (progress != null) progress.step(++done, total);
+            if (DISMISSED.equals(known)) continue;
             if (known == null || known.isEmpty()) {
-                unmatched.add(l.query);
+                asks.add(new Ask(l.key, l.query, l.ticked, top));
             } else if (l.ticked) {
                 seen.add(known);
             } else if (fresh && !onList.contains(known)) {
@@ -165,24 +247,40 @@ final class NoteMatch {
             }
         }
         add.removeAll(seen);
-        return new Plan(new ArrayList<>(add), new ArrayList<>(seen), unmatched, lines.size(), done, failed);
+        return new Plan(new ArrayList<>(add), new ArrayList<>(seen), asks, lines.size(), looked, failed);
     }
 
-    /** The line's title id, or null when nothing matches. */
+    /** The line's title id, or null when nothing matches exactly. */
     String match(NoteLines.Line l) throws IOException {
-        if (l.id != null) return l.id;
-        if (l.kind != null) return best(l, search(l.kind == Kind.MOVIE ? "movie" : "tv", l));
+        return find(l).id;
+    }
+
+    /** The line's title id, or TMDB's best answers to ask about when nothing matches exactly. */
+    Found find(NoteLines.Line l) throws IOException {
+        if (l.id != null) return new Found(l.id, null);
+        if (l.kind != null) {
+            List<Candidate> found = search(l.kind == Kind.MOVIE ? "movie" : "tv", l);
+            String hit = exact(l, found);
+            return hit != null ? new Found(hit, null) : new Found(null, top(l, found));
+        }
         if (l.hint != null) {
             // Under "Movies to watch" a line is most likely a movie: ask for those first, then shows.
             String first = l.hint == Kind.MOVIE ? "movie" : "tv";
-            String hit = best(l, search(first, l));
-            if (hit != null) return hit;
-            return best(l, search(first.equals("movie") ? "tv" : "movie", l));
+            List<Candidate> a = search(first, l);
+            String hit = exact(l, a);
+            if (hit != null) return new Found(hit, null);
+            List<Candidate> b = search(first.equals("movie") ? "tv" : "movie", l);
+            hit = exact(l, b);
+            if (hit != null) return new Found(hit, null);
+            List<Candidate> both = new ArrayList<>(top(l, a));
+            both.addAll(top(l, b));
+            return new Found(null, both.subList(0, Math.min(ASK_TOP, both.size())));
         }
         List<Candidate> found = new ArrayList<>();
         found.addAll(search("movie", l));
         found.addAll(search("tv", l));
-        return best(l, found);
+        String hit = exact(l, found);
+        return hit != null ? new Found(hit, null) : new Found(null, top(l, found));
     }
 
     private List<Candidate> search(String type, NoteLines.Line l) throws IOException {
@@ -200,27 +298,31 @@ final class NoteMatch {
             int year = date.length() >= 4 && date.substring(0, 4).matches("\\d{4}") ? Integer.parseInt(date.substring(0, 4)) : 0;
             out.add(new Candidate(id, r.optString(type.equals("movie") ? "title" : "name", ""),
                     r.optString(type.equals("movie") ? "original_title" : "original_name", ""), year,
+                    TmdbApi.isImagePath(r.optString("poster_path", null)) ? r.optString("poster_path") : null,
                     r.optDouble("popularity", 0), i));
         }
         return out;
     }
 
+    /** One of TMDB's answers: its id ("movie:603"), title, year (0 unknown) and poster path (or null). */
     static final class Candidate {
-        final String id, title, original;
+        final String id, title, original, poster;
         final int year, rank;
         final double popularity;
 
-        Candidate(String id, String title, String original, int year, double popularity, int rank) {
+        Candidate(String id, String title, String original, int year, String poster, double popularity, int rank) {
             this.id = id;
             this.title = title;
             this.original = original;
             this.year = year;
+            this.poster = poster;
             this.popularity = popularity;
             this.rank = rank;
         }
     }
 
-    static String best(NoteLines.Line l, List<Candidate> found) {
+    /** The exact match among TMDB's answers, or null: see the class comment. */
+    static String exact(NoteLines.Line l, List<Candidate> found) {
         String want = fold(l.query);
         if (want.isEmpty()) return null;
         Candidate exact = null;
@@ -230,19 +332,48 @@ final class NoteMatch {
             if (exact == null || c.popularity > exact.popularity) exact = c;
         }
         if (exact != null) return exact.id;
-        // TMDB's first answer, when it is the line but for a leading "The" ("Birdcage" for "The Birdcage") or a slip
-        // of the keyboard ("Inglorious basterds", "Dead poet society", "Macfarland usa"): one letter in a title of
-        // six or more, two in one of twelve or more. Shorter lines must match exactly, so "Dun" never becomes "Dune".
+        // TMDB's first answer, when it is the line but for a leading "The" ("Birdcage" for "The Birdcage").
         Candidate first = null;
         for (Candidate c : found) if (c.rank == 0 && (first == null || c.popularity > first.popularity)) first = c;
         if (first == null) return null;
         if (l.year > 0 && first.year != 0 && Math.abs(first.year - l.year) > 1) return null;
         String t = fold(first.title);
-        if (t.equals("the" + want) || want.equals("the" + t)) return first.id;
-        return close(want, t) || close(want, fold(first.original)) ? first.id : null;
+        return t.equals("the" + want) || want.equals("the" + t) ? first.id : null;
     }
 
-    /** Within a slip of the keyboard, a leading "the" aside: see {@link #best}. */
+    /**
+     * TMDB's best {@link #ASK_TOP} answers for a line it didn't match exactly: a slip of the keyboard first
+     * ("Inglourious Basterds" for "Inglorious basterds"), then in TMDB's order, the more popular first between a movie
+     * and a show at the same place; one of the line's year (or the next) before others.
+     */
+    static List<Candidate> top(NoteLines.Line l, List<Candidate> found) {
+        String want = fold(l.query);
+        List<Candidate> sorted = new ArrayList<>(found);
+        Collections.sort(sorted, (a, b) -> {
+            int c = Boolean.compare(!close(want, fold(a.title)) && !close(want, fold(a.original)),
+                    !close(want, fold(b.title)) && !close(want, fold(b.original)));
+            if (c != 0) return c;
+            if (l.year > 0) {
+                c = Boolean.compare(!near(a.year, l.year), !near(b.year, l.year));
+                if (c != 0) return c;
+            }
+            c = Integer.compare(a.rank, b.rank);
+            return c != 0 ? c : Double.compare(b.popularity, a.popularity);
+        });
+        List<Candidate> out = new ArrayList<>();
+        Set<String> ids = new LinkedHashSet<>();
+        for (Candidate c : sorted) {
+            if (out.size() >= ASK_TOP) break;
+            if (ids.add(c.id)) out.add(c);
+        }
+        return out;
+    }
+
+    private static boolean near(int year, int want) {
+        return year == want || year == want + 1;
+    }
+
+    /** Within a slip of the keyboard, a leading "the" aside: one letter in six or more, two in twelve or more. */
     static boolean close(String want, String title) {
         String a = want.startsWith("the") ? want.substring(3) : want;
         String b = title.startsWith("the") ? title.substring(3) : title;

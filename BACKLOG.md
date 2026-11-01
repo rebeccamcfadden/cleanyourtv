@@ -187,11 +187,13 @@ milestones: [docs/rework.md](docs/rework.md).
   the pairing code (8 characters without 0/O or 1/I/L, made when it is first turned on), a QR beside them (the project
   lead, 2026-10-31) that opens `http://<tv>:8765/setup#<code>` on the iPhone (the code stays in the link's fragment,
   never sent to the TV): a fixed page with **Get the shortcut** (the household's shared iCloud link, `note_shortcut_url`
-  in `config.xml` or a pushed `config.json`; only `https://www.icloud.com/shortcuts/` links) and **Pair this phone**
+  in `launcher/tv.properties`, a pushed `config.json` or `config.xml`; only `https://www.icloud.com/shortcuts/` links) and **Pair this phone**
   (`shortcuts://run-shortcut?name=Send%20to%20TV` with the address and `Authorization` value, which the shortcut keeps
   in iCloud Drive › Shortcuts › `Send to TV.json`, asking for the list name; after New code a phone just pairs again;
   the project lead, 2026-11-01), and the address and value to copy into a simple hand-built one. New code (asks first),
-  How to set up a phone, and each list's last send with the lines that matched nothing; the row reads Off, On or, in amber,
+  How to set up a phone, and each list's last send with the lines not matched exactly, each a button that opens a picker
+  (`NotePicker`: TMDB's best three answers as posters with title and year, and None of these, which is remembered; no
+  Figma design yet; the project lead, 2026-11-01); the row reads Off, On or, in amber,
   "3 not matched". While on, `NoteInbox` listens on port 8765 for `POST /notes` (and `GET /setup`, the QR's page)
   from private addresses only, one
   request at a time, with a five-minute lockout after five wrong codes; it is opened and closed off the main thread by
@@ -204,13 +206,15 @@ milestones: [docs/rework.md](docs/rework.md).
   household (so it syncs like a change on the TV) and comes off the list. Adding only: a line deleted on the phone
   takes nothing off, and a title taken off on the TV isn't put back. The list then shows as a chip and is read again.
   Signed out, offline or refused by TMDB, the note waits and is tried after the next send or full sync. The import
-  pill (`ImportPill`) sits at the bottom centre of every launcher screen: "Importing Rebecca · 6 of 12" with a thin
-  bar, then for four seconds "Partner · 8 added" or, in amber, "Rebecca · 9 added · 3 not matched", "… waiting for the
+  pill (`ImportPill`) sits at the bottom centre of every launcher screen, and on Launcher settings at the top centre
+  beside the title (its pane runs to the bottom edge): "Importing Rebecca · 6 of 12" with a thin bar, counting every
+  line of the note from the start, then for four seconds "Partner · 8 added" or, in amber, "Rebecca · 9 added · 3 not matched", "… waiting for the
   internet", "… couldn't reach TMDB" or "… waiting for TMDB sign-in"; never focusable, and still with Motion Reduced or
   Off.
-- **Not verified yet:** the list writes against a real account (`POST /4/list` and `/4/list/{id}/items`, the same calls
-  Seen uses, so far only against the fake TMDB in `NoteImportTest`); the text Apple Notes and Google Keep really hand
-  the share sheet (`NoteLines` follows their documented checklist formats, not a capture from a phone); and the TV's
+- **Checked on the TV (2026-11-01):** a note sent from this PC and from two iPhones' Shortcuts (Apple Notes) made and
+  filled the lists on the project lead's account, a ticked line went to Seen and came off the list, and `NoteLines`
+  was fitted to the text Apple Notes and Google Keep really hand the share sheet. **Not verified yet:** the picker and
+  Pair this phone on the TV and an iPhone, and the TV's
   address changing (the Shortcut keeps the one it was given: docs/phone-notes.md asks for a router reservation, and the
   pane reads the address afresh each time it opens). Checked on the emulator: the pane, the inbox opening and closing
   with the switch, New code, a wrong code refused, the signed-out answer, a note waiting across a restart, and the

@@ -90,9 +90,13 @@ final class Notes {
         return json != null ? json.optBoolean("note_inbox", on) : on;
     }
 
-    /** config.xml's note_shortcut_url, overlaid by a pushed config.json: the shared "Send to TV" shortcut's link. */
+    /**
+     * The shared "Send to TV" shortcut's link: a pushed config.json's note_shortcut_url wins, then tv.properties' (built
+     * in, per household), then config.xml's. NoteWords.shortcutLink checks it before the page shows it.
+     */
     private static String shortcutUrl(Context ctx) {
-        String url = ctx.getString(R.string.note_shortcut_url);
+        String url = BuildConfig.NOTE_SHORTCUT_URL;
+        if (url == null || url.isEmpty()) url = ctx.getString(R.string.note_shortcut_url);
         JSONObject json = Config.overlay(ctx);
         return json != null ? json.optString("note_shortcut_url", url) : url;
     }
@@ -228,7 +232,7 @@ final class Notes {
     }
 
     void importStarted(NoteBook.Pending p) {
-        setPill(NoteWords.Pill.importing(p.list, 0, 0));
+        setPill(NoteWords.Pill.importing(p.list, 0, NoteLines.parse(p.text).size()));
     }
 
     void importProgress(NoteBook.Pending p, int done, int total) {
@@ -243,7 +247,7 @@ final class Notes {
     void importEnded(NoteBook.Pending p, NoteImport.Outcome o, boolean quiet) {
         if (o.status == NoteImport.Status.DONE) {
             book.done(p);
-            book.record(new NoteBook.Send(p.list, System.currentTimeMillis(), o.lines, o.added, o.unmatched));
+            book.record(new NoteBook.Send(p.list, System.currentTimeMillis(), o.lines, o.added, o.asks));
             prefs.edit().putString(PENDING, book.pendingJson()).putString(SENDS, book.sendsJson()).apply();
             changed();
         }
@@ -253,6 +257,25 @@ final class Notes {
         }
         setPill(NoteWords.Pill.ended(p.list, o.status, o.added, o.unmatched.size()));
         main.postDelayed(clearPill, FINISHED_MS);
+    }
+
+    /**
+     * Launcher settings' picker answered a line of a list's last send: {@code id} onto the list (or Seen, for a
+     * ticked line), or null for "None of these". Done, the line leaves Last sends; otherwise it stays to ask again and
+     * the pill says why. Main thread.
+     */
+    void answer(String list, NoteMatch.Ask ask, String id) {
+        Accounts a = accounts;
+        if (a == null) return;
+        a.runPick(list, ask, id, o -> {
+            if (o.status == NoteImport.Status.DONE) {
+                if (book.answered(list, ask.key)) prefs.edit().putString(SENDS, book.sendsJson()).apply();
+                changed();
+                if (o.added == 0) return;
+            }
+            setPill(NoteWords.Pill.ended(list, o.status, o.added, 0));
+            main.postDelayed(clearPill, FINISHED_MS);
+        });
     }
 
     NoteWords.Pill pill() {

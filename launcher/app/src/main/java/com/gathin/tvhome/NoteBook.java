@@ -35,20 +35,36 @@ final class NoteBook {
         }
     }
 
-    /** A list's last import, for the pane's Last sends. */
+    /** A list's last import, for the pane's Last sends: the lines not matched exactly are asked about there. */
     static final class Send {
         final String list;
         final long at;
         final int lines, added;
+        /** The lines not matched exactly, as written, and the same with TMDB's answers to pick from. */
         final List<String> unmatched;
+        final List<NoteMatch.Ask> asks;
 
-        Send(String list, long at, int lines, int added, List<String> unmatched) {
+        Send(String list, long at, int lines, int added, List<NoteMatch.Ask> asks) {
             this.list = list;
             this.at = at;
             this.lines = lines;
             this.added = added;
-            this.unmatched = unmatched == null ? Collections.<String>emptyList()
-                    : Collections.unmodifiableList(new ArrayList<>(unmatched));
+            this.asks = asks == null ? Collections.<NoteMatch.Ask>emptyList()
+                    : Collections.unmodifiableList(new ArrayList<>(asks));
+            List<String> u = new ArrayList<>();
+            for (NoteMatch.Ask a : this.asks) u.add(a.query);
+            this.unmatched = Collections.unmodifiableList(u);
+        }
+
+        /** A send whose unmatched lines have no answers to offer, by their text. */
+        static Send ofLines(String list, long at, int lines, int added, List<String> unmatched) {
+            return new Send(list, at, lines, added, asks(unmatched));
+        }
+
+        private static List<NoteMatch.Ask> asks(List<String> lines) {
+            List<NoteMatch.Ask> out = new ArrayList<>();
+            if (lines != null) for (String q : lines) out.add(new NoteMatch.Ask(NoteLines.key(q), q, false, null));
+            return out;
         }
     }
 
@@ -89,12 +105,43 @@ final class NoteBook {
 
     // ---- Last sends ----------------------------------------------------------------------------------------------
 
-    /** A list's import finished: its send replaces the list's last one, at the top. */
+    /**
+     * A list's import finished: its send replaces the list's last one, at the top. A line still waiting for an answer
+     * keeps the answers it was offered last time (a line already looked up isn't looked up again, so has none now).
+     */
     synchronized void record(Send s) {
         String key = NoteLines.key(s.list);
-        for (int i = sends.size() - 1; i >= 0; i--) if (NoteLines.key(sends.get(i).list).equals(key)) sends.remove(i);
+        Send old = null;
+        for (int i = sends.size() - 1; i >= 0; i--) {
+            if (NoteLines.key(sends.get(i).list).equals(key)) old = sends.remove(i);
+        }
+        if (old != null && !old.asks.isEmpty()) {
+            Map<String, NoteMatch.Ask> before = new LinkedHashMap<>();
+            for (NoteMatch.Ask a : old.asks) before.put(a.key, a);
+            List<NoteMatch.Ask> asks = new ArrayList<>();
+            for (NoteMatch.Ask a : s.asks) {
+                NoteMatch.Ask b = before.get(a.key);
+                asks.add(a.top.isEmpty() && b != null && !b.top.isEmpty() ? a.with(b.top) : a);
+            }
+            s = new Send(s.list, s.at, s.lines, s.added, asks);
+        }
         sends.add(0, s);
         while (sends.size() > MAX_SENDS) sends.remove(sends.size() - 1);
+    }
+
+    /** A line of the list's last send was answered on the TV: it leaves Last sends. Returns whether it was there. */
+    synchronized boolean answered(String list, String lineKey) {
+        String key = NoteLines.key(list);
+        for (int i = 0; i < sends.size(); i++) {
+            Send s = sends.get(i);
+            if (!NoteLines.key(s.list).equals(key)) continue;
+            List<NoteMatch.Ask> asks = new ArrayList<>();
+            for (NoteMatch.Ask a : s.asks) if (!a.key.equals(lineKey)) asks.add(a);
+            if (asks.size() == s.asks.size()) return false;
+            sends.set(i, new Send(s.list, s.at, s.lines, s.added, asks));
+            return true;
+        }
+        return false;
     }
 
     synchronized List<Send> sends() {
@@ -126,8 +173,10 @@ final class NoteBook {
         JSONArray a = new JSONArray();
         try {
             for (Send s : sends) {
+                JSONArray asks = new JSONArray();
+                for (NoteMatch.Ask q : s.asks) asks.put(q.toJson());
                 a.put(new JSONObject().put("list", s.list).put("at", s.at).put("lines", s.lines).put("added", s.added)
-                        .put("unmatched", new JSONArray(s.unmatched)));
+                        .put("unmatched", asks));
             }
         } catch (JSONException e) {
             throw new IllegalStateException(e);
@@ -151,11 +200,15 @@ final class NoteBook {
         for (int i = 0; s != null && i < s.length() && b.sends.size() < MAX_SENDS; i++) {
             JSONObject o = s.optJSONObject(i);
             if (o == null || o.optString("list", "").trim().isEmpty()) continue;
-            List<String> unmatched = new ArrayList<>();
+            // Each unmatched line with its answers; an older TV saved just the line's text.
+            List<NoteMatch.Ask> asks = new ArrayList<>();
             JSONArray u = o.optJSONArray("unmatched");
-            for (int j = 0; u != null && j < u.length(); j++) unmatched.add(u.optString(j, ""));
+            for (int j = 0; u != null && j < u.length(); j++) {
+                NoteMatch.Ask a = NoteMatch.Ask.fromJson(u.opt(j));
+                if (a != null) asks.add(a);
+            }
             b.sends.add(new Send(o.optString("list", "").trim(), o.optLong("at", 0), o.optInt("lines", 0),
-                    o.optInt("added", 0), unmatched));
+                    o.optInt("added", 0), asks));
         }
         return b;
     }

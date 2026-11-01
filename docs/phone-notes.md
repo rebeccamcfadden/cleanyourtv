@@ -7,11 +7,13 @@ as a chip in Movies and TV Shows.
 What happens: you share the note to a **Send to TV** Shortcut. It posts the note's text to the TV over your home Wi-Fi.
 The TV looks each new line up on TMDB and adds the title to your list. If the account has no list with your name yet,
 the TV makes a private one. A small pill at the bottom of the TV says "Importing Rebecca · 3 of 12", then how many were
-added. Lines that matched nothing are listed in **Launcher settings → Phone notes**, to fix in the note.
+added. A line that doesn't name a title exactly is asked about on the TV: **Launcher settings → Phone notes** lists
+it under Last sends, and OK on it shows TMDB's three best answers to pick from.
 
 - **Only adds.** Deleting a line on the phone takes nothing off the TV. A title you take off on the TV isn't put back
   by the next send.
 - **Ticked means watched.** A ticked checklist item (or a struck-through line) goes to Seen and comes off the list.
+  A note whose every line is ticked only marks them Seen: it doesn't make a list of its name.
 - **At home only.** The phone has to be on the same Wi-Fi as the TV, and the TV has to be on. Away from home the
   Shortcut says it can't reach the TV; send again later.
 
@@ -33,7 +35,7 @@ the shortcut changes.
 
 1. Scan the QR in the TV's Phone notes pane with the iPhone camera, and open the link.
 2. Tap **Get the shortcut**, then **Add Shortcut**, and come back to the page. The button shows when the TV has the
-   household's shortcut link (`note_shortcut_url`, below); without it, make the shortcut once (next section) or
+   household's shortcut link (`note_shortcut_url` in `tv.properties`, below); without it, make the shortcut once (next section) or
    build a simple one by hand.
 3. Tap **Pair this phone**. Shortcuts opens and asks whose list this phone's notes go to: type your list's name as it
    should show on the TV (`Rebecca`). It keeps the TV's address, the code and the name in a small file on the phone
@@ -85,8 +87,10 @@ name). Tap **ⓘ**, turn on **Show in Share Sheet**, then **Done**; in the **Rec
    6. **Get Dictionary Value**: Value for `message` in *Contents of URL*, then **Show Notification** with it.
 
 Test it: open the TV's QR page on this phone, tap **Pair this phone**, then share a note. Then, in the shortcut's
-**⋯** menu, choose **Share → Copy iCloud Link** and put the link in the TV's `config.xml` (`note_shortcut_url`), or in
-a pushed `config.json` as `"note_shortcut_url": "https://www.icloud.com/shortcuts/…"`. The setup page then shows
+**⋯** menu, choose **Share → Copy iCloud Link** and put the link in `launcher/tv.properties` as
+`note_shortcut_url=https://www.icloud.com/shortcuts/…` before building the launcher (it is per household, and that
+file is never committed), or in a pushed `config.json` as `"note_shortcut_url": "…"`, which wins; `config.xml`'s
+`note_shortcut_url` is the last fallback. The setup page then shows
 **Get the shortcut** on every phone. Only iCloud shortcut links are accepted.
 
 ## A simple shortcut by hand
@@ -169,10 +173,23 @@ skipped.
 | A themoviedb.org link | Exactly that title |
 | ☑ / `[x]` / ✓ / ~~struck through~~ | Watched: goes to Seen |
 
-The TV forgives a leading "The" and a slip of the keyboard in a longer title ("Inglorious basterds", "Dead poet
-society"), but otherwise doesn't guess: "Dune" never becomes "Dune: Part Two", and "Billie Jean King movie" stays
-unmatched. Two spellings of one title add it once. If a line didn't match, change it in the note (add the
-year, or paste the title's themoviedb.org link) and send again; a changed line is looked up again.
+Only an exact title goes straight onto the list (a leading "The" aside: "Birdcage" is The Birdcage). Anything else is
+asked, never guessed: "Dune" never becomes "Dune: Part Two" on its own. Two spellings of one title add it once.
+
+## Lines the TV asks about
+
+**Launcher settings → Phone notes → Last sends** lists each line that wasn't matched exactly, as a button: "Inglorious
+basterds · Choose". OK on it shows TMDB's three best answers as posters with their title and year, a slip of the
+keyboard first ("Inglourious Basterds"):
+
+- **OK on a poster** puts that title on the list, or on Seen if the line was ticked. The line leaves Last sends.
+- **None of these** stops asking about the line; the TV remembers that, so sending the note again doesn't bring it
+  back.
+- **Back** leaves the line there for later. Sending the note again keeps its answers.
+
+A line TMDB has nothing for reads "· Not on TMDB": change it in the note (add the year, or paste the title's
+themoviedb.org link) and send again, since a changed line is looked up again, or choose **Stop asking**. Picking needs
+the TV signed in to TMDB; signed out, the pill says so and the line stays.
 
 ## Safety
 
@@ -192,7 +209,7 @@ year, or paste the title's themoviedb.org link) and send again; a changed line i
 
 | The phone says | Do this |
 |---|---|
-| "Could not connect to the server" | The phone isn't on the home Wi-Fi, the TV is off or asleep, Phone notes is off, or the TV's address changed (check the pane, then the router reservation). Also check the URL starts with `http://` and ends in `:8765/notes`, and that **Settings → Privacy & Security → Local Network → Shortcuts** is on. |
+| "Could not connect to the server" | The phone isn't on the home Wi-Fi, the TV is off or asleep, Phone notes is off, or the TV's address changed (check the pane, then the router reservation). Right after the launcher is updated, the TV doesn't listen until Home has been opened once: press Home on the remote. Also check the URL starts with `http://` and ends in `:8765/notes`, and that **Settings → Privacy & Security → Local Network → Shortcuts** is on. |
 | "Wrong pairing code" | Scan the QR in the TV's Phone notes pane and tap **Pair this phone**. With a simple shortcut, paste the setup page's `Authorization` value into its header again. |
 | "Scan the QR in the TV's Launcher settings…" | This phone hasn't paired yet, or iCloud Drive is off (the shortcut keeps its settings there): turn it on, then pair. |
 | Shortcuts says it can't find "Send to TV" | **Pair this phone** runs the shortcut by name: rename it back to exactly `Send to TV`. |

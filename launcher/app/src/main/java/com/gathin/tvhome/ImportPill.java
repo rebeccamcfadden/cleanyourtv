@@ -14,7 +14,8 @@ import android.widget.TextView;
 /**
  * The import pill (design_preview/README.md, Import pill; src/ui/importPill.ts): while a phone's note is looked up, a
  * small pill at the bottom centre of whatever launcher screen shows, between the guide line's ends and inside
- * title-safe: an accent dot, "Importing Rebecca · 6 of 12" and a thin bar. At the end, for a few seconds, "Partner ·
+ * title-safe: an accent dot, "Importing Rebecca · 6 of 12" and a thin bar. Launcher settings' pane runs to the bottom
+ * edge, so there it sits at the top centre, on the title's line, between the title and the hint. At the end, for a few seconds, "Partner ·
  * 8 added" with a tick, or in amber "Rebecca · 9 added · 3 not matched" or "Rebecca · waiting for the internet". The
  * offline pill's shape (StateUi); amber only for a problem. Never focusable, never in the way: it sits over the stage
  * and takes no keys. Motion Reduced or Off drops its slide. What it says is {@link Notes#pill}'s; colours are read from
@@ -24,6 +25,10 @@ import android.widget.TextView;
 final class ImportPill extends LinearLayout {
     /** screens.css .import-pill: 56 px from the bottom, which keeps it inside title-safe. */
     private static final float BOTTOM = 56;
+    /** On Launcher settings: centred on its title's line (y 80, the 44 px title from SAFE_Y), its own ~46 px tall. */
+    private static final float TOP = 57;
+    /** The text's widest: 1100 px at the bottom; at the top, what fits between the title and the hint. */
+    private static final float TEXT_MAX = 1100, TEXT_MAX_TOP = 760;
     private static final float BAR_W = 120, BAR_H = 4;
 
     private final Notes notes;
@@ -35,6 +40,7 @@ final class ImportPill extends LinearLayout {
     private final View fill;
     private NoteWords.Kind shownKind;
     private boolean shown;
+    private boolean top;
 
     ImportPill(Context ctx, Notes notes) {
         super(ctx);
@@ -55,7 +61,7 @@ final class ImportPill extends LinearLayout {
         addView(icon, new LayoutParams(Ui.px(22), Ui.px(22)));
         text = Ui.line(ctx, Ui.T_SMALL, Ui.TEXT_1, Ui.REGULAR);
         text.setEllipsize(TextUtils.TruncateAt.END);
-        text.setMaxWidth(Ui.px(1100));
+        text.setMaxWidth(Ui.px(TEXT_MAX));
         LayoutParams tlp = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         tlp.leftMargin = Ui.px(12);
         addView(text, tlp);
@@ -70,12 +76,21 @@ final class ImportPill extends LinearLayout {
         addView(bar, blp);
     }
 
-    /** Where the pill sits in the activity's root, over the stage. */
-    static FrameLayout.LayoutParams place() {
+    /** Where the pill sits in the activity's root, over the stage: bottom centre, or top centre on Launcher settings. */
+    static FrameLayout.LayoutParams place(boolean top) {
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        lp.bottomMargin = Ui.px(BOTTOM);
+                ViewGroup.LayoutParams.WRAP_CONTENT, (top ? Gravity.TOP : Gravity.BOTTOM) | Gravity.CENTER_HORIZONTAL);
+        if (top) lp.topMargin = Ui.px(TOP);
+        else lp.bottomMargin = Ui.px(BOTTOM);
         return lp;
+    }
+
+    /** The page showing wants the pill at the top (Shell.pillAtTop), or not. Main thread. */
+    void atTop(boolean top) {
+        if (top == this.top) return;
+        this.top = top;
+        text.setMaxWidth(Ui.px(top ? TEXT_MAX_TOP : TEXT_MAX));
+        setLayoutParams(place(top));
     }
 
     @Override
@@ -132,7 +147,7 @@ final class ImportPill extends LinearLayout {
         setVisibility(VISIBLE);
         animate().cancel();
         boolean still = Ui.reducedMotion();
-        setTranslationY(still ? 0f : Ui.px(12));
+        setTranslationY(still ? 0f : slide());
         animate().alpha(1f).translationY(0f).setDuration(Ui.ms(Ui.FAST_MS)).setListener(null).start();
     }
 
@@ -142,10 +157,15 @@ final class ImportPill extends LinearLayout {
         shownKind = null;
         animate().cancel();
         boolean still = Ui.reducedMotion();
-        animate().alpha(0f).translationY(still ? 0f : Ui.px(12)).setDuration(Ui.ms(Ui.FAST_MS))
+        animate().alpha(0f).translationY(still ? 0f : slide()).setDuration(Ui.ms(Ui.FAST_MS))
                 .withEndAction(() -> {
                     if (!shown) setVisibility(GONE);
                 }).start();
+    }
+
+    /** It slides in from the nearer edge: up from below, or down from above. */
+    private float slide() {
+        return top ? -Ui.px(12) : Ui.px(12);
     }
 
     /** The pill's and the section's sentences, from strings_notes.xml. */

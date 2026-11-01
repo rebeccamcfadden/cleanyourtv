@@ -14,7 +14,9 @@ import java.util.Set;
  * One phone note onto its TMDB list (BACKLOG.md, Phone notes; docs/phone-notes.md). Blocking: run on the account's
  * worker thread, so it never races a sync. In order: find the account's list with the note's name (as {@link ListRef}
  * matches names), or make a private one; read what it holds; look the note's new lines up ({@link NoteMatch}); add the
- * new titles in batches; take the ticked ones off the list and hand them to the household as Seen. Adding only.
+ * new titles in batches; take the ticked ones off the list and hand them to the household as Seen. Adding only. A
+ * note whose every line is ticked only marks Seen: a list it names that doesn't exist isn't made (the project lead,
+ * 2026-11-01). {@link #pick} adds the title the household picked on the TV for a line that wasn't matched exactly.
  *
  * <p>The lines' answers ({@link NoteMatch.Memory}) are worked out on a copy that is handed back only when the list was
  * written, so a note whose list can't be written is looked up and added in full next time. Nothing is logged: a
@@ -50,12 +52,14 @@ final class NoteImport {
         /** Lines in the note, titles added, titles ticked (to Seen), lines that matched nothing as written. */
         final int lines, added, seen;
         final List<String> unmatched;
+        /** The same lines, with TMDB's answers to ask about each. */
+        final List<NoteMatch.Ask> asks;
         /** The account's lists as read (with one made this run), for the chip order; null when not read. */
         final List<TmdbAccountParse.ListInfo> accountLists;
         /** The lines' answers to save, or null to keep what was saved (the list wasn't written). */
         final NoteMatch.Memory memory;
 
-        Outcome(Status status, long listId, boolean created, int lines, int added, int seen, List<String> unmatched,
+        Outcome(Status status, long listId, boolean created, int lines, int added, int seen, List<NoteMatch.Ask> asks,
                 List<TmdbAccountParse.ListInfo> accountLists, NoteMatch.Memory memory) {
             this.status = status;
             this.listId = listId;
@@ -63,8 +67,11 @@ final class NoteImport {
             this.lines = lines;
             this.added = added;
             this.seen = seen;
-            this.unmatched = unmatched == null ? Collections.<String>emptyList()
-                    : Collections.unmodifiableList(new ArrayList<>(unmatched));
+            this.asks = asks == null ? Collections.<NoteMatch.Ask>emptyList()
+                    : Collections.unmodifiableList(new ArrayList<>(asks));
+            List<String> u = new ArrayList<>();
+            for (NoteMatch.Ask a : this.asks) u.add(a.query);
+            this.unmatched = Collections.unmodifiableList(u);
             this.accountLists = accountLists;
             this.memory = memory;
         }
@@ -103,8 +110,20 @@ final class NoteImport {
         long id = 0;
         boolean created = false;
         try {
+            List<NoteLines.Line> lines = NoteLines.parse(text);
+            boolean allTicked = !lines.isEmpty();
+            for (NoteLines.Line l : lines) allTicked &= l.ticked;
             lists = accountLists();
             id = ListRef.named(list).resolve(lists);
+            if (id == 0 && allTicked) {
+                // Everything in it is watched: Seen only, and no list made just to hold nothing.
+                NoteMatch.Memory copy = NoteMatch.Memory.fromJson(memory == null ? null : memory.toJson());
+                NoteMatch.Plan plan = new NoteMatch(this::fetch).plan(list, lines, copy,
+                        Collections.<String>emptySet(), progress);
+                if (!plan.seen.isEmpty()) seen.mark(Collections.unmodifiableList(new ArrayList<>(plan.seen)));
+                Status status = plan.failed > 0 ? Status.OFFLINE : Status.DONE;
+                return new Outcome(status, 0, false, plan.lines, 0, plan.seen.size(), plan.asks, lists, copy);
+            }
             if (id == 0) {
                 id = TmdbAccountParse.createdList(send(TmdbAccountApi.createList(list.trim())));
                 created = true;
@@ -115,7 +134,7 @@ final class NoteImport {
             NoteMatch.Memory copy = NoteMatch.Memory.fromJson(memory == null ? null : memory.toJson());
             // A list made afresh (the old one deleted on TMDB) starts empty: every line counts as new again.
             if (created) copy.forget(list);
-            NoteMatch.Plan plan = new NoteMatch(this::fetch).plan(list, NoteLines.parse(text), copy, onList, progress);
+            NoteMatch.Plan plan = new NoteMatch(this::fetch).plan(list, lines, copy, onList, progress);
             for (int i = 0; i < plan.add.size(); i += BATCH) {
                 TmdbAccountParse.done(send(TmdbAccountApi.listItems(id,
                         plan.add.subList(i, Math.min(plan.add.size(), i + BATCH)), true)));
@@ -129,12 +148,52 @@ final class NoteImport {
             if (!plan.seen.isEmpty()) seen.mark(Collections.unmodifiableList(new ArrayList<>(plan.seen)));
             // Lines that couldn't be looked up aren't remembered, so the next try looks only those up.
             Status status = plan.failed > 0 ? Status.OFFLINE : Status.DONE;
-            return new Outcome(status, id, created, plan.lines, plan.add.size(), plan.seen.size(), plan.unmatched,
+            return new Outcome(status, id, created, plan.lines, plan.add.size(), plan.seen.size(), plan.asks,
                     lists, copy);
         } catch (Stop s) {
             return Outcome.stopped(s.status, id, lists);
         } catch (TmdbAccountParse.Failure f) {
             return Outcome.stopped(status(f), id, lists);
+        }
+    }
+
+    /**
+     * The household answered an asked line on the TV: {@code id} goes onto the list (made if missing), or to Seen
+     * for a ticked line; null is "None of these". Either way the line is remembered, so it isn't asked again.
+     */
+    Outcome pick(String list, NoteMatch.Ask ask, String id, NoteMatch.Memory memory) {
+        NoteMatch.Memory copy = NoteMatch.Memory.fromJson(memory == null ? null : memory.toJson());
+        if (id == null) {
+            copy.put(list, ask.key, NoteMatch.DISMISSED);
+            return new Outcome(Status.DONE, 0, false, 1, 0, 0, null, null, copy);
+        }
+        if (ask.ticked) {
+            seen.mark(Collections.singletonList(id));
+            copy.put(list, ask.key, id);
+            return new Outcome(Status.DONE, 0, false, 1, 0, 1, null, null, copy);
+        }
+        List<TmdbAccountParse.ListInfo> lists = null;
+        long listId = 0;
+        boolean created = false;
+        try {
+            lists = accountLists();
+            listId = ListRef.named(list).resolve(lists);
+            if (listId == 0) {
+                listId = TmdbAccountParse.createdList(send(TmdbAccountApi.createList(list.trim())));
+                created = true;
+                lists = new ArrayList<>(lists);
+                lists.add(new TmdbAccountParse.ListInfo(listId, list.trim(), false, 0));
+            }
+            boolean there = items(listId).contains(id);
+            if (!there) {
+                TmdbAccountParse.done(send(TmdbAccountApi.listItems(listId, Collections.singletonList(id), true)));
+            }
+            copy.put(list, ask.key, id);
+            return new Outcome(Status.DONE, listId, created, 1, there ? 0 : 1, 0, null, lists, copy);
+        } catch (Stop s) {
+            return Outcome.stopped(s.status, listId, lists);
+        } catch (TmdbAccountParse.Failure f) {
+            return Outcome.stopped(status(f), listId, lists);
         }
     }
 
