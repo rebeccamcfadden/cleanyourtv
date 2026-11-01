@@ -353,8 +353,8 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
   lead's decisions of 2026-11-01): off by default on every TV. When on, snow or rain falls over a Seasonal picture by
   the real weather at the Weather place, or by the season offline (snow in Snow and Christmas, rain in Spring rain),
   only while Home is idle: it starts 3 s after the last key and stops on the next. Vector art at 20 fps, 8-bit at
-  10 fps on the scene's pixel grid. Off with Motion Reduced or Off, or a plain backdrop. Open: a TV bench of the idle
-  animation; petals, leaves and bats, and wind or lightning; the backdrop window's `buffer_age` on the TCL.
+  10 fps on the scene's pixel grid. Off with Motion Reduced or Off, or a plain backdrop. Open: a TV bench of the idle animation (`tools/bench.py --idle-animation 30`,
+  with Animated details on and off); petals, leaves and bats, and wind or lightning; the backdrop window's `buffer_age` on the TCL.
 - **Southern hemisphere:** the Seasonal periods follow the northern calendar everywhere.
 - **Fonts:** downloaded through Google Play services' font provider and kept on the TV; a family the provider can't
   serve comes straight from Google Fonts' CSS API over HTTPS (the TrueType file, at most 2 MB; still none in the APK).
