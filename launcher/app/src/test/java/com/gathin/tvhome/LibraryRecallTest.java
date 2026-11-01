@@ -65,12 +65,51 @@ public class LibraryRecallTest {
 
     @Test
     public void theHourCountsFromTheFirstLeaving() {
-        // The tab is left, then the TV goes to standby 50 minutes later: the hour runs from the tab.
+        // The tab is left, then the page is told again 50 minutes later (its window hidden): the hour runs from the tab.
         leaveMovies();
         now += 50 * MIN;
         recall.left(Kind.MOVIE, "genre=Drama", "my", LibrarySort.NEWEST);
         now += 20 * MIN;
         assertNull(recall.back(Kind.MOVIE));
+    }
+
+    @Test
+    public void standbyClearsWhatWasLeftBefore() {
+        // Movies left for an app, TV Shows left for Home; the TV off and on again ten minutes later.
+        leaveMovies();
+        recall.left(Kind.SHOW, "", "all", LibrarySort.RATED);
+        now += 5 * MIN;
+        recall.turnedOff();
+        now += 5 * MIN;
+        assertNull(recall.back(Kind.MOVIE));
+        assertNull(recall.back(Kind.SHOW));
+    }
+
+    @Test
+    public void standbyCountsForThePageOnScreen() {
+        // The page on screen isn't left by standby (its window stays visible); it compares the count instead.
+        int seen = recall.offs();
+        recall.turnedOff();
+        assertTrue(recall.offs() != seen);
+        assertFalse(recall.isLeft(Kind.MOVIE));
+    }
+
+    @Test
+    public void leftAgainAfterStandbyStaysCleared() {
+        // Left before standby, then told again after it (onLeave, then the window hidden): still from before.
+        leaveMovies();
+        recall.turnedOff();
+        leaveMovies();
+        assertNull(recall.back(Kind.MOVIE));
+    }
+
+    @Test
+    public void leftAfterStandbyIsKept() {
+        // The TV was off earlier; the page was shown since, and left now.
+        recall.turnedOff();
+        leaveMovies();
+        now += 10 * MIN;
+        assertNotNull(recall.back(Kind.MOVIE));
     }
 
     @Test

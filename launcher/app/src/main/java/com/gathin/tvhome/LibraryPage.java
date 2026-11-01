@@ -1,6 +1,9 @@
 package com.gathin.tvhome;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.os.SystemClock;
 import android.view.Gravity;
@@ -42,6 +45,8 @@ final class LibraryPage extends Screen {
     private static final String KEY_CLEAR = "clear-filters";
     /** What each page keeps while it is left (F2): the process's, so a TV turned on starts with none. */
     private static final LibraryRecall RECALL = new LibraryRecall(SystemClock::elapsedRealtime);
+    /** Whether the screen-off receiver that clears {@link #RECALL} is registered (once a process, on the app). */
+    private static boolean watchingStandby;
 
     // Sizes from screens.css (.page-scroll, .lib-*), in design px.
     private static final int SCROLL_TOP = 150;
@@ -63,6 +68,8 @@ final class LibraryPage extends Screen {
     private ShownList list = ShownList.ALL;
     /** The Sort chip's order (F4). */
     private LibrarySort sort = LibrarySort.AZ;
+    /** {@link LibraryRecall#offs} when the page last showed: another count means the TV was off since (F2). */
+    private int offsSeen = RECALL.offs();
 
     private final ViewGroup box;
     private final View pick;
@@ -215,14 +222,26 @@ final class LibraryPage extends Screen {
         StateUi.watchInternet(root, host.navModel(), online -> {
             if (shell.top() == this) render();
         });
-        // F2: the TV going to standby or another app taking the screen leaves the page too, and coming back is a
-        // return. A page not showing is detached, which also reads as hidden; onLeave and onShow say the same.
+        // F2: another app taking the screen leaves the page too, and coming back is a return. A page not showing is
+        // detached, which also reads as hidden; onLeave and onShow say the same. Standby is the TV turned off: the
+        // window stays visible through it on Android 9, so the page checks LibraryRecall's standby count when its
+        // window has focus again.
+        watchStandby(ctx);
         root.addView(new View(ctx) {
             @Override
             protected void onWindowVisibilityChanged(int visibility) {
                 super.onWindowVisibilityChanged(visibility);
                 if (visibility != View.VISIBLE) markLeft();
                 else if (recall() && shell.top() == LibraryPage.this) render();
+            }
+
+            @Override
+            public void onWindowFocusChanged(boolean hasWindowFocus) {
+                super.onWindowFocusChanged(hasWindowFocus);
+                if (hasWindowFocus && getWindowVisibility() == View.VISIBLE && recall()
+                        && shell.top() == LibraryPage.this) {
+                    render();
+                }
             }
         }, new FrameLayout.LayoutParams(0, 0));
         render();
@@ -379,11 +398,28 @@ final class LibraryPage extends Screen {
     }
 
     /**
-     * Back on the page: after more than an hour away, its filters, list chip and sort start again (no filters, All
-     * lists, A–Z), from the top. Returns whether they did.
+     * Standby clears what every page kept, even a page left for an app before the TV went off: a receiver on the
+     * application, registered once, for as long as the process runs.
+     */
+    private static void watchStandby(Context ctx) {
+        if (watchingStandby) return;
+        watchingStandby = true;
+        ctx.getApplicationContext().registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context c, Intent intent) {
+                RECALL.turnedOff();
+            }
+        }, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+    }
+
+    /**
+     * Back on the page: after more than an hour away, or the TV turned off since the page last showed, its filters,
+     * list chip and sort start again (no filters, All lists, A–Z), from the top. Returns whether they did.
      */
     private boolean recall() {
-        if (!RECALL.isLeft(kind) || RECALL.back(kind) != null) return false;
+        boolean stale = RECALL.isLeft(kind) ? RECALL.back(kind) == null : offsSeen != RECALL.offs();
+        offsSeen = RECALL.offs();
+        if (!stale) return false;
         filters.clear();
         listKey = ShownList.ALL.key;
         sort = LibrarySort.AZ;

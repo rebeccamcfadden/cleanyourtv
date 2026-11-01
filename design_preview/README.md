@@ -267,9 +267,9 @@ clunky.) Rows are 72 px; the panel is opaque (no blur).
   one in force checked and focused. A–Z leaves out a leading "The", "A" or "An", accents and case; the other orders
   fall back to A–Z between equals and put titles without a year, score or known place last. ← from Sort stays; →
   goes to Filters.
-- **What a page keeps** (F2): filters, the chosen list and the sort start cleared when the TV is turned on (the
-  launcher's process starting; here, the preview loading). Each page keeps its own while it is left and clears them
-  after more than an hour away.
+- **What a page keeps** (F2): filters, the chosen list and the sort start cleared when the TV is turned on (on the
+  TV, a boot or the screen back from standby; here, the preview loading). Each page keeps its own while it is left
+  and clears them after more than an hour away.
 - **Empty states:** a list with nothing on it ("add titles with + My list…"), and filters that hide everything
   (with Clear filters).
 - **Loading, offline and errors:** see [Loading, offline and errors](#loading-offline-and-errors).

@@ -447,10 +447,10 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
 - **Empty list note:** says to "import a watchlist in Settings", which doesn't exist yet (see First run and setup
   under Not designed yet).
 - **Filters, the chosen list and the sort** (F2, F4, the project lead 2026-11-01) start cleared (no filters, All
-  lists, A–Z) when the launcher's process starts, which a boot does; each page keeps its own while it is left (another
-  tab, an app, standby) and clears them after more than an hour away (`LibraryRecall`). Figma's frame shows
-  "Included only · Review 7.0+", the default before F2. Not stored: a launcher process the TV stops starts again
-  cleared, as a boot does.
+  lists, A–Z) when the TV is turned on: the launcher's process starting, which a boot does, or the screen coming back
+  from standby, which on most TVs keeps the process. Each page keeps its own while it is left (another tab, an app)
+  and clears them after more than an hour away (`LibraryRecall`). Figma's frame shows "Included only · Review 7.0+",
+  the default before F2. Not stored: a launcher process the TV stops starts again cleared, as a boot does.
 - **Sort's "Recently added to my lists"**: no list says when a title was added to it. My list keeps the order titles
   were added (a sync keeps the TMDB watchlist's, oldest first) and a TMDB list TMDB's own order, so a list's last
   title counts as its newest; across lists (All lists) every list's last title comes first, in chip order, then
