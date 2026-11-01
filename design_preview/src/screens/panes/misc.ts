@@ -37,7 +37,8 @@ const onOff = (group: string, get: () => boolean, set: (on: boolean) => void) =>
 
 /**
  * Launcher settings › Performance (the project lead's decision, 2026-11-01): Motion, card shadows, the focus glow, the
- * backdrop picture and the animated details, each a segmented choice; no master switch. A low-RAM TV starts at the
+ * backdrop picture and the animated details, each a segmented choice. Light mode at the top (the project lead,
+ * 2026-11-01) sets every choice to its lightest, Motion Off included; each stays a choice of its own afterwards. A low-RAM TV starts at the
  * light end (no shadows, Motion Reduced, nothing animated); the prototype is a TV with memory to spare, so it starts
  * with everything on. It draws no card shadows or glow, so those two are saved only; Motion and the backdrop apply.
  */
@@ -46,6 +47,21 @@ export const performancePane = (): Pane => ({
     h('div.eyebrow', 'Performance'),
     h('div.pane-title', 'Performance'),
     h('div.pane-sub', 'How much the launcher draws and moves. Lighter choices keep it smooth on TVs with little memory; what it shows stays the same.'),
+    h(
+      'div.pane-actions',
+      entry(
+        button('Light mode', {
+          icon: 'gauge',
+          primary: true,
+          key: 'perf-light',
+          onOk: () => {
+            settings.set({ motion: 'off', cardShadows: 'off', focusGlow: false, backdropPicture: 'plain', movingDetails: false });
+            app.toast('Light mode: every choice at its lightest');
+          },
+        }),
+      ),
+    ),
+    h('div.pane-note', 'Sets every choice below to its lightest: Motion off, no card shadows or glow, a plain backdrop and nothing animated.'),
     h(
       'div.perf-rows',
       perfRow(
@@ -57,7 +73,6 @@ export const performancePane = (): Pane => ({
           set: (motion) => settings.set({ motion }),
           group: 'seg-motion',
           small: true,
-          entry: true,
         }),
       ),
       perfRow(

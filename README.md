@@ -664,7 +664,7 @@ launcher's look and layout keys are not read any more; [themes/README.md](themes
   - **Weather**: the place Home's weather is for, with the weather there now. Change city searches Open-Meteo's
     places as you type, on the on-screen keyboard or a real one; Use default goes back to the place in
     `tv.properties`. The temperature in °C, °F or the TV default, which follows the TV's region.
-  - **Performance**: how much the launcher draws and moves. Motion (Full, or Reduced and Off, where pages, menus and
+  - **Performance**: how much the launcher draws and moves. Light mode sets everything below to its lightest. Motion (Full, or Reduced and Off, where pages, menus and
     Home's scroll switch without moving, as with `reduced_motion`), card shadows (On, Focused card only, Off), the
     focus glow, the backdrop picture (Photo or the theme's plain colour) and animated details. A low-RAM TV starts with
     the lighter choices (no card shadows, Motion Reduced), as does any TV whose `light_defaults` says `on`. Pushing

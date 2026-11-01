@@ -4,6 +4,10 @@
     <string name="perf_sub">How much the launcher draws and moves. Lighter choices keep it smooth on TVs with little memory; what it shows stays the same.</string>
     <string name="perf_light_note">This TV starts with the lighter choices, as it has little memory (or its config asks for them): no card shadows, Reduced motion and no animated details. What you choose here wins.</string>
 
+    <string name="perf_light_mode">Light mode</string>
+    <string name="perf_light_mode_sub">Sets every choice below to its lightest: Motion off, no card shadows or glow, a plain backdrop and nothing animated.</string>
+    <string name="perf_light_mode_done">Light mode: every choice at its lightest</string>
+
     <string name="perf_motion">Motion</string>
     <string name="perf_motion_sub">Page slides, focus scale and fades</string>
     <string name="perf_shadows">Card shadows</string>
@@ -23,5 +27,6 @@
     <!-- The section's value in the list. -->
     <string name="perf_value_all_on">All on</string>
     <string name="perf_value_lighter">Lighter</string>
+    <string name="perf_value_light_mode">Light mode</string>
     <string name="perf_value_custom">Custom</string>
 </resources>

@@ -57,6 +57,8 @@ final class PerfChoices {
      * (one tile) and the backdrop picture stay, as the theme's look. Motion starts at Reduced (MotionChoice).
      */
     static final PerfChoices LIGHT = new PerfChoices(Shadows.OFF, true, false, false);
+    /** The pane's Light mode button: every choice at its lightest (with Motion Off). */
+    static final PerfChoices MINIMUM = new PerfChoices(Shadows.OFF, false, true, false);
 
     /**
      * Whether a TV starts at the light end: config.xml or config.json {@code light_defaults} {@code on} or

@@ -371,6 +371,7 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
 
   **Decided** (the project lead, 2026-11-01): a Launcher settings › Performance page. Card shadows On, Focused card
   only or Off, the focus glow, the backdrop picture (Photo or the theme's plain sky) and Animated details, beside Motion.
+  A Light mode button at its top sets every choice to its lightest (Motion Off included).
   A low-RAM TV (`ActivityManager.isLowRamDevice()`, which the TCL reports) or one whose config.xml or config.json
   sets `light_defaults` to on starts at the light end: no card shadows, Motion Reduced, no animated details; the focus
   glow (one tile) and the picture stay. The household's choices win; Follow theme and a theme push drop them.

@@ -16,7 +16,8 @@ import java.util.List;
  * performancePane): what the launcher draws and moves, each a segmented choice on its own row. Motion (Full, Reduced
  * or Off, MotionChoice, the quick-settings Motion row's choice too), card shadows (On, Focused card only, Off), the
  * focus glow, the backdrop picture (Photo or the theme's plain colour) and the animated details (the Theme pane's old
- * Moving details). No master switch. A TV that starts at the light end (Config#lightDefaults: low-RAM, or config's
+ * Moving details). A Light mode button at the top (the project lead, 2026-11-01) sets every choice to its lightest,
+ * Motion Off included; each stays a choice of its own afterwards. A TV that starts at the light end (Config#lightDefaults: low-RAM, or config's
  * light_defaults) starts with PerfChoices.LIGHT and Motion Reduced, and the pane says so; a choice saved here wins.
  *
  * <p>Motion keeps its rules: a TV whose config sets reduced_motion is never Full, so Full isn't offered there; with
@@ -28,6 +29,8 @@ final class PerformanceSection implements SettingsSection {
     /** Whether config was read with no Motion saved, so it holds config.xml's and config.json's own values. */
     private boolean unsaved;
     private View first;
+    /** The pane's controls, which the Light mode button moves to their lightest option. */
+    private View motionSeg, shadowSeg, glowSeg, backdropSeg, detailsSeg;
 
     PerformanceSection(Config config) {
         this.config = config;
@@ -61,12 +64,13 @@ final class PerformanceSection implements SettingsSection {
         return R.drawable.ic_ui_gauge;
     }
 
-    /** "All on", "Lighter" while a light-start TV has nothing saved, else "Custom". */
+    /** "All on", "Light mode" at the lightest, "Lighter" while a light-start TV has nothing saved, else "Custom". */
     @Override
     public CharSequence value(Context ctx) {
         MotionChoice m = systemOff(ctx) ? MotionChoice.REDUCED : motion(ctx);
         PerfChoices p = PerfPrefs.load(ctx, config);
         if (m == MotionChoice.FULL && p.same(PerfChoices.FULL)) return ctx.getString(R.string.perf_value_all_on);
+        if (m == MotionChoice.OFF && p.same(PerfChoices.MINIMUM)) return ctx.getString(R.string.perf_value_light_mode);
         android.content.SharedPreferences prefs = ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
         boolean saved = PerfChoices.anySaved(prefs.getAll()) || prefs.contains(MotionChoice.KEY);
         if (config.lightDefaults && !saved) return ctx.getString(R.string.perf_value_lighter);
@@ -80,6 +84,10 @@ final class PerformanceSection implements SettingsSection {
         SettingsKit.add(pane, SettingsKit.title(ctx, ctx.getString(R.string.settings_performance), false), 10);
         SettingsKit.add(pane, SettingsKit.sub(ctx, ctx.getString(R.string.perf_sub)), 8);
         if (config.lightDefaults) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.perf_light_note)), 14);
+        View light = SettingsKit.button(ctx, ctx.getString(R.string.perf_light_mode), R.drawable.ic_ui_gauge, true,
+                "perf-light", "perf-light", false, v -> lightMode(ctx, host));
+        SettingsKit.add(pane, SettingsKit.actions(ctx, light), 20);
+        SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.perf_light_mode_sub)), 10);
 
         // Motion: Full isn't offered where the TV's config keeps motion reduced.
         MotionChoice now = motion(ctx);
@@ -92,12 +100,12 @@ final class PerformanceSection implements SettingsSection {
             codes[i] = offered.get(i).code;
             labels[i] = ctx.getString(motionLabel(offered.get(i)));
         }
-        View motion = SettingsKit.segmented(ctx, "perf-motion", codes, labels, now.code, true, value -> {
+        View motion = motionSeg = SettingsKit.segmented(ctx, "perf-motion", codes, labels, now.code, true, value -> {
             MotionPrefs.save(ctx, MotionChoice.parse(value));
             host.valueChanged();
         });
         SettingsKit.addWide(pane, row(ctx, R.string.perf_motion, R.string.perf_motion_sub, motion), 22);
-        first = SettingsKit.selectedOption(motion);
+        first = light;
         if (configReduced) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.motion_forced_config)), 8);
         if (systemOff(ctx)) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.motion_forced_system)), 8);
 
@@ -105,7 +113,7 @@ final class PerformanceSection implements SettingsSection {
         PerfChoices.Shadows[] shadows = PerfChoices.Shadows.values();
         String[] shadowCodes = new String[shadows.length];
         for (int i = 0; i < shadows.length; i++) shadowCodes[i] = shadows[i].code;
-        View shadow = SettingsKit.segmented(ctx, "perf-shadows", shadowCodes, new CharSequence[]{
+        View shadow = shadowSeg = SettingsKit.segmented(ctx, "perf-shadows", shadowCodes, new CharSequence[]{
                 ctx.getString(R.string.perf_on), ctx.getString(R.string.perf_shadows_focus),
                 ctx.getString(R.string.perf_off)}, p.shadows.code, true, value -> {
             PerfPrefs.saveShadows(ctx, PerfChoices.Shadows.parse(value));
@@ -113,10 +121,10 @@ final class PerformanceSection implements SettingsSection {
         });
         SettingsKit.addWide(pane, row(ctx, R.string.perf_shadows, R.string.perf_shadows_sub, shadow), 12);
 
-        View glow = onOff(ctx, "perf-glow", p.glow, on -> PerfPrefs.saveGlow(ctx, on), host);
+        View glow = glowSeg = onOff(ctx, "perf-glow", p.glow, on -> PerfPrefs.saveGlow(ctx, on), host);
         SettingsKit.addWide(pane, row(ctx, R.string.perf_glow, R.string.perf_glow_sub, glow), 12);
 
-        View backdrop = SettingsKit.segmented(ctx, "perf-backdrop",
+        View backdrop = backdropSeg = SettingsKit.segmented(ctx, "perf-backdrop",
                 new String[]{PerfChoices.BACKDROP_PHOTO, PerfChoices.BACKDROP_PLAIN},
                 new CharSequence[]{ctx.getString(R.string.perf_backdrop_photo),
                         ctx.getString(R.string.perf_backdrop_plain)},
@@ -126,9 +134,22 @@ final class PerformanceSection implements SettingsSection {
                 });
         SettingsKit.addWide(pane, row(ctx, R.string.perf_backdrop, R.string.perf_backdrop_sub, backdrop), 12);
 
-        View details = onOff(ctx, "perf-details", p.details, on -> PerfPrefs.saveDetails(ctx, on), host);
+        View details = detailsSeg = onOff(ctx, "perf-details", p.details, on -> PerfPrefs.saveDetails(ctx, on), host);
         SettingsKit.addWide(pane, row(ctx, R.string.perf_details, R.string.perf_details_sub, details), 12);
         return pane;
+    }
+
+    /** Light mode: every choice at its lightest, saved at once, and the controls moved to show it. */
+    private void lightMode(Context ctx, Host host) {
+        MotionPrefs.save(ctx, MotionChoice.OFF);
+        PerfPrefs.saveAll(ctx, PerfChoices.MINIMUM);
+        SettingsKit.select(motionSeg, MotionChoice.OFF.code);
+        SettingsKit.select(shadowSeg, PerfChoices.Shadows.OFF.code);
+        SettingsKit.select(glowSeg, "off");
+        SettingsKit.select(backdropSeg, PerfChoices.BACKDROP_PLAIN);
+        SettingsKit.select(detailsSeg, "off");
+        host.valueChanged();
+        host.shell().toast(ctx.getString(R.string.perf_light_mode_done));
     }
 
     @Override

@@ -28,6 +28,14 @@ final class PerfPrefs {
         commit(ctx, prefs(ctx).edit().putBoolean(PerfChoices.KEY_DETAILS, on));
     }
 
+    /** Saves every choice at once (the pane's Light mode button). */
+    static void saveAll(Context ctx, PerfChoices c) {
+        commit(ctx, prefs(ctx).edit().putString(PerfChoices.KEY_SHADOWS, c.shadows.code)
+                .putBoolean(PerfChoices.KEY_GLOW, c.glow)
+                .putString(PerfChoices.KEY_BACKDROP, c.plainBackdrop ? PerfChoices.BACKDROP_PLAIN : PerfChoices.BACKDROP_PHOTO)
+                .putBoolean(PerfChoices.KEY_DETAILS, c.details));
+    }
+
     /** Saves, and moves Launcher settings' change count so Home is rebuilt with it. */
     private static void commit(Context ctx, SharedPreferences.Editor e) {
         SharedPreferences p = prefs(ctx);

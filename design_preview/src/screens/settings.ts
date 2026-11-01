@@ -18,11 +18,13 @@ import { servicesPane, storesPane } from './panes/services';
 import { themePane } from './panes/theme';
 import { weatherPane } from './panes/weather';
 
-/** "All on" while every Performance choice draws and moves everything, else "Custom". */
+/** "All on" while every Performance choice draws and moves everything, "Light mode" at the lightest, else "Custom". */
 function performanceValue(): string {
   const s = settings.get();
   const all = s.motion === 'full' && s.cardShadows === 'on' && s.focusGlow && s.backdropPicture === 'photo' && s.movingDetails;
-  return all ? 'All on' : 'Custom';
+  if (all) return 'All on';
+  const light = s.motion === 'off' && s.cardShadows === 'off' && !s.focusGlow && s.backdropPicture === 'plain' && !s.movingDetails;
+  return light ? 'Light mode' : 'Custom';
 }
 export type SectionId = 'account' | 'notes' | 'services' | 'stores' | 'weather' | 'apps' | 'theme' | 'performance' | 'start' | 'home' | 'tv' | 'about';
 

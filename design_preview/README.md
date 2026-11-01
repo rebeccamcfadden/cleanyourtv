@@ -522,12 +522,14 @@ picks another theme.
   apps. OK on a tile on Home picks it up, as Home's hold-OK Move does: it lifts with arrows on its sides, ← → move
   it, OK puts it down, ↓ takes it off Home (one must stay) and Back puts it back where it was. OK on another app adds
   it at the end, already picked up to place (the row holds seven). Home's row follows at once.
-- **Performance** (the project lead's decision, 2026-11-01): "How much the launcher draws and moves", then a row per
+- **Performance** (the project lead's decision, 2026-11-01): "How much the launcher draws and moves", a **Light mode**
+  button (first focus) that sets every choice to its lightest (Motion Off, card shadows Off, glow Off, Plain colour,
+  animated details Off; each stays its own choice afterwards; the section's value reads "Light mode"), then a row per
   choice, its name and a line on the left and a small segmented control on the right: **Motion** (Full / Reduced /
   Off; Reduced drops slides, rises and focus scale-ups and keeps the fades, Home's scroll jumps and its dimming fades;
   Off stops every animation), **Card shadows** (On / Focused card only / Off), **Focus glow** (On / Off), **Backdrop
   picture** (Photo / Plain colour: the theme's sky without the picture) and **Animated details** (On / Off; the old
-  Moving details, saved only: nothing moves yet, on the TV either). No master switch. A low-RAM TV starts at the light
+  Moving details, saved only: nothing moves yet, on the TV either). A low-RAM TV starts at the light
   end (no card shadows, Motion Reduced, no animated details; glow and picture on) until the household chooses, and the
   pane says so; config.xml or config.json `light_defaults` can set or stop that per TV. The prototype starts with
   everything on; it applies Motion and the backdrop, and saves the card shadows and glow, which it doesn't draw.

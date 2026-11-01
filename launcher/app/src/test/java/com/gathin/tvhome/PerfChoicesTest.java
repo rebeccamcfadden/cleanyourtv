@@ -76,6 +76,16 @@ public class PerfChoicesTest {
     }
 
     @Test
+    public void lightModeIsEveryChoiceAtItsLightest() {
+        PerfChoices m = PerfChoices.MINIMUM;
+        assertEquals(PerfChoices.Shadows.OFF, m.shadows);
+        assertFalse(m.glow);
+        assertTrue(m.plainBackdrop);
+        assertFalse(m.details);
+        assertFalse(m.same(PerfChoices.LIGHT));
+    }
+
+    @Test
     public void theViewsDrawWithWhatWasApplied() {
         try {
             PerfChoices.apply(PerfChoices.LIGHT);
