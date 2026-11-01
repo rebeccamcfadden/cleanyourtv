@@ -63,13 +63,14 @@ final class AppArt {
             return;
         }
         Context app = context.getApplicationContext();
-        int asked = version;
+        int asked = version, askedTrim = trims;
         WORKER.execute(() -> {
             Art art = draw(app, pkg, width, height, iconSize);
             if (art == null) return;
             MAIN.post(() -> {
-                // Drawn from an app that has changed since (forget): shown this once, but not kept.
-                if (asked == version) CACHE.put(key, art);
+                // Drawn from an app that has changed since (forget), or asked for before a memory trim (clear):
+                // shown this once, but not kept.
+                if (asked == version && askedTrim == trims) CACHE.put(key, art);
                 cb.art(art.banner, art.icon);
             });
         });
@@ -77,6 +78,8 @@ final class AppArt {
 
     /** Bumped whenever an app's cached art is let go as stale; the tiles built before then may show old art. */
     private static int version;
+    /** Bumped by each memory trim, so loads asked for before it don't fill the cache again. Main thread. */
+    private static int trims;
 
     /** Changes each time an app's art went stale: Home's row and All Apps rebuild their tiles when it differs. */
     static int version() {
@@ -85,6 +88,7 @@ final class AppArt {
 
     /** Forgets everything (memory pressure): nothing goes stale, the tiles on screen keep their art. */
     static void clear() {
+        trims++;
         CACHE.evictAll();
     }
 
