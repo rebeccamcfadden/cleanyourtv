@@ -1,6 +1,8 @@
 // The part of the day a Seasonal theme's picture shows (F22), as the launcher's DayPhase: dawn from 40 minutes before
 // sunrise to 50 after, sunset from 50 minutes before sunset to 40 after, day and night in between. Sunrise and sunset
-// come from the sunrise equation at the mock's place (Stockholm, the build's city), worked out offline.
+// come from the sunrise equation at the mock's place (Stockholm, the build's city), worked out offline. Both functions
+// read one sorted timeline of edges across neighbouring dates, so a window that crosses midnight (in the browser's
+// time zone) is still read right and the next edge is always in the future.
 
 export type Phase = 'dawn' | 'day' | 'sunset' | 'night';
 
@@ -14,7 +16,12 @@ const DAY_MS = 86_400_000;
 const rad = (d: number) => (d * Math.PI) / 180;
 const norm = (d: number) => ((d % 360) + 360) % 360;
 
-/** Sunrise and sunset (ms) around a moment; 'up' or 'down' when the sun doesn't cross the horizon that day. */
+interface Edge {
+  at: number;
+  starts: Phase;
+}
+
+/** Sunrise and sunset (ms) for the solar day around a moment; 'up' or 'down' when the sun doesn't cross the horizon. */
 function sun(noonMs: number): [number, number] | 'up' | 'down' {
   const julian = noonMs / DAY_MS + 2440587.5;
   const n = Math.ceil(julian - 2451545.0 + 0.0008 - 0.5);
@@ -34,36 +41,56 @@ function sun(noonMs: number): [number, number] | 'up' | 'down' {
   return [ms(transit - w), ms(transit + w)];
 }
 
-/** A date's four edges: dawn, day, sunset and night start (ms); or the phase all day long. */
-function edges(d: Date): number[] | Phase {
-  const noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTime();
-  const s = sun(noon);
-  if (s === 'up') return 'day';
-  if (s === 'down') return 'night';
-  const [rise, set] = s;
-  const e = [rise - 40 * MIN, rise + 50 * MIN, set - 50 * MIN, set + 40 * MIN];
-  if (e[1] > e[2]) e[1] = e[2] = (rise + set) / 2;
-  return e;
+/**
+ * The edges of the dates from the day before `d` to two days after, in time order. A polar date is one edge at its
+ * midnight, and no other date's edge falls inside it; a sunset that runs into the next dawn hands straight over to it
+ * halfway between the two (as DayPhase.handOver).
+ */
+function timeline(d: Date): Edge[] {
+  const out: Edge[] = [];
+  const polar: [number, number][] = [];
+  for (let i = -1; i <= 2; i++) {
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i).getTime();
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i + 1).getTime();
+    const s = sun(new Date(d.getFullYear(), d.getMonth(), d.getDate() + i, 12).getTime());
+    if (s === 'up' || s === 'down') {
+      polar.push([start, end]);
+      out.push({ at: start, starts: s === 'up' ? 'day' : 'night' });
+      continue;
+    }
+    const [rise, set] = s;
+    const e = [rise - 40 * MIN, rise + 50 * MIN, set - 50 * MIN, set + 40 * MIN];
+    if (e[1] > e[2]) e[1] = e[2] = (rise + set) / 2;
+    PHASES.forEach((p, k) => out.push({ at: e[k], starts: p }));
+  }
+  const sorted = out.filter((e) => !polar.some(([a, b]) => e.at > a && e.at < b)).sort((a, b) => a.at - b.at);
+  const kept: Edge[] = [];
+  for (const e of sorted) {
+    const last = kept[kept.length - 1];
+    if (last && last.starts === 'dawn' && e.starts === 'night') {
+      kept[kept.length - 1] = { at: (last.at + e.at) / 2, starts: 'dawn' };
+      continue;
+    }
+    if (last && last.starts === e.starts) continue;
+    kept.push(e);
+  }
+  return kept;
 }
 
+/** The phase started by the last edge at or before the moment. */
 export function phaseAt(d: Date): Phase {
-  const e = edges(d);
-  if (typeof e === 'string') return e;
   const t = d.getTime();
-  if (t < e[0]) return 'night';
-  if (t < e[1]) return 'dawn';
-  if (t < e[2]) return 'day';
-  if (t < e[3]) return 'sunset';
-  return 'night';
+  let phase: Phase = 'night';
+  for (const e of timeline(d)) {
+    if (e.at > t) break;
+    phase = e.starts;
+  }
+  return phase;
 }
 
-/** Milliseconds until the part of the day next changes (at most until the next midnight). */
+/** Milliseconds until the part of the day next changes: the first edge strictly after the moment. */
 export function msToNextPhase(d: Date): number {
   const t = d.getTime();
-  const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
-  const e = edges(d);
-  if (typeof e !== 'string') for (const x of e) if (x > t) return x - t;
-  const tomorrow = edges(new Date(midnight + 12 * 3_600_000));
-  if (typeof tomorrow !== 'string') return tomorrow[0] - t;
-  return midnight - t;
+  for (const e of timeline(d)) if (e.at > t) return e.at - t;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime() - t;
 }

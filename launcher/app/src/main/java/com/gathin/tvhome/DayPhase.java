@@ -90,6 +90,26 @@ enum DayPhase {
             return false;
         });
         out.sort((a, b) -> a.at.compareTo(b.at));
+        return handOver(out);
+    }
+
+    /**
+     * On a short night (high latitudes in summer) today's dawn can start before yesterday's sunset is over. Then the
+     * night is skipped: sunset hands straight over to dawn halfway between the two edges, so the order is always dawn,
+     * day, sunset, night (or sunset, dawn) and never goes back.
+     */
+    static List<Edge> handOver(List<Edge> sorted) {
+        List<Edge> out = new ArrayList<>();
+        for (Edge e : sorted) {
+            Edge last = out.isEmpty() ? null : out.get(out.size() - 1);
+            if (last != null && last.starts == DAWN && e.starts == NIGHT) {
+                Instant mid = last.at.plusMillis((e.at.toEpochMilli() - last.at.toEpochMilli()) / 2);
+                out.set(out.size() - 1, new Edge(mid, DAWN));
+                continue;
+            }
+            if (last != null && last.starts == e.starts) continue;
+            out.add(e);
+        }
         return out;
     }
 

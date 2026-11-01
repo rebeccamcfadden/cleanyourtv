@@ -182,6 +182,11 @@ final class Backdrops {
         stop();
     }
 
+    /** The clock or time zone was set while the theme stayed: the part of the day and its next edge are worked out again. */
+    void timeChanged() {
+        refresh();
+    }
+
     /**
      * Home came on screen or left it. On screen, an hourly list catches up with the hour and a picture that could not
      * be fetched is tried again; off screen, the hourly check stops.
@@ -229,9 +234,10 @@ final class Backdrops {
     private void refresh(DayPhase now) {
         boolean turned = now != phase;
         phase = now;
-        if (key.kind == BackdropKeys.Kind.URL && !loading) {
+        if (key.kind == BackdropKeys.Kind.URL) {
             String path = BackdropKeys.pick(key, LocalDateTime.now().getHour(), phase);
-            if (!imageShown || !path.equals(wanted)) showUrl(path);
+            // A new picture supersedes one still loading; the same one, still loading, is left to finish.
+            if (!path.equals(wanted) || (!imageShown && !loading)) showUrl(path);
             if (turned) prefetch();
         } else if (key.kind == BackdropKeys.Kind.PIXEL && key.phased && turned) {
             showPixel();

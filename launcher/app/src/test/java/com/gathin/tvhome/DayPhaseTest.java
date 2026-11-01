@@ -113,6 +113,33 @@ public class DayPhaseTest {
     }
 
     @Test
+    public void aShortNightGoesStraightFromSunsetToDawn() {
+        // 65.6 N on 22 June: yesterday's sunset window runs past the start of today's dawn.
+        double lat = 65.6, lon = 18.07;
+        DayPhase prev = null;
+        boolean handedOver = false;
+        ZonedDateTime t = at(2026, 6, 20, 12, 0, SWEDEN);
+        while (t.isBefore(at(2026, 6, 25, 12, 0, SWEDEN))) {
+            DayPhase p = DayPhase.at(t, lat, lon);
+            if (prev != null && p != prev) {
+                boolean forward = p == next(prev) || (prev == DayPhase.SUNSET && p == DayPhase.DAWN);
+                assertTrue(t + ": " + prev + " -> " + p, forward);
+                handedOver |= prev == DayPhase.SUNSET && p == DayPhase.DAWN;
+            }
+            ZonedDateTime n = DayPhase.nextChange(t, lat, lon);
+            assertTrue(n.isAfter(t));
+            assertEquals(t.toString(), p, DayPhase.at(n.minusSeconds(1), lat, lon));
+            prev = p;
+            t = t.plusMinutes(3);
+        }
+        assertTrue("the short nights hand sunset straight to dawn", handedOver);
+    }
+
+    private static DayPhase next(DayPhase p) {
+        return DayPhase.values()[(p.ordinal() + 1) % 4];
+    }
+
+    @Test
     public void aPolarDayStartsAtItsMidnight() {
         // Pevek: the sun stops setting on 19 May.
         ZoneId magadan = ZoneId.of("Asia/Magadan");
