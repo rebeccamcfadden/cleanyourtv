@@ -375,6 +375,19 @@ final class TmdbCatalog implements Catalog {
         if (visible) keepFresh.run();
     }
 
+    /**
+     * MainActivity rebuilt or gone: the price thread ends (it would wait forever and keep this catalogue, every title
+     * and its caches alive), queued TMDB loads are dropped and nothing posted here before now runs. A load already
+     * running finishes into this closed catalogue, which nothing shows any more.
+     */
+    @Override
+    public void close() {
+        visible = false;
+        book.close();
+        pool.shutdownNow();
+        main.removeCallbacksAndMessages(null);
+    }
+
     /** t's offers: its availability with what the price book found merged in, without the stores left unticked. */
     private Title priced(Title t) {
         ProviderAvailability a = availability.get(t.id);
@@ -589,6 +602,8 @@ final class TmdbCatalog implements Catalog {
     }
 
     private void run(int priority, Runnable r) {
+        // Closed (see close): a late call from a page being torn down does nothing.
+        if (pool.isShutdown()) return;
         pool.execute(new Job(priority, order.incrementAndGet(), r));
     }
 
