@@ -345,6 +345,9 @@ final class Config {
                 iconOnlyButtons, wifiLabelWidth, tileMenu, wallpaperEnabled, light);
     }
 
+    // commit, not apply: the tools force-stop Home right after a theme push, and the reset must be on disk by then.
+    // Only on the first start and after a push, so it never costs a normal start.
+    @android.annotation.SuppressLint("ApplySharedPref")
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
         File revision = dir == null ? null : new File(dir, THEME_REVISION_NAME);
         String token = revisionToken(revision);
