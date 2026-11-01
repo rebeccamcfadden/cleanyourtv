@@ -12,7 +12,8 @@ SDK (ANDROID_HOME, default %LOCALAPPDATA%\Android\Sdk).
 Jobs:
   python    python -m unittest discover -s tests; passes when it adds no failure over its base (this machine has
             ~148 environment failures on main too, so "no new failures" stands in for CI's green).
-  tables    tools/gen_tables.py --check (CI runs it on main only; here on every run, as a warning for PRs).
+  tables    tools/gen_tables.py --check. Stale tables (exit 1) pass on a PR, since they are regenerated after merging,
+            and fail on a ref; invalid input (exit 2) always fails.
   launcher  gradlew testReleaseUnitTest lintRelease assembleRelease, 0 lint errors, release APK <= 1,048,576 B.
 Builds without launcher/tv.properties, as CI does (no keys: the mock catalogue).
 #>
@@ -33,6 +34,9 @@ git -C $main fetch -q origin
 if ($Pr) {
     $info = gh pr view $Pr --repo $repo --json headRefOid,baseRefName | ConvertFrom-Json
     $sha = $info.headRefOid
+    # A fork PR's head isn't on any origin branch; GitHub keeps it at refs/pull/<n>/head.
+    git -C $main fetch -q origin "+refs/pull/$Pr/head:refs/remotes/origin/pr/$Pr"
+    if ($LASTEXITCODE -ne 0) { throw "could not fetch PR #$Pr's head" }
     $base = git -C $main merge-base $sha "origin/$($info.baseRefName)"
 } else {
     $sha = git -C $main rev-parse $Ref
@@ -45,6 +49,7 @@ function Post($job, $state, $desc) {
     Write-Host "  [$job] $state - $desc"
     if ($NoPost) { return }
     gh api "repos/$repo/statuses/$sha" -f state=$state -f context="local-ci/$job" -f description=$desc | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "GitHub rejected the local-ci/$job status" }
 }
 
 function Tree($rev) {
@@ -69,6 +74,11 @@ function PyFailures($rev) {
     $out = & $py -m unittest discover -s tests 2>&1
     Pop-Location
     $fails = $out | Select-String '^(FAIL|ERROR): ' | ForEach-Object { $_.Line } | Sort-Object -Unique
+    # No "Ran N tests" line means unittest never ran the suite (an import or discovery error): never a pass.
+    if (-not ($out | Select-String '^Ran \d+ tests? in ')) {
+        if ($rev -ne $sha) { Drop $d }
+        return @("INCOMPLETE: unittest did not finish: $(($out | Select-Object -Last 1))")
+    }
     $fails | Set-Content $cache
     if ($rev -ne $sha) { Drop $d }
     return $fails
@@ -79,7 +89,7 @@ $dir = Tree $sha
 try {
     # python
     $now = @(PyFailures $sha); $was = @(PyFailures $base)
-    $new = @($now | Where-Object { $was -notcontains $_ })
+    $new = @($now | Where-Object { $was -notcontains $_ -or $_ -like 'INCOMPLETE:*' })
     if ($new.Count -eq 0) { Post python success "no new failures ($($now.Count) environment failures, as base)" }
     else {
         $d = "$($new.Count) new: $(($new | Select-Object -First 2) -join '; ')"
@@ -87,9 +97,11 @@ try {
     }
 
     # tables
-    Push-Location $dir; & $py tools\gen_tables.py --check *> $null; $t = $LASTEXITCODE; Pop-Location
+    Push-Location $dir; $tout = & $py tools\gen_tables.py --check 2>&1; $t = $LASTEXITCODE; Pop-Location
+    # Exit 1 is stale tables, regenerated after merging (so a PR passes); anything else is invalid input.
     if ($t -eq 0) { Post tables success 'README tables match examples/*/tv.json' }
-    else { Post tables ($(if ($Pr) { 'success' } else { 'failure' })) 'tables want regenerating (main only, as CI)' }
+    elseif ($t -eq 1 -and $Pr) { Post tables success 'tables want regenerating after merge (main only, as CI)' }
+    else { Post tables failure "gen_tables.py --check exited $t"; $tout }
 
     # launcher
     Push-Location "$dir\launcher"
