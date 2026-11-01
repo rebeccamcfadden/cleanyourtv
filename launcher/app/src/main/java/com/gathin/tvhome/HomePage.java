@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
@@ -120,15 +119,11 @@ final class HomePage extends Screen {
         Context ctx = activity;
 
         // The landscape shows through more than on other pages, darkening towards the apps (.home background).
-        View shade = new View(ctx);
-        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, Ui.theme().homeShade));
-        shade.setTag(R.id.ui_still, Boolean.TRUE);
-        root.addView(shade, match());
+        // Both are drawn into BackdropBake's picture while they can be: the dim as a colour at its alpha.
+        root.addView(BackdropBake.shade(ctx, Ui.theme().homeShade), match());
         // .home::before: the scrolled state dims the landscape further.
-        dim = new View(ctx);
-        dim.setBackgroundColor(Ui.theme().homeDim);
+        dim = BackdropBake.dim(ctx, Ui.theme().homeDim);
         dim.setAlpha(0f);
-        dim.setTag(R.id.ui_still, Boolean.TRUE);
         root.addView(dim, match());
 
         content = new FrameLayout(ctx);

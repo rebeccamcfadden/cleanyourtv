@@ -16,6 +16,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A theme's overlays over the backdrop and under the pages (Figma, Components &amp; backdrops): Cinema's vignette, one
  * radial gradient, and Retro's scanlines, one tiled bitmap. Both are still, drawn once per frame like any background,
@@ -31,10 +34,24 @@ final class Overlays {
     private static final int SCANLINE = 0x52000000;
     private static final int SCANLINE_PERIOD = 4;
 
-    /** Adds the theme's overlays to parent, in order; nothing when it has none. */
-    static void add(ViewGroup parent, Context ctx, Theme t) {
-        if (t.vignette) parent.addView(still(ctx, new Vignette()), match());
-        if (t.scanlines) parent.addView(still(ctx, scanlines(ctx)), match());
+    /** Adds the theme's overlays to parent, in order, and returns them; nothing when it has none. */
+    static List<View> add(ViewGroup parent, Context ctx, Theme t) {
+        List<View> added = new ArrayList<>();
+        if (t.vignette) added.add(still(ctx, new Vignette()));
+        if (t.scanlines) added.add(still(ctx, scanlines(ctx)));
+        for (View v : added) parent.addView(v, match());
+        return added;
+    }
+
+    /**
+     * The theme's overlays as new drawables, in the same order, for BackdropBake to draw on its own thread: they share
+     * nothing with the ones on screen.
+     */
+    static List<Drawable> drawables(Context ctx, boolean vignette, boolean scanlines) {
+        List<Drawable> out = new ArrayList<>();
+        if (vignette) out.add(new Vignette());
+        if (scanlines) out.add(scanlines(ctx));
+        return out;
     }
 
     private static View still(Context ctx, Drawable d) {

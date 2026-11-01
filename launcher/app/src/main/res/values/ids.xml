@@ -8,4 +8,7 @@
     <item name="ui_focus_ok" type="id" />
     <item name="ui_nav" type="id" />
     <item name="ui_still" type="id" />
+    <!-- A page's full-screen shade straight over the backdrop, and Home's dim over it (BackdropBake). -->
+    <item name="ui_backdrop_shade" type="id" />
+    <item name="ui_backdrop_dim" type="id" />
 </resources>

@@ -1,7 +1,6 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
-import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,10 +36,7 @@ final class Pages {
     /** A page: the shade, the nav with this tab active, and whatever content goes above them. */
     static FrameLayout page(Context ctx, NavBar.Host host, Screen.Tab tab) {
         FrameLayout page = new FrameLayout(ctx);
-        View shade = new View(ctx);
-        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{Ui.SHADE_TOP, Ui.SHADE_BOTTOM}));
-        shade.setTag(R.id.ui_still, Boolean.TRUE);
+        View shade = BackdropBake.shade(ctx, new int[]{Ui.SHADE_TOP, Ui.SHADE_BOTTOM});
         page.addView(shade, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         page.addView(NavBar.build(ctx, host, tab));

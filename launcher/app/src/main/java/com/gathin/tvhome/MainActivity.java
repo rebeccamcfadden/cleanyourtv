@@ -67,6 +67,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     private FrameLayout stage;
     private ImageView backdrop;
     private Backdrops backdrops;
+    private BackdropBake bake;
     private boolean backdropLoaded;
     private boolean started;
     /** Launcher settings' change count this Home was built with (see onResume). */
@@ -198,8 +199,12 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         root.addView(backdrop, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         backdrops = new Backdrops(this, backdrop);
-        Overlays.add(root, this, theme);
+        List<View> overlays = Overlays.add(root, this, theme);
         stage = new FrameLayout(this);
+        // Everything above, and the bottom page's shades, drawn as one picture while nothing in them moves.
+        bake = new BackdropBake(this, root, backdrop, backdrops, overlays, theme, stage);
+        root.addView(bake, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
         root.addView(stage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         // Phone notes' import pill, over every page and never focusable (ImportPill).
@@ -673,6 +678,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         super.onStop();
         started = false;
         backdrops.setVisible(false);
+        bake.trim();
         unregisterReceiver(dateReceiver);
         if (data != null) {
             data.catalog.setVisible(false);
@@ -693,6 +699,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
             Art.trim();
         }
         if (!MemoryTrimPolicy.shouldRelease(level, started)) return;
+        bake.release();
         backdrops.release();
         backdropLoaded = false;
     }

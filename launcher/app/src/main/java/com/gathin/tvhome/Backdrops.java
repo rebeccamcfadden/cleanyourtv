@@ -94,6 +94,9 @@ final class Backdrops {
     private boolean imageShown;
     private boolean visible;
     private ValueAnimator fade;
+    /** The sky's colours while it is the view's background, else null (BackdropBake draws it from these). */
+    private int[] sky;
+    private Runnable onChange;
 
     Backdrops(Activity activity, ImageView view) {
         this.activity = activity;
@@ -101,41 +104,67 @@ final class Backdrops {
         this.filesDir = activity.getFilesDir();
     }
 
+    /** Called on the main thread whenever what the view draws changes, or starts or stops moving (BackdropBake). */
+    void setOnChange(Runnable r) {
+        onChange = r;
+    }
+
+    /** Nothing in the backdrop moves: no picture fading in or crossfading. */
+    boolean steady() {
+        return fade == null && !(view.getDrawable() instanceof TransitionDrawable);
+    }
+
+    /** The sky's colours, top to bottom, while the sky is drawn under or instead of a picture; else null. */
+    int[] skyColors() {
+        return sky;
+    }
+
+    private void setSky(Theme t) {
+        sky = t == null ? null : new int[] {t.skyTop, t.skyMid, t.horizon};
+        view.setBackground(t == null ? null : sky(t));
+    }
+
+    private void changed() {
+        if (onChange != null) onChange.run();
+    }
+
     /** Shows a theme's backdrop, or its plain sky when Performance's backdrop picture is Plain colour. Main thread. */
     void show(Theme t) {
         key = BackdropKeys.parse(t.backdrop);
         stop();
         if (PerfChoices.current().plainBackdrop && key.kind != BackdropKeys.Kind.NONE) {
-            view.setBackground(sky(t));
+            setSky(t);
             // Nothing to fetch, refresh or rotate hourly.
             key = BackdropKeys.Key.NONE;
+            changed();
             return;
         }
         switch (key.kind) {
             case NONE:
-                view.setBackground(null);
+                setSky(null);
                 break;
             case SKY:
-                view.setBackground(sky(t));
+                setSky(t);
                 break;
             case RES:
                 // The bundled photo fades in over plain bg, as Home always did.
-                view.setBackground(null);
+                setSky(null);
                 String res = key.name;
                 load(() -> decodeRes(res));
                 break;
             case PIXEL:
-                view.setBackground(sky(t));
+                setSky(t);
                 String scene = key.name;
                 load(() -> decodePixel(scene));
                 break;
             case URL:
-                view.setBackground(sky(t));
+                setSky(t);
                 showUrl(BackdropKeys.pick(key, LocalDateTime.now().getHour()));
                 prefetch();
                 break;
         }
         schedule();
+        changed();
     }
 
     /**
@@ -143,6 +172,7 @@ final class Backdrops {
      */
     void release() {
         stop();
+        changed();
     }
 
     /**
@@ -220,15 +250,19 @@ final class Backdrops {
             t.startTransition((int) ms);
             // The old picture goes once the crossfade is over, so only one stays in memory.
             view.postDelayed(() -> {
-                if (view.getDrawable() == t) view.setImageDrawable(d);
+                if (view.getDrawable() != t) return;
+                view.setImageDrawable(d);
+                changed();
             }, ms + 50);
+            changed();
             return;
         }
         imageShown = true;
         view.setImageDrawable(d);
         if (ms <= 0) {
             view.setImageAlpha(255);
-            view.setBackground(null);
+            setSky(null);
+            changed();
             return;
         }
         view.setImageAlpha(0);
@@ -240,11 +274,15 @@ final class Backdrops {
             public void onAnimationEnd(Animator animation) {
                 view.setImageAlpha(255);
                 // The picture covers the screen: the sky under it would only be a second full-screen fill per frame.
-                if (fade == a) view.setBackground(null);
+                if (fade != a) return;
+                fade = null;
+                setSky(null);
+                changed();
             }
         });
         fade = a;
         a.start();
+        changed();
     }
 
     private void prefetch() {

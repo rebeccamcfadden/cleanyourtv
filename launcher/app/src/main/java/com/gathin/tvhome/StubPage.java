@@ -1,7 +1,6 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
-import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -76,10 +75,7 @@ final class StubPage {
     /** A pushed page's background: the shade over the landscape, as on every page, without the nav. */
     static FrameLayout frame(Context ctx) {
         FrameLayout page = new FrameLayout(ctx);
-        View shade = new View(ctx);
-        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{Ui.SHADE_TOP, Ui.SHADE_BOTTOM}));
-        shade.setTag(R.id.ui_still, Boolean.TRUE);
+        View shade = BackdropBake.shade(ctx, new int[]{Ui.SHADE_TOP, Ui.SHADE_BOTTOM});
         page.addView(shade, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         return page;
