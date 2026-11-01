@@ -3,12 +3,22 @@ package com.gathin.tvhome;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /** Launcher settings › Performance's choices as saved on the TV (PerfChoices decides what they mean). */
 final class PerfPrefs {
     private PerfPrefs() {}
 
     static PerfChoices load(Context ctx, Config cfg) {
-        return PerfChoices.resolve(prefs(ctx).getAll(), cfg.lightDefaults);
+        // Only this page's keys, read one by one rather than copying every preference with getAll().
+        SharedPreferences p = prefs(ctx);
+        Map<String, Object> saved = new HashMap<>();
+        if (p.contains(PerfChoices.KEY_SHADOWS)) saved.put(PerfChoices.KEY_SHADOWS, p.getString(PerfChoices.KEY_SHADOWS, null));
+        if (p.contains(PerfChoices.KEY_GLOW)) saved.put(PerfChoices.KEY_GLOW, p.getBoolean(PerfChoices.KEY_GLOW, true));
+        if (p.contains(PerfChoices.KEY_BACKDROP)) saved.put(PerfChoices.KEY_BACKDROP, p.getString(PerfChoices.KEY_BACKDROP, null));
+        if (p.contains(PerfChoices.KEY_DETAILS)) saved.put(PerfChoices.KEY_DETAILS, p.getBoolean(PerfChoices.KEY_DETAILS, true));
+        return PerfChoices.resolve(saved, cfg.lightDefaults);
     }
 
     static void saveShadows(Context ctx, PerfChoices.Shadows s) {

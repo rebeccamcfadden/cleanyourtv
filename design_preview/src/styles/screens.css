@@ -2545,7 +2545,9 @@
 }
 .perf-row .seg {
   flex: none;
-}/* ===== V2 · First run (design 01-setup B) ===== */
+}
+
+/* ===== V2 · First run (design 01-setup B) ===== */
 .screen--setup {
   background:
     linear-gradient(rgba(var(--shade-rgb), 0.9), rgba(var(--shade-rgb), 0.93)),

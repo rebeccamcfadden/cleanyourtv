@@ -71,10 +71,16 @@ final class PerformanceSection implements SettingsSection {
         PerfChoices p = PerfPrefs.load(ctx, config);
         if (m == MotionChoice.FULL && p.same(PerfChoices.FULL)) return ctx.getString(R.string.perf_value_all_on);
         if (m == MotionChoice.OFF && p.same(PerfChoices.MINIMUM)) return ctx.getString(R.string.perf_value_light_mode);
-        android.content.SharedPreferences prefs = ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
-        boolean saved = PerfChoices.anySaved(prefs.getAll()) || prefs.contains(MotionChoice.KEY);
-        if (config.lightDefaults && !saved) return ctx.getString(R.string.perf_value_lighter);
+        if (config.lightDefaults && !saved(ctx)) return ctx.getString(R.string.perf_value_lighter);
         return ctx.getString(R.string.perf_value_custom);
+    }
+
+    /** Whether the household saved any of this page's choices (Motion included). */
+    private static boolean saved(Context ctx) {
+        android.content.SharedPreferences prefs = ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
+        if (prefs.contains(MotionChoice.KEY)) return true;
+        for (String key : PerfChoices.KEYS) if (prefs.contains(key)) return true;
+        return false;
     }
 
     @Override
@@ -83,7 +89,10 @@ final class PerformanceSection implements SettingsSection {
         pane.addView(SettingsKit.eyebrow(ctx, ctx.getString(R.string.settings_performance)));
         SettingsKit.add(pane, SettingsKit.title(ctx, ctx.getString(R.string.settings_performance), false), 10);
         SettingsKit.add(pane, SettingsKit.sub(ctx, ctx.getString(R.string.perf_sub)), 8);
-        if (config.lightDefaults) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.perf_light_note)), 14);
+        // Only while the light start is what the TV shows: once the household chooses, its choices are the page.
+        if (config.lightDefaults && !saved(ctx)) {
+            SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.perf_light_note)), 14);
+        }
         View light = SettingsKit.button(ctx, ctx.getString(R.string.perf_light_mode), R.drawable.ic_ui_gauge, true,
                 "perf-light", "perf-light", false, v -> lightMode(ctx, host));
         SettingsKit.add(pane, SettingsKit.actions(ctx, light), 20);
