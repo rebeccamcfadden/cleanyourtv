@@ -29,6 +29,14 @@ $alias = 'hometv'
 # The release certificate's SHA-256, committed, so the release (and later the installer) can tell our APK from another.
 $certFile = Join-Path $PSScriptRoot 'release-cert.txt'
 
+# Windows PowerShell 5.1 turns a native command's stderr into a terminating error under 'Stop' when it is redirected,
+# and keytool, gh, git and Gradle all write progress there. Run them under 'Continue' and judge them by $LASTEXITCODE.
+function Invoke-Native([scriptblock]$Block) {
+    $saved = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $Block } finally { $ErrorActionPreference = $saved }
+}
+
 function Find-Jdk {
     if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\keytool.exe'))) { return $env:JAVA_HOME }
     $jbr = Get-ChildItem 'C:\Program Files\Android' -Directory -ErrorAction SilentlyContinue |
@@ -67,7 +75,7 @@ function Normalize-Digest([string]$Text) {
 }
 
 function Get-KeyDigest([string]$Keytool) {
-    $out = & $Keytool -list -v -keystore $keystore -storetype PKCS12 -alias $alias -storepass:env HOMETV_STORE_PASSWORD 2>&1
+    $out = Invoke-Native { & $Keytool -list -v -keystore $keystore -storetype PKCS12 -alias $alias -storepass:env HOMETV_STORE_PASSWORD 2>&1 }
     if ($LASTEXITCODE -ne 0) { throw 'keytool could not read the release key (wrong password?).' }
     $line = $out | Where-Object { "$_" -match '^\s*SHA256:\s*([0-9A-Fa-f:]+)\s*$' } | Select-Object -First 1
     if (-not $line) { throw 'keytool printed no SHA256 fingerprint for the release key.' }
@@ -86,6 +94,10 @@ try {
         if ((Test-Path $keystore) -or (Test-Path $signingFile)) {
             throw "A release key is already in $KeyDir. It is never replaced; see tools/release.md before touching it."
         }
+        # A committed digest means a key was made before: on a new PC, restore that key from its backup instead.
+        if ((Test-Path $certFile) -and (Normalize-Digest (Get-Content $certFile -Raw)).Length -eq 64) {
+            throw "tools\release-cert.txt already names a release key. Restore it into $KeyDir from your backup (tools/release.md); a new one is never made."
+        }
         if ($env:HOMETV_STORE_PASSWORD) {
             $first = $env:HOMETV_STORE_PASSWORD
         } else {
@@ -96,10 +108,16 @@ try {
         $env:HOMETV_STORE_PASSWORD = $first
         New-Item -ItemType Directory -Force $KeyDir | Out-Null
         # PKCS12 keeps one password for the store and the key.
-        & $keytool -genkeypair -keystore $keystore -storetype PKCS12 -alias $alias -keyalg RSA -keysize 4096 `
-            -validity 36500 -dname 'CN=HomeTV Launcher' -storepass:env HOMETV_STORE_PASSWORD `
-            -keypass:env HOMETV_STORE_PASSWORD 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $keystore)) { throw 'keytool could not make the release key.' }
+        Invoke-Native {
+            & $keytool -genkeypair -keystore $keystore -storetype PKCS12 -alias $alias -keyalg RSA -keysize 4096 `
+                -validity 36500 -dname 'CN=HomeTV Launcher' -storepass:env HOMETV_STORE_PASSWORD `
+                -keypass:env HOMETV_STORE_PASSWORD 2>&1 | Out-Null
+        }
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $keystore)) {
+            # A half-made key must not block the next try.
+            Remove-Item $keystore -ErrorAction SilentlyContinue
+            throw 'keytool could not make the release key; nothing was kept.'
+        }
         # Relative to this file, which Gradle resolves against its folder: no backslashes for Java's properties parser.
         "storeFile=hometv-release.jks`nkeyAlias=$alias`n" | Set-Content -Path $signingFile -NoNewline -Encoding ascii
         $digest = Get-KeyDigest $keytool
@@ -114,13 +132,14 @@ try {
     # ---- Before building: the checkout, the version and the key --------------------------------------------------
     Push-Location $repo
     try {
-        $dirty = git status --porcelain
+        $dirty = Invoke-Native { git status --porcelain }
+        if ($LASTEXITCODE -ne 0) { throw 'git status failed.' }
         if ($dirty) { throw 'The checkout has changes; a release is built from committed code only.' }
-        $head = (git rev-parse HEAD).Trim()
+        $head = (Invoke-Native { git rev-parse HEAD }).Trim()
         if (-not $DryRun) {
-            git fetch --quiet origin main
+            Invoke-Native { git fetch --quiet origin main 2>&1 } | Out-Null
             if ($LASTEXITCODE -ne 0) { throw 'git fetch origin main failed.' }
-            $main = (git rev-parse origin/main).Trim()
+            $main = (Invoke-Native { git rev-parse origin/main }).Trim()
             if ($head -ne $main) { throw "HEAD is not origin/main ($main): check out main and pull, then run this again." }
         }
     } finally { Pop-Location }
@@ -141,25 +160,37 @@ try {
     if (-not $DryRun) {
         Push-Location $repo
         try {
-            $slug = (gh repo view --json nameWithOwner -q .nameWithOwner 2>$null)
+            $slug = Invoke-Native { gh repo view --json nameWithOwner -q .nameWithOwner 2>$null }
             if ($LASTEXITCODE -ne 0 -or -not $slug) {
                 throw 'gh cannot see this repository: sign gh in with the account that owns it (or set $env:GH_TOKEN for it).'
             }
-            gh release view $tag --repo $slug 2>$null | Out-Null
+            $slug = "$slug".Trim()
+            # The tag must be new as a release and as a git tag: GitHub would reuse an existing tag and ignore --target.
+            Invoke-Native { gh release view $tag --repo $slug 2>&1 } | Out-Null
             if ($LASTEXITCODE -eq 0) { throw "Release $tag exists already: raise versionName and versionCode in a pull request first." }
-            # Updates need a higher versionCode than the last release's, or Android refuses them.
-            $tmp = Join-Path ([IO.Path]::GetTempPath()) ("hometv-last-" + [guid]::NewGuid().ToString('N'))
-            New-Item -ItemType Directory $tmp | Out-Null
-            try {
-                gh release download --repo $slug --pattern version.json --dir $tmp 2>$null
-                $last = Join-Path $tmp 'version.json'
-                if ($LASTEXITCODE -eq 0 -and (Test-Path $last)) {
+            Invoke-Native { git ls-remote --exit-code --tags origin "refs/tags/$tag" 2>&1 } | Out-Null
+            if ($LASTEXITCODE -eq 0) { throw "The tag $tag exists already: raise versionName and versionCode in a pull request first." }
+            if ($LASTEXITCODE -ne 2) { throw 'git ls-remote could not list the tags on origin.' }
+            # Updates need a higher versionCode than the last release's, or Android refuses them. No release yet is
+            # the only case that skips this; any other failure stops the release.
+            $lastTag = Invoke-Native { gh release list --repo $slug --exclude-drafts --limit 1 --json tagName -q '.[0].tagName' 2>$null }
+            if ($LASTEXITCODE -ne 0) { throw 'gh could not list the releases.' }
+            $lastTag = "$lastTag".Trim()
+            if ($lastTag) {
+                $tmp = Join-Path ([IO.Path]::GetTempPath()) ("hometv-last-" + [guid]::NewGuid().ToString('N'))
+                New-Item -ItemType Directory $tmp | Out-Null
+                try {
+                    Invoke-Native { gh release download $lastTag --repo $slug --pattern version.json --dir $tmp 2>&1 } | Out-Null
+                    $last = Join-Path $tmp 'version.json'
+                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $last)) {
+                        throw "Could not read version.json from the last release, $lastTag; the versionCode check cannot be skipped."
+                    }
                     $lastCode = [int]((Get-Content $last -Raw | ConvertFrom-Json).versionCode)
                     if ($versionCode -le $lastCode) {
-                        throw "versionCode $versionCode is not above the last release's ${lastCode}: raise it in a pull request first."
+                        throw "versionCode $versionCode is not above $lastTag's ${lastCode}: raise it in a pull request first."
                     }
-                }
-            } finally { Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue }
+                } finally { Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue }
+            }
         } finally { Pop-Location }
     }
 
@@ -170,14 +201,14 @@ try {
     }
     Push-Location $launcher
     try {
-        & .\gradlew.bat --no-daemon clean testReleaseUnitTest lintRelease assembleRelease -PpublicRelease=true "-PreleaseSigning=$signingFile"
+        Invoke-Native { & .\gradlew.bat --no-daemon clean testReleaseUnitTest lintRelease assembleRelease -PpublicRelease=true "-PreleaseSigning=$signingFile" }
         if ($LASTEXITCODE -ne 0) { throw 'The build, its tests or lint failed; nothing was released.' }
     } finally { Pop-Location }
     $apk = Join-Path $launcher 'app\build\outputs\apk\release\app-release.apk'
 
     # ---- Check what was built -------------------------------------------------------------------------------------
     $apksigner = Join-Path (Find-BuildTools) 'apksigner.bat'
-    $certs = & $apksigner verify --print-certs $apk 2>&1
+    $certs = Invoke-Native { & $apksigner verify --print-certs $apk 2>&1 }
     if ($LASTEXITCODE -ne 0) { throw 'apksigner could not verify the APK.' }
     $signers = @($certs | Where-Object { "$_" -match '^Signer #\d+ certificate SHA-256 digest:' })
     if ($signers.Count -ne 1) { throw "The APK has $($signers.Count) signers; a release has exactly one." }
@@ -234,7 +265,7 @@ try {
     Push-Location $repo
     try {
         $files = Get-ChildItem $out -File | ForEach-Object { $_.FullName }
-        gh release create $tag @files --repo $slug --draft --target $head --title "HomeTV Launcher $versionName" --notes $Notes
+        Invoke-Native { gh release create $tag @files --repo $slug --draft --target $head --title "HomeTV Launcher $versionName" --notes $Notes }
         if ($LASTEXITCODE -ne 0) { throw 'gh release create failed; nothing was published.' }
     } finally { Pop-Location }
     Write-Host "Draft release $tag is on GitHub. Check its files, then publish it there; publishing makes the tag."
