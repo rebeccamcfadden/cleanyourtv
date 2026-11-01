@@ -13,6 +13,7 @@ import android.graphics.RectF;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.View;
@@ -427,7 +428,11 @@ final class AccountSection implements SettingsSection {
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
         user.addView(avatar, new LinearLayout.LayoutParams(Ui.px(96), Ui.px(96)));
         LinearLayout who = PaneParts.column(ctx);
-        who.addView(PaneParts.title(ctx, name, 40));
+        TextView title = PaneParts.title(ctx, name, 40);
+        // A long username stays on one line, ellipsized, rather than running out of the pane.
+        title.setSingleLine(true);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        who.addView(title);
         LinearLayout good = PaneParts.across(ctx);
         good.setGravity(Gravity.CENTER_VERTICAL);
         good.addView(Ui.icon(ctx, R.drawable.ic_ui_check, 22, Ui.GOOD), new LinearLayout.LayoutParams(Ui.px(22),
@@ -436,7 +441,7 @@ final class AccountSection implements SettingsSection {
         signed.setText(R.string.account_signed_in_good);
         good.addView(signed, PaneParts.after(8));
         who.addView(good, PaneParts.below(6));
-        user.addView(who, PaneParts.after(24));
+        user.addView(who, PaneParts.grow(24));
         column.addView(user, PaneParts.wide(20));
 
         Map<SyncList, List<String>> mine = router.data().household.syncedLists();
