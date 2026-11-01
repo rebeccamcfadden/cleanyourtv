@@ -125,6 +125,7 @@ milestones: [docs/rework.md](docs/rework.md).
 - **V1:** SE only.
 - **Wanted:** search SE and US together, since the household also watches through a VPN, and label each result
   with its region.
+- **Planned:** the region as a setting, SE or US, comes first with the [family install](#family-install) (step 2).
 
 ### TMDB sign-in and watchlist sync
 - **V1:** My list, Seen, Favorites, recent searches and recently viewed are stored on the TV only.
@@ -565,6 +566,72 @@ questions on 2026-10-31.
 - **A step that recreates the launcher:** a rebuild (Theme or Typeface, for example) reopens First run with its done
   steps, not the split it was in. None of the four steps rebuilds mid-split today; a new step that does needs the
   restore path to know it came from First run.
+
+## Family install
+
+Getting the launcher onto the TVs of family and friends who aren't technical, with no AI agent: they run a script
+on a Windows laptop while the project lead helps on a call. Planned with the project lead on 2026-11-01
+([docs/rework.md](docs/rework.md), Family install). Today `launcher/build-and-install.sh` / `.ps1` needs Python, JDK 17
+and the Android SDK on the laptop, bakes the keys and weather place into the APK (`tv.properties`), signs with the
+build machine's debug key, and speaks ADB on port 5555 with no pairing (`tools/tv.py`).
+
+In order, one PR each:
+
+0. **Package rename** to `com.rmcfad.tv` (the project lead's feedback list). Before anyone else installs: a rename
+   later is a new app, and their lists, ticks and sign-in stay behind in the old one.
+1. **Settings at run time.** A `household.json` pushed over ADB into the launcher's files folder, as `tools/theme.sh`
+   pushes `config.json`: the TMDB token, the Watchmode and Movie of the Night keys, the region, this TV's share of
+   each key's quota (for two TVs on one key), the shown lists and the default weather place. The launcher moves it
+   into private storage and deletes the file. The `tv.properties` keys stay as the fallback for our own builds. This
+   lets one public APK carry no secrets.
+2. **US region.** The region as a setting, SE by default, US from `household.json`: TMDB's region and watch
+   providers, the US services with their TV apps and ServiceIds, prices in dollars, Watchmode `regions=US`, Movie of
+   the Night `country=us`, iTunes `us`. Today SE is a constant (`TmdbApi.REGION`, `WatchProviders.REGION`), with
+   kronor. A first step towards [Two regions](#two-regions).
+3. **Signed releases.** A release keystore kept outside git and backed up; `tools/release.ps1` builds, signs and
+   uploads the APK with its SHA-256 to a GitHub Release (`gh release create`) from the project lead's PC, with no CI
+   release workflow. AGENTS.md's "This fork" gets a line allowing signed APKs on GitHub Releases, never in the tree and
+   never with keys.
+4. **Family installer.** A PowerShell script, started by a one-liner pasted during the call (`irm <url> | iex`; a
+   `.cmd` from a downloaded zip meets SmartScreen). It:
+   - downloads Google's platform-tools at run time (its `adb` can pair; `tools/tv.py` can't) and the latest release;
+   - walks them through Developer options and debugging in plain words, then connects, or pairs with Wireless
+     debugging's code (usual on Google TV);
+   - reads the model, Android version and brand itself, and stops below `minSdk` 26;
+   - on Google TV, warns that Home needs `setupwraith` gone and that it can cost casting (Cast Fix, SHOWCASE.md);
+   - runs the Home guard, ported from `build-and-install`, and picks the key helpers by brand;
+   - helps them make their own TMDB, Watchmode and Movie of the Night keys: opens each sign-up page, gives the text for
+     TMDB's app form, checks each key with a test call, and keeps them in their Windows profile for re-runs;
+   - pushes `household.json`, grants in-app updates and writes a restore file;
+   - ends with them switching debugging off, and checks the port is closed.
+
+   Tested against fake TVs, as the shell scripts are.
+5. **In-app updates.** The launcher reads the latest GitHub Release once a day while Home shows, downloads the APK,
+   and Android asks to install it; shown in Launcher settings › About. Needs `REQUEST_INSTALL_PACKAGES` (justified in
+   the PR) and "install unknown apps" for the launcher, which the installer grants with `appops` while ADB is on. To
+   check on a TV: a Home app replacing itself comes back cleanly (the #1101-style restart).
+6. **Debloat from a report.** The installer offers an exact `examples/` list for the model it read, with a backup, the
+   protected-package check, small batches and the firmware updater left on. Without one it disables only the stock
+   launcher and writes a report (model, Android version, package list; no IP, serial or Wi-Fi name) for the project
+   lead, who makes the list with her agent under PROMPT.md's rules; the next run applies it.
+
+- **Quotas are per key:** Watchmode's free plan is 2,500 credits a month, Movie of the Night's 1,000, and each TV
+  budgets the whole quota for itself; hence a key per household. TMDB has no quota, but its key form asks for an app
+  name, URL and summary.
+- **Later, maybe:** a phone settings page on the TV's `/setup` server, to change keys or lists without a laptop.
+
+### Tizen port (separate repo)
+- **Finding:** a Samsung TV runs Tizen, so nothing here installs on it, and no third-party app can replace Smart Hub
+  or start at power-on. The best case is an app they open (some models reopen the last app used).
+- **Planned (2026-11-01):** a spike in its own repository, listed in SHOWCASE.md once it works, as a
+  [TizenBrew](https://github.com/reisxd/TizenBrew) application module: a web app served from npm, so it updates
+  whenever it's published, and TizenBrew is installed once from a PC in Developer Mode. Its logic (TMDB catalogue,
+  prices, deep links) is shared with `design_preview/` as a TypeScript package rather than copied; the Android
+  launcher's Java is the reference.
+- **The spike answers:** whether a module can open Netflix and the rest (`tizen.application`), and how the keys get on
+  without ADB (a QR to a page on the phone).
+- **Ruled out:** an own `.wgt` through Tizen Studio (a certificate per TV's DUID, which expires) and Samsung's store.
+  Fallback: a Google TV Streamer on the Samsung's HDMI, running this launcher.
 
 ## Not designed yet
 
