@@ -294,11 +294,10 @@ final class Notes {
                 done.accept(null);
                 return;
             }
-            if (!top.isEmpty()) {
-                book.offered(list, ask.key, top);
-                prefs.edit().putString(SENDS, book.sendsJson()).apply();
-                changed();
-            }
+            // Kept even when there were none, so reopening the line shows that search, not an older one.
+            book.offered(list, ask.key, top);
+            prefs.edit().putString(SENDS, book.sendsJson()).apply();
+            changed();
             done.accept(ask.with(top));
         });
     }

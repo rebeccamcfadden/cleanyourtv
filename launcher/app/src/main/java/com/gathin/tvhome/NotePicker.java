@@ -34,14 +34,15 @@ final class NotePicker {
     private enum Mode { LOOKING, OFFLINE, READY }
 
     static Screen create(Context ctx, Shell shell, Notes notes, String list, NoteMatch.Ask ask) {
-        if (!ask.top.isEmpty()) return build(ctx, shell, notes, list, ask, Mode.READY, null);
+        if (ask.looked) return build(ctx, shell, notes, list, ask, Mode.READY, null);
         return look(ctx, shell, notes, list, ask, ask.query, null);
     }
 
     /** "Looking on TMDB…" while {@code query} is looked up for the line, then the answers (or Couldn't reach TMDB). */
     private static Screen look(Context ctx, Shell shell, Notes notes, String list, NoteMatch.Ask ask, String query,
                                String searched) {
-        Screen looking = build(ctx, shell, notes, list, ask, Mode.LOOKING, searched);
+        // No answers while waiting, so OK can't pick one from the search being replaced; offline, they come back.
+        Screen looking = build(ctx, shell, notes, list, ask.unanswered(), Mode.LOOKING, searched);
         notes.lookUp(list, ask, query, found -> {
             // Only if the household is still waiting on this one.
             if (shell.top() != looking) return;
@@ -104,7 +105,7 @@ final class NotePicker {
             actions.add(Kit.button(ctx, ctx.getString(R.string.notes_pick_edit), R.drawable.ic_ui_search, Kit.NORMAL,
                     false, GROUP + "-actions", GROUP + "-edit", false, v -> {
                         shell.pop();
-                        shell.push(editor(ctx, shell, notes, list, ask, searched != null ? searched : ask.query));
+                        shell.push(editor(ctx, shell, notes, list, ask, searched));
                     }));
         }
         actions.add(none);
@@ -122,9 +123,12 @@ final class NotePicker {
 
     /**
      * Search again: the line's text (or what was last searched) in a bar over Search's keyboard, then Search, which
-     * looks it up and shows its answers to pick from for the same line, or Cancel and Back, which go back to them.
+     * looks it up and shows its answers to pick from for the same line, or Cancel and Back, which go back to the
+     * answers as they were, with what was last searched.
      */
-    private static Screen editor(Context ctx, Shell shell, Notes notes, String list, NoteMatch.Ask ask, String start) {
+    private static Screen editor(Context ctx, Shell shell, Notes notes, String list, NoteMatch.Ask ask,
+                                 String searched) {
+        String start = searched != null ? searched : ask.query;
         FrameLayout root = new FrameLayout(ctx);
         View scrim = new View(ctx);
         scrim.setBackgroundColor(Ui.SCRIM);
@@ -168,7 +172,7 @@ final class NotePicker {
         paint.run();
         Runnable back = () -> {
             shell.pop();
-            shell.push(build(ctx, shell, notes, list, ask, Mode.READY, null));
+            shell.push(build(ctx, shell, notes, list, ask, Mode.READY, searched));
         };
         Runnable search = () -> {
             String q = query[0].trim();

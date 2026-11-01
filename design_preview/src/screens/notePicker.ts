@@ -59,7 +59,7 @@ export function notePicker(list: string, ask: NoteAsk, searched?: string): Scree
     key: 'note-pick-edit',
     onOk: () => {
       app.pop();
-      app.push(noteSearch(list, ask, searched ?? ask.line));
+      app.push(noteSearch(list, ask, searched));
     },
   });
   const line = searched ? `Results for “${searched}”.` : `“${ask.line}” in the note for ${list} matched nothing exactly.`;
@@ -83,9 +83,12 @@ export function notePicker(list: string, ask: NoteAsk, searched?: string): Scree
   return { label: title, el, layer: 'dialog', defaultFocus: () => cards[0] ?? none };
 }
 
-/** Search again: the line's text in a bar over Search's keyboard; Search looks it up, Cancel and Back go back. */
-function noteSearch(list: string, ask: NoteAsk, start: string): Screen {
-  let query = start;
+/**
+ * Search again: the line's text (or what was last searched) in a bar over Search's keyboard; Search looks it up and
+ * keeps the answers with the line; Cancel and Back go back to the answers as they were.
+ */
+function noteSearch(list: string, ask: NoteAsk, searched?: string): Screen {
+  let query = searched ?? ask.line;
   const typed = h('span.sb-typed');
   const paint = () => {
     typed.classList.toggle('is-placeholder', !query.trim());
@@ -97,12 +100,14 @@ function noteSearch(list: string, ask: NoteAsk, start: string): Screen {
   };
   const back = () => {
     app.pop();
-    app.push(notePicker(list, ask));
+    app.push(notePicker(list, ask, searched));
   };
   const search = () => {
     if (!query.trim()) return;
     app.pop();
-    app.push(notePicker(list, { ...ask, top: mockSearch(query) }, query.trim()));
+    const top = mockSearch(query);
+    notes.offer(list, ask.line, top);
+    app.push(notePicker(list, { ...ask, top }, query.trim()));
   };
   const key = (label: string, onOk: () => void, cls = '') =>
     focusable(h(`div.key${cls}`, label), { group: 'nkb', key: `nk-${label}`, isDefault: label === 'a', onOk });
