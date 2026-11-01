@@ -66,6 +66,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     private TvInputs inputs;
     private FrameLayout stage;
     private ImageView backdrop;
+    /** F25: snow or rain over a Seasonal picture while Home is idle, between the backdrop and the pages. */
+    private WeatherLayer weather;
     private Backdrops backdrops;
     private boolean backdropLoaded;
     private boolean started;
@@ -210,6 +212,10 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
                 ViewGroup.LayoutParams.MATCH_PARENT));
         backdrops = new Backdrops(this, backdrop);
         Overlays.add(root, this, theme);
+        weather = new WeatherLayer(this);
+        backdrops.setOnPhase(weather::setPhase);
+        root.addView(weather, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
         stage = new FrameLayout(this);
         root.addView(stage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -222,7 +228,10 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         loadBackdrop();
 
         shell = new Shell(stage, this);
-        shell.setOnShown(() -> pill.atTop(shell.pillAtTop()));
+        shell.setOnShown(() -> {
+            pill.atTop(shell.pillAtTop());
+            weather.setOnTop(shell.top() instanceof HomePage);
+        });
         // F3: holding OK on a title card, wherever one shows, opens the title menu.
         shell.setLongOk(v -> TitleMenu.open(this, v));
         refreshNav();
@@ -257,6 +266,10 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     @Override
     public Screen create(Screen.Tab tab) {
         return Pages.create(this, this, tab);
+    }
+
+    WeatherLayer weatherLayer() {
+        return weather;
     }
 
     @Override
@@ -648,6 +661,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // Any key stops the snow or rain before it is handled, so the frame it moves in has none to draw.
+        if (event.getAction() == KeyEvent.ACTION_DOWN && weather != null) weather.onKey();
         if (handleSettingsKey(event)) return true;
         if (shell.dispatch(event)) return true;
         return super.dispatchKeyEvent(event);
@@ -726,6 +741,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
             AppArt.clear();
         }
         if (!MemoryTrimPolicy.shouldRelease(level, started)) return;
+        weather.release();
         backdrops.release();
         backdropLoaded = false;
     }
