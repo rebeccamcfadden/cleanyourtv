@@ -26,6 +26,7 @@
 
     <!-- The section's value in the list. -->
     <string name="perf_value_all_on">All on</string>
+    <string name="perf_value_default">Default</string>
     <string name="perf_value_lighter">Lighter</string>
     <string name="perf_value_light_mode">Light mode</string>
     <string name="perf_value_custom">Custom</string>

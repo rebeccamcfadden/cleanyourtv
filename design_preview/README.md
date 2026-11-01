@@ -437,7 +437,7 @@ on the right.
 - **Sections and values:** Account (Not signed in, amber "Getting a code…", "Waiting…", "Signing in…", "Code
   expired", or the username), Phone notes (Off, On, or amber "3 not matched"), Streaming services ("8 ticked"), Stores
   for rent and buy ("5 ticked"), Weather (the city), Home row apps (7), Theme (Midnight, or "Nature · Halloween"),
-  Performance (All on, or Custom), Open on start (Home), Default Home (On), TV settings, About (2.0.0). Values update live. The list
+  Performance (Default, All on, or Custom), Open on start (Home), Default Home (On), TV settings, About (2.0.0). Values update live. The list
   stays inside title-safe and scrolls with focus when its sections don't fit.
 - **Moving:** landing on a section shows its pane at once, as a preview. → or OK enters the pane, on its first control
   (the selected option in a segmented control), and the pane's border brightens. ← from the pane's left edge
