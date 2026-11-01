@@ -13,7 +13,7 @@ import { notesPane } from './panes/notes';
 import { notes } from '../core/notes';
 import { appsPane } from './panes/apps';
 import { aboutPane, homePane, performancePane, startPane, tvPane } from './panes/misc';
-import { featuresPane, featuresValue } from './panes/features';
+import { featureOffPane, featuresPane, featuresValue } from './panes/features';
 import type { Pane, PaneHost } from './panes/pane';
 import { servicesPane, storesPane } from './panes/services';
 import { themePane } from './panes/theme';
@@ -50,7 +50,7 @@ interface Section {
   icon: IconName;
   /** The current value, in grey at the row's right; amber while the sign-in is under way. */
   value: () => { text: string; warn?: boolean };
-  /** F14: the section is there only while this feature is on. */
+  /** F14: while this feature is off, the section reads Off and its pane says how to turn it on. */
   feature?: FeatureId;
 }
 
@@ -95,10 +95,11 @@ export interface SetupOpts {
 export function launcherSettings(initial: SectionId = 'account', opts: { enter?: boolean; setup?: SetupOpts } = {}): Screen {
   const setup = opts.setup;
   const sections = setup ? SECTIONS.filter((s) => setup.steps.includes(s.id)) : SECTIONS;
-  /** F14: a section whose feature is off is hidden; the list keeps its row for when the feature comes back. */
-  const isShown = (s: Section) => !s.feature || featureOn(s.feature);
-  const firstShown = () => (sections.find(isShown) ?? sections[0]).id;
-  let current: SectionId = sections.some((s) => s.id === initial && isShown(s)) ? initial : firstShown();
+  /** F14 (the project lead, 2026-11-01): a section whose feature is off stays, says so, and points to Features. */
+  const isOff = (s: Section) => !!s.feature && !featureOn(s.feature);
+  let current: SectionId = sections.some((s) => s.id === initial) ? initial : sections[0].id;
+  /** The section showing has its own pane (its feature is on). */
+  const live = () => !isOff(sections.find((s) => s.id === current)!);
   let shown: SectionId | null = null;
   let inPane = false;
 
@@ -151,8 +152,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
 
   function paintValues() {
     sections.forEach((sec, i) => {
-      rows[i].style.display = isShown(sec) ? '' : 'none';
-      let { text, warn } = sec.value();
+      let { text, warn } = isOff(sec) ? { text: 'Off', warn: false } : sec.value();
       if (setup && sec.id === 'account' && text === 'Not signed in') text = 'Optional';
       const v = rows[i].querySelector<HTMLElement>('.sec-value')!;
       v.textContent = text;
@@ -182,7 +182,8 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
   }
 
   function rerender() {
-    replace(scroll, panes[current].render());
+    const sec = sections.find((s) => s.id === current)!;
+    replace(scroll, isOff(sec) ? featureOffPane(sec.feature!, sec.label, () => (setup ? app.push(launcherSettings('features', { enter: true })) : enter('features'))) : panes[current].render());
     paintFoot();
     paintValues();
     if (inPane) app.refocus();
@@ -229,7 +230,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
       pane.classList.toggle('is-live', inPane);
       rows.forEach((r) => r.classList.toggle('is-active', inPane && r.dataset.section === current));
     },
-    onText: (ch) => !!panes[current].onText?.(ch),
+    onText: (ch) => live() && !!panes[current].onText?.(ch),
     onKey(key, f) {
       if (!f) return false;
       if (list.contains(f)) {
@@ -244,9 +245,9 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
         }
         return false;
       }
-      if (panes[current].onKey?.(key, f)) return true;
+      if (live() && panes[current].onKey?.(key, f)) return true;
       if (key === 'back') {
-        if (!panes[current].back?.()) app.focus(rowOf(current));
+        if (!live() || !panes[current].back?.()) app.focus(rowOf(current));
         return true;
       }
       if (key === 'left') {

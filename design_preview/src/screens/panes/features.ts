@@ -1,11 +1,34 @@
 import type { Key } from '../../core/app';
-import { h } from '../../core/dom';
-import { featureOn, FEATURES, setFeature, settings } from '../../core/settings';
-import { segmented } from '../../ui/widgets';
+import { h, type Child } from '../../core/dom';
+import { featureOn, FEATURES, setFeature, settings, type FeatureId } from '../../core/settings';
+import { button, segmented } from '../../ui/widgets';
 import type { Pane, PaneHost } from './pane';
 
 /** "6 of 6 on": the section's value. */
 export const featuresValue = () => `${FEATURES.filter((f) => featureOn(f.id)).length} of ${FEATURES.length} on`;
+
+/**
+ * A Launcher settings section whose feature is off (F14, the project lead 2026-11-01): it stays in the list, reading
+ * Off, and its pane says so and how to turn it on, with a button that opens Features.
+ */
+export function featureOffPane(id: FeatureId, section: string, openFeatures: () => void): Child {
+  const f = FEATURES.find((x) => x.id === id)!;
+  const needs = f.needs && !featureOn(f.needs) ? FEATURES.find((x) => x.id === f.needs)! : null;
+  const open = button('Open Features', { icon: 'list', primary: true, key: 'open-features', onOk: openFeatures });
+  open.dataset.entry = '';
+  return [
+    h('div.eyebrow', section),
+    h('div.pane-title', `${f.label} is off`),
+    h(
+      'div.pane-sub',
+      needs
+        ? `${f.label} needs ${needs.label}, which is off. Turn on ${needs.label} in Launcher settings › Features, then ${f.label}.`
+        : `This household has ${f.label} switched off, so it doesn’t run. Turn it on in Launcher settings › Features.`,
+    ),
+    h('div.pane-actions', open),
+    h('div.pane-note', `Off: ${f.off}.`),
+  ];
+}
 
 /**
  * Launcher settings › Features (F14, decided 2026-11-01; no Figma frame): one row per feature, each On or Off, laid

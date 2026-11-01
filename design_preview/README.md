@@ -108,7 +108,8 @@ one option for each (2026-10-30). The prototype builds these:
 - **The lists are the account's own** (2026-10-31): signed in, the TMDB lists ticked Show in Account → Choose lists
   become chips under their TMDB names, in the account's order, **at most 6** (the project lead, 2026-10-31); a list
   shown past six has no chip, but its titles are still in All lists. Before any sign-in the mock Household and Friends
-  stand in; after a sign-out only My list is left.
+  stand in; after a sign-out only My list is left. Since F14 (the project lead, 2026-11-01) Movies, TV Shows and
+  Search need a sign-in and show "needs a TMDB account" without one, so the page shows these lists only signed in.
 - **Title preview is Option C:** a popup with the art across the top, the essentials and actions on the card, and
   tabs for everything else. Options A (cinematic, scroll for the rest) and B (side panel) are parked in Figma.
 - **The title preview is a popup, not a page.** The page it was opened from stays visible, dimmed, around its
@@ -438,8 +439,9 @@ on the right.
   expired", or the username), Phone notes (Off, On, or amber "3 not matched"), Streaming services ("8 ticked"), Stores
   for rent and buy ("5 ticked"), Weather (the city), Home row apps (7), Theme (Midnight, or "Nature · Halloween"),
   Performance (All on, or Custom), Features ("6 of 6 on"), Open on start (Home), Default Home (On), TV settings, About
-  (2.0.0). Values update live. A section whose feature is off in Features is not listed (Account, Phone notes,
-  Weather). The list stays inside title-safe and scrolls with focus when its sections don't fit.
+  (2.0.0). Values update live. A section whose feature is off in Features stays and reads Off (Account, Phone notes,
+  Weather): its pane says the feature is off and how to turn it on, with **Open Features** (first focus), which goes to
+  the Features section. The list stays inside title-safe and scrolls with focus when its sections don't fit.
 - **Moving:** landing on a section shows its pane at once, as a preview. → or OK enters the pane, on its first control
   (the selected option in a segmented control), and the pane's border brightens. ← from the pane's left edge
   returns to the section. Back leaves a sub-state first (Choose lists, Change city, an app being moved), then the pane,
@@ -580,18 +582,22 @@ picks another theme.
   everything on; it applies Motion and the backdrop, and saves the card shadows and glow, which it doesn't draw.
 - **Features** (F14, the project lead's decision 2026-11-01; no Figma frame): one build, with each feature switched
   on or off at run time. "Turn off what this household doesn’t use", then a row per feature laid out as Performance's,
-  each with an On / Off control; a feature that is off never starts: no page, no settings section and nothing
-  fetched for it. A family install sets the same switches in household.json, and a pushed config.json can too.
-  - **TMDB account:** off, Movies, TV Shows and Search are an empty state alone, "Movies needs a TMDB account", with
-    **Open Features** (first focus); the Account section, First run's Sign in to TMDB and quick settings' TMDB
-    account row go. Not signed in with it on, the pages work as before (My list on the TV).
+  each with an On / Off control; a feature that is off never starts: no page and nothing fetched for it. Its Launcher
+  settings section stays, reading Off, with a pane that says how to turn it on (the project lead, 2026-11-01).
+  First run leaves out a step whose feature is off (Sign in to TMDB, Weather city): the checklist is for setting up
+  what this TV runs, and Launcher settings still shows the feature as off. Quick settings drops its row too. A family
+  install sets the same switches in household.json, and a pushed config.json can too.
+  - **TMDB account:** Movies, TV Shows and Search need it: while it is off, **or on but the TV isn't signed in**, they
+    are an empty state alone, "Movies needs a TMDB account", with **Open Features** (off) or **Sign in** (opens
+    Account), first focus. Signing in from the dev bar's Account menu shows the page at once.
   - **Phone notes** needs TMDB account (it puts the phone's list on TMDB): while that is off its row says "Off ·
-    needs TMDB account" and ↑/↓ pass it by. Off, no Phone notes section, no import pill, and the TV doesn't listen.
+    needs TMDB account" and ↑/↓ pass it by, and its section's pane says to turn on TMDB account first. Off, no import
+    pill, and the TV doesn't listen.
   - **Pick for me:** off, no Pick for me button on Movies and TV Shows; the chips lead on to the nav.
   - **Prices:** off, every offer comes without its prices: cards and the title preview still say Rent or Buy and where
-    ("Rent on Apple TV Store"); the Stores pane stays, since it picks which stores' offers count.
-  - **Weather:** off, Home has no weather or forecast, and the Weather section, quick settings row and First run step
-    go.
+    ("Rent on Apple TV Store"), from TMDB's availability; the Stores pane stays, since it picks which stores' offers
+    count.
+  - **Weather:** off, Home has no weather or forecast.
   - **Themes:** off, nothing is downloaded: the picker shows the Classic themes but Landscapes, each on its plain
     colour, in the system font (Midnight keeps its bundled landscape); a saved Landscapes or Seasonal theme shows
     Midnight until Themes is on again.

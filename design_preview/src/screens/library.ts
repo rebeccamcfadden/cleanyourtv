@@ -13,7 +13,8 @@ import { filtersDrawer } from './filters';
 import { dropdown } from './dropdown';
 import { recentRanks, SORTS, sortTitles, type SortId } from './librarySort';
 import { pickSetup } from './pick';
-import { needsTmdb } from './needsTmdb';
+import { needsTmdb, tmdbReady } from './needsTmdb';
+import { account } from '../core/account';
 import { titlePreview } from './preview';
 import { store } from '../core/store';
 
@@ -65,10 +66,12 @@ export function libraryScreen(kind: Kind): Screen {
   const grid = h('div.lib-grid');
 
   const render = () => {
-    // F14: TMDB account off: the page is the empty state alone, and nothing is fetched. Pick for me off: no button.
-    const tmdb = featureOn('tmdb');
-    tmdbOff.style.display = tmdb ? 'none' : '';
-    for (const c of page.children) if (c !== tmdbOff) (c as HTMLElement).style.display = tmdb ? '' : 'none';
+    // F14: TMDB account off or not signed in: the page is the empty state alone, and nothing is fetched. Pick for me
+    // off: no button.
+    const tmdb = tmdbReady();
+    tmdbOff.paint();
+    tmdbOff.el.style.display = tmdb ? 'none' : '';
+    for (const c of page.children) if (c !== tmdbOff.el) (c as HTMLElement).style.display = tmdb ? '' : 'none';
     guideEl.style.display = tmdb ? '' : 'none';
     pickBtn.style.display = featureOn('pick') ? '' : 'none';
     if (!tmdb) return app.refocus();
@@ -234,7 +237,7 @@ export function libraryScreen(kind: Kind): Screen {
   const page = h(
     'div.page-scroll',
     { 'data-scroll': 'y', 'data-scroll-pad': 70 },
-    tmdbOff,
+    tmdbOff.el,
     h(
       'div.lib-intro',
       h('div', h('h1.page-title', heading), contextEl),
@@ -260,6 +263,11 @@ export function libraryScreen(kind: Kind): Screen {
   );
 
   render();
+  // The dev bar's Account menu signs in or out while the page shows.
+  account.on(() => {
+    render();
+    app.refocus();
+  });
   net.on(() => {
     render();
     app.refocus();
@@ -269,8 +277,8 @@ export function libraryScreen(kind: Kind): Screen {
     label: heading,
     el,
     defaultFocus: () =>
-      !featureOn('tmdb')
-        ? tmdbOff.querySelector<HTMLElement>('[data-focus]')
+      !tmdbReady()
+        ? tmdbOff.el.querySelector<HTMLElement>('[data-focus]')
         : net.get() === 'loading'
           ? chipsEl.querySelector<HTMLElement>('.chip.is-selected')
           : (grid.querySelector<HTMLElement>('[data-default]') ?? grid.querySelector<HTMLElement>('[data-focus]') ?? pickBtn),

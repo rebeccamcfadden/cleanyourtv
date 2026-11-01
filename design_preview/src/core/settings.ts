@@ -151,7 +151,7 @@ export const FEATURES: { id: FeatureId; label: string; sub: string; off: string;
     id: 'notes',
     label: 'Phone notes',
     sub: 'Send a watch list from a phone to the TV',
-    off: 'No Phone notes section and no import pill',
+    off: 'The TV doesn’t listen for notes, and no import pill shows',
     needs: 'tmdb',
   },
   { id: 'pick', label: 'Pick for me', sub: 'The Pick for me button on Movies and TV Shows', off: 'No Pick for me button' },
