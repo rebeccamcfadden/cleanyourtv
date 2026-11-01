@@ -26,9 +26,9 @@ export function settingsMenu(anchor: HTMLElement | null): Screen {
       { label: 'Sound', icon: 'sound', onOk: open('sound settings') },
       { label: 'Network & Wi-Fi', icon: 'wifi', onOk: open('network and Wi-Fi settings') },
       { label: 'Inputs', icon: 'input', onOk: open('the TV’s inputs') },
-      // F14: a household row whose feature is off isn't in the menu.
-      ...(featureOn('tmdb') ? [{ label: 'TMDB account', icon: 'user' as const, chevron: true, status: () => account.value().text, onOk: pane('account') }] : []),
-      { label: 'Streaming services', icon: 'tv', divider: true, chevron: true, status: () => `${settings.get().services.length} ticked`, onOk: pane('services') },
+      // F14: a household row whose feature is off isn't in the menu; the group's line goes above its first row.
+      ...(featureOn('tmdb') ? [{ label: 'TMDB account', icon: 'user' as const, divider: true, chevron: true, status: () => account.value().text, onOk: pane('account') }] : []),
+      { label: 'Streaming services', icon: 'tv', divider: !featureOn('tmdb'), chevron: true, status: () => `${settings.get().services.length} ticked`, onOk: pane('services') },
       ...(featureOn('weather') ? [{
         label: 'Weather',
         icon: 'cloud' as const,
