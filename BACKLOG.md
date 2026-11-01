@@ -589,27 +589,38 @@ In order, one PR each:
    the Night `country=us`, iTunes `us`. Today SE is a constant (`TmdbApi.REGION`, `WatchProviders.REGION`), with
    kronor. A first step towards [Two regions](#two-regions).
 3. **Signed releases.** A release keystore kept outside git and backed up; `tools/release.ps1` builds, signs and
-   uploads the APK with its SHA-256 to a GitHub Release (`gh release create`) from the project lead's PC, with no CI
-   release workflow. AGENTS.md's "This fork" gets a line allowing signed APKs on GitHub Releases, never in the tree and
-   never with keys.
-4. **Family installer.** A PowerShell script, started by a one-liner pasted during the call (`irm <url> | iex`; a
-   `.cmd` from a downloaded zip meets SmartScreen). It:
-   - downloads Google's platform-tools at run time (its `adb` can pair; `tools/tv.py` can't) and the latest release;
+   uploads to a GitHub Release (`gh release create`) from the project lead's PC, with no CI release workflow: the APK,
+   the installer script and a `SHA256SUMS` file for both. AGENTS.md's "This fork" gets a line allowing signed APKs on
+   GitHub Releases, never in the tree and never with keys.
+4. **Family installer.** A PowerShell script. Two ways to start it, both from one tagged release, never from `main`:
+   the release page's script, downloaded and checked against `SHA256SUMS` first (the first choice), or a one-liner
+   pasted during the call (`irm <tagged url> | iex`), for when SmartScreen blocks the download; the one-liner is the
+   last resort, used only with the project lead on the call. It:
+   - downloads only what it pins, and checks each file before use: Google's platform-tools at a fixed version with its
+     SHA-256 written in the script (its `adb` can pair; `tools/tv.py` can't), and the APK from the same release
+     against `SHA256SUMS`. It also compares the APK's signing certificate with the release key's digest, also written
+     in the script, and stops at any mismatch;
    - walks them through Developer options and debugging in plain words, then connects, or pairs with Wireless
      debugging's code (usual on Google TV);
    - reads the model, Android version and brand itself, and stops below `minSdk` 26;
    - on Google TV, warns that Home needs `setupwraith` gone and that it can cost casting (Cast Fix, SHOWCASE.md);
    - runs the Home guard, ported from `build-and-install`, and picks the key helpers by brand;
    - helps them make their own TMDB, Watchmode and Movie of the Night keys: opens each sign-up page, gives the text for
-     TMDB's app form, checks each key with a test call, and keeps them in their Windows profile for re-runs;
+     TMDB's app form, and checks each key with a test call. For re-runs it keeps them in one file in their Windows
+     profile, encrypted with DPAPI (current user only), and never in plain text. A key never appears in full on
+     screen, in the report or in a log (only its last four characters), and the script starts no transcript;
    - pushes `household.json`, grants in-app updates and writes a restore file;
    - ends with them switching debugging off, and checks the port is closed.
 
    Tested against fake TVs, as the shell scripts are.
 5. **In-app updates.** The launcher reads the latest GitHub Release once a day while Home shows, downloads the APK,
    and Android asks to install it; shown in Launcher settings › About. Needs `REQUEST_INSTALL_PACKAGES` (justified in
-   the PR) and "install unknown apps" for the launcher, which the installer grants with `appops` while ADB is on. To
-   check on a TV: a Home app replacing itself comes back cleanly (the #1101-style restart).
+   the PR) and "install unknown apps" for the launcher, which the installer grants with `appops` while ADB is on and
+   then reads back. The grant can fail or be undone, on some OEM builds and on restricted profiles. When it isn't
+   there, About says so and its Update button opens Android's "Install unknown apps" screen for the launcher
+   (`ACTION_MANAGE_UNKNOWN_APP_SOURCES`), with a line saying what to switch on. On a TV without that screen, updates
+   go back to re-running the installer, and About says that too. To check on a TV: a Home app replacing itself comes
+   back cleanly (the #1101-style restart).
 6. **Debloat from a report.** The installer offers an exact `examples/` list for the model it read, with a backup, the
    protected-package check, small batches and the firmware updater left on. Without one it disables only the stock
    launcher and writes a report (model, Android version, package list; no IP, serial or Wi-Fi name) for the project
