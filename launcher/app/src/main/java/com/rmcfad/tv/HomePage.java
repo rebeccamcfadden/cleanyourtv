@@ -127,7 +127,13 @@ final class HomePage extends Screen {
         shade.setTag(R.id.ui_still, Boolean.TRUE);
         root.addView(shade, match());
         // .home::before: the scrolled state dims the landscape further.
-        dim = new View(ctx);
+        // One colour, so fading it needs no offscreen layer: the colour is drawn at the view's alpha directly.
+        dim = new View(ctx) {
+            @Override
+            public boolean hasOverlappingRendering() {
+                return false;
+            }
+        };
         dim.setBackgroundColor(Ui.theme().homeDim);
         dim.setAlpha(0f);
         dim.setTag(R.id.ui_still, Boolean.TRUE);
