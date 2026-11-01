@@ -239,6 +239,8 @@ final class Notes {
 
     /** The oldest note waiting whose list isn't in {@code skip} (list keys), or null. */
     NoteBook.Pending next(java.util.Set<String> skip) {
+        // F14: Phone notes off imports nothing, not even notes that arrived before; they wait for it to be on again.
+        if (!allowed) return null;
         return book.next(skip);
     }
 
