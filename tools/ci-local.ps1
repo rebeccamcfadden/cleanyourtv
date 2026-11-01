@@ -49,7 +49,7 @@ function Post($job, $state, $desc) {
     Write-Host "  [$job] $state - $desc"
     if ($NoPost) { return }
     gh api "repos/$repo/statuses/$sha" -f state=$state -f context="local-ci/$job" -f description=$desc | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "GitHub rejected the local-ci/$job status" }
+    if ($LASTEXITCODE -ne 0) { throw "GitHub rejected the local-ci/$job status: does gh's account, or GH_TOKEN, have push access to $repo?" }
 }
 
 function Tree($rev) {
