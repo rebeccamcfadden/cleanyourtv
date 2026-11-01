@@ -82,8 +82,9 @@
         android:banner="@drawable/banner"
         android:theme="@style/Theme.TvHome"
         android:allowBackup="false"
-        tools:ignore="DataExtractionRules">
-        <!-- DataExtractionRules: Android 12+ only; these TVs run 9, and allowBackup="false" already keeps backups out. -->
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:targetApi="31">
 
         <activity
             android:name=".MainActivity"
