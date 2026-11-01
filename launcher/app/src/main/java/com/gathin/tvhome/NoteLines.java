@@ -57,8 +57,8 @@ final class NoteLines {
     }
 
     private static final Pattern TICKED = Pattern.compile(
-            "^(?:[-*•+]\\s*)?(?:☑|☒|✅|✔️?|✓|\\[[xX✓✔]\\])\\s*");
-    private static final Pattern UNTICKED = Pattern.compile("^(?:[-*•+]\\s*)?(?:☐|□|⬜|\\[ ?\\])\\s*");
+            "^(?:(?:[-*•+]|\\d{1,3}[.)])\\s*)?(?:☑|☒|✅|✔️?|✓|\\[[xX✓✔]\\])\\s*");
+    private static final Pattern UNTICKED = Pattern.compile("^(?:(?:[-*•+]|\\d{1,3}[.)])\\s*)?(?:☐|□|⬜|\\[ ?\\])\\s*");
     private static final Pattern BULLET = Pattern.compile("^(?:[-*•+–—◦‣·▪●○]|\\d{1,3}[.)])\\s+");
     private static final Pattern STRUCK = Pattern.compile("^~~(.+)~~$");
     private static final Pattern YEAR = Pattern.compile("\\s*[(\\[]((?:19|20)\\d\\d)[)\\]]\\s*$");

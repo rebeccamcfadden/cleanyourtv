@@ -268,8 +268,10 @@ final class NoteInbox {
                 inString = true;
             } else if (c == '{' || c == '[') {
                 max = Math.max(max, ++depth);
+                // Deep enough to refuse: no need to read the rest.
+                if (max > MAX_DEPTH) return max;
             } else if (c == '}' || c == ']') {
-                depth--;
+                if (depth > 0) depth--;
             }
         }
         return max;

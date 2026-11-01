@@ -120,6 +120,7 @@ public class NoteInboxTest {
         for (int i = 0; i < 30_000; i++) b.append('[');
         assertEquals(400, handle(post(CODE, "application/json", b.toString())).status);
         assertEquals(2, NoteInbox.depth("{\"a\":[1],\"b\":\"[[[[[[[[[[\"}"));
+        assertEquals("extra closers don't go below zero", 1, NoteInbox.depth("]]]]{}"));
         assertTrue(got.isEmpty());
     }
 

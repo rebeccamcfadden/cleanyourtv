@@ -52,6 +52,10 @@ public class NoteLinesTest {
 
     @Test
     public void otherTickMarksAndStrikethrough() {
+        assertTrue(only("1. [x] Dune").ticked);
+        assertEquals("Dune", only("1. [x] Dune").query);
+        assertFalse(only("2) [ ] Dune").ticked);
+        assertEquals("Dune", only("2) [ ] Dune").query);
         assertTrue(only("✓ Dune").ticked);
         assertTrue(only("✅ Dune").ticked);
         assertTrue(only("✔️ Dune").ticked);

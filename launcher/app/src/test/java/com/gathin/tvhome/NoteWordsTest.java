@@ -23,9 +23,19 @@ import javax.xml.parsers.DocumentBuilderFactory;
 public class NoteWordsTest {
     private static NoteWords.Texts texts;
 
+    /** strings_notes.xml from the module, the launcher or the repo root, wherever the test runs from. */
+    private static File stringsFile() {
+        String path = "src/main/res/values/strings_notes.xml";
+        for (String base : new String[] {"", "app/", "launcher/app/"}) {
+            File f = new File(base + path);
+            if (f.isFile()) return f;
+        }
+        throw new IllegalStateException("strings_notes.xml not found from " + new File("").getAbsolutePath());
+    }
+
     @BeforeClass
     public static void readStrings() throws Exception {
-        File f = new File("src/main/res/values/strings_notes.xml");
+        File f = stringsFile();
         NodeList all = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(f).getElementsByTagName("string");
         Map<String, String> s = new HashMap<>();
         for (int i = 0; i < all.getLength(); i++) {
