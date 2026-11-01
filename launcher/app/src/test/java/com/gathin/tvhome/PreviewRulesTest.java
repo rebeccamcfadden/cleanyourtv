@@ -41,10 +41,10 @@ public class PreviewRulesTest {
         return t;
     }
 
-    /** A subscription the household doesn't have, with nothing to rent or buy: the card says so, and OK opens the
-     *  app (Router.watch with the subscription offer) instead of an empty rent/buy dialog. */
+    /** A subscription the household doesn't have, with nothing to rent or buy: OK opens the app (Router.watch with the
+     *  subscription offer) instead of an empty rent/buy dialog. The card's "Subscription" wording is PriceCardsTest's. */
     @Test
-    public void unsubscribedServiceWithNoStoreOffersSaysSubscription() {
+    public void unsubscribedServiceWithNoStoreOffersOpensItsSubscription() {
         Title mitchells = t("mitchells");
         ServiceOffers netflix = PreviewRules.forService(mitchells, ServiceId.NETFLIX, NONE);
         assertNotNull(netflix);

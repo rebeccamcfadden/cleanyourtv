@@ -7,8 +7,9 @@ import java.util.Set;
 
 /**
  * What the title preview says and picks, ported from design_preview/src/screens/preview.ts and person.ts (with
- * core/fuzzy.ts, titlesForPerson): the Watch button's label, the Overview's availability line, the Where to watch
- * cards' text, the similar titles, the episodes' watched and "Up next" state, and the titles a person appears in.
+ * core/fuzzy.ts, titlesForPerson): the Watch button's label, the Overview's availability line, which offer OK on a
+ * Where to watch card opens (the cards' text is PriceCards'), the similar titles, the episodes' watched and "Up next"
+ * state, and the titles a person appears in.
  * Pure Java and English only, like Offers and TitleText, so it is unit-tested against the prototype's outputs.
  */
 final class PreviewRules {
