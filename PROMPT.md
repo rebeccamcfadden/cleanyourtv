@@ -125,9 +125,9 @@ Launcher
   activity` for Home there and warns when neither answers - that warning means nothing was checked,
   and a set with no recovery has no way back (#795).
 - Install the launcher in `launcher/` with `launcher/build-and-install.sh` (`build-and-install.ps1` on
-  Windows): it builds the APK, installs it over ADB, sets it as the default home and disables the stock
-  launcher only once it is Home. It needs JDK 17 and Android SDK platform 34 on this computer, and it keeps
-  the Home guard below. If several apps claim
+  Windows): it builds the APK, installs it over ADB, starts it, disables the stock launcher, sets it as the
+  default home, then checks that Home resolves to it and re-enables the stock launcher if it does not. It
+  needs JDK 17 and Android SDK platform 34 on this computer, and it keeps the Home guard below. If several apps claim
   the HOME intent, list them with `cmd package query-activities -a android.intent.action.MAIN -c
   android.intent.category.HOME` and set the default with `cmd package set-home-activity`. Those two
   commands can both name your launcher while Home still opens something else: on some Google TV builds
