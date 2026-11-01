@@ -50,7 +50,7 @@ final class ImportedLists {
 
         @Override
         public int hashCode() {
-            return Long.hashCode(id) * 31 + ids.hashCode();
+            return java.util.Objects.hash(id, name, ids, ref.toString());
         }
     }
 

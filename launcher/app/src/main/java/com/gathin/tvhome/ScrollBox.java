@@ -173,9 +173,22 @@ final class ScrollBox {
             anim = null;
         }
 
+        /** The first focusable view, kept until the row's children change (a focus move doesn't walk the tree). */
+        private View firstView;
+        private View firstOf;
+        private int firstCount = -1;
+
         private boolean isFirst(View d) {
-            java.util.List<View> all = Focus.all(this);
-            return !all.isEmpty() && all.get(0) == d;
+            View c = getChildCount() > 0 ? getChildAt(0) : null;
+            int n = c instanceof ViewGroup ? ((ViewGroup) c).getChildCount() : 0;
+            if (c != firstOf || n != firstCount || firstView == null || !firstView.isAttachedToWindow()
+                    || firstView.getParent() == null) {
+                java.util.List<View> all = Focus.all(this);
+                firstView = all.isEmpty() ? null : all.get(0);
+                firstOf = c;
+                firstCount = n;
+            }
+            return firstView != null && firstView == d;
         }
 
         @Override

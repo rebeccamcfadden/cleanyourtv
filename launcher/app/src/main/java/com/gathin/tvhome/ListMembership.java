@@ -45,15 +45,17 @@ interface ListMembership {
         return Math.max(0, shownLists().size() - CHIP_CAP);
     }
 
-    /** Whether t is on any of them: what All lists shows. */
+    /** Whether t is on any of them: what All lists shows. Per title, so it builds no list. */
     default boolean onAnyList(Title t) {
-        for (ShownList l : lists()) if (isOn(t, l)) return true;
+        if (isOn(t, ShownList.MY)) return true;
+        for (ShownList l : shownLists()) if (isOn(t, l)) return true;
         return false;
     }
 
-    /** The first list in chip order that holds t, or null: the card's provenance line. */
+    /** The first list in chip order that holds t, or null: the card's provenance line. Per title: no list built. */
     default ShownList firstListOf(Title t) {
-        for (ShownList l : lists()) if (isOn(t, l)) return l;
+        if (isOn(t, ShownList.MY)) return ShownList.MY;
+        for (ShownList l : shownLists()) if (isOn(t, l)) return l;
         return null;
     }
 }

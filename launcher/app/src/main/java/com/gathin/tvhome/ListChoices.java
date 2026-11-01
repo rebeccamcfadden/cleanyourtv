@@ -80,12 +80,14 @@ final class ListChoices {
         return !before.equals(shown);
     }
 
-    /** In the account's order; lists it doesn't have keep their place after those it does. */
+    /** In the account's order; lists it doesn't have keep their place after those it does. Linear, by an index map. */
     private void sortBy(List<Long> order) {
         if (order == null) return;
+        java.util.Map<Long, Integer> at = new java.util.HashMap<>();
+        for (int i = 0; i < order.size(); i++) at.putIfAbsent(order.get(i), i);
         List<Long> known = new ArrayList<>(), rest = new ArrayList<>();
-        for (Long id : order) if (shown.contains(id) && !known.contains(id)) known.add(id);
-        for (Long id : shown) if (!known.contains(id)) rest.add(id);
+        for (Long id : shown) (at.containsKey(id) ? known : rest).add(id);
+        known.sort((a, b) -> Integer.compare(at.get(a), at.get(b)));
         shown.clear();
         shown.addAll(known);
         shown.addAll(rest);
