@@ -219,12 +219,12 @@ final class Backdrops {
     /**
      * The picture has settled at full alpha: the sky under it, and the root's fill under that, would only be extra
      * full-screen fills on every frame (the TCL's GPU repaints the whole screen each frame). A picture with
-     * transparent pixels keeps both.
+     * transparent pixels keeps the root's fill (put back if an opaque one before it had dropped it).
      */
     private void covered(Drawable d) {
-        if (!opaque(d)) return;
         view.setBackground(null);
-        root.setBackground(null);
+        if (opaque(d)) root.setBackground(null);
+        else root.setBackgroundColor(rootFill);
     }
 
     private static boolean opaque(Drawable d) {
@@ -331,8 +331,11 @@ final class Backdrops {
         Drawable old = view.getDrawable();
         cancelFade();
         if (imageShown && old != null && ms > 0) {
+            // Not setCrossFadeEnabled: that fades the old picture out too, so mid-way what is under the view shows
+            // through, and once covered() has dropped the fills there is nothing under it. Drawn whole, with the new
+            // one fading in over it, the old picture keeps the screen covered.
             TransitionDrawable t = new TransitionDrawable(new Drawable[] {old, d});
-            t.setCrossFadeEnabled(true);
+            if (!opaque(d)) root.setBackgroundColor(rootFill);
             view.setImageDrawable(t);
             t.startTransition((int) ms);
             // The old picture goes once the crossfade is over, so only one stays in memory.
