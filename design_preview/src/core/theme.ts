@@ -1,7 +1,7 @@
 import { msToNextPhase, phaseAt, type Phase } from './daylight';
 import { imgUrl } from './dom';
 import { net } from './net';
-import { settings } from './settings';
+import { featureOn, settings } from './settings';
 
 // The themes (M9), as the launcher has them: Classic ones keep their look all year; Seasonal ones follow the date
 // through ten periods, and their picture follows the part of the day (F22: dawn, day, sunset, night, from the sun;
@@ -129,6 +129,18 @@ export const THEMES: ThemeDef[] = [
 
 export const themeById = (id: string): ThemeDef =>
   THEMES.find((t) => t.id === (id === 'seasonal-nature' ? 'seasonal-vector' : id)) ?? THEMES[0];
+
+/**
+ * A theme the Themes feature (F14) offers with nothing to download: a Classic one other than Landscapes, on its plain
+ * colour. Midnight's evening landscape is in the build, so it keeps it.
+ */
+export const isPlainTheme = (t: ThemeDef) => t.group === 'classic' && t.id !== 'landscapes';
+
+/** The saved theme, or Midnight while Themes is off and the saved one needs downloads. */
+const effectiveTheme = (): ThemeDef => {
+  const t = themeById(settings.get().theme);
+  return featureOn('themes') || isPlainTheme(t) ? t : THEMES[0];
+};
 export const isThemeId = (id: string | null): id is ThemeId => THEMES.some((t) => t.id === id);
 
 const MONTHS: Period[] = ['snow', 'snow', 'thaw', 'spring-rain', 'bloom', 'pride', 'midsummer', 'late-summer', 'autumn', 'autumn', 'autumn', 'christmas'];
@@ -246,20 +258,23 @@ function applyBackdrop(b: Backdrop) {
 
 function apply() {
   const s = settings.get();
-  const t = themeById(s.theme);
+  const t = effectiveTheme();
+  // F14: with Themes off nothing is downloaded: no theme fonts and no backdrop but a bundled one.
+  const themes = featureOn('themes');
+  const system = s.themeFont === 'system' || !themes;
   const now = theme.date();
   root.dataset.theme = t.id;
   if (t.group === 'seasonal') root.dataset.period = periodAt(now);
   else delete root.dataset.period;
-  root.dataset.font = s.themeFont;
-  applyFonts(t, s.themeFont === 'system');
+  root.dataset.font = system ? 'system' : 'theme';
+  applyFonts(t, system);
   // The date override picks the period; the hour stays real, so Landscapes keeps rotating while previewing a date.
   // Launcher settings › Performance › Backdrop picture: Plain colour shows the theme's sky gradient without the picture
   // (a theme with no backdrop keeps its plain background).
   const phase = theme.phase();
   root.dataset.phase = phase;
   const b = t.backdrop(periodAt(now), new Date().getHours(), phase);
-  if (s.backdropPicture === 'plain' && b.kind !== 'none') {
+  if ((s.backdropPicture === 'plain' || (!themes && b.kind !== 'res')) && b.kind !== 'none') {
     root.dataset.backdrop = 'plain';
     wanted = '';
     setImage(null);
@@ -282,7 +297,7 @@ export const theme = {
     net.on(apply);
     apply();
   },
-  current: () => themeById(settings.get().theme),
+  current: () => effectiveTheme(),
   /** Today, or the date the dev bar (or ?date=) put the preview on. */
   date: (): Date => dateOverride ?? new Date(),
   isDateOverridden: () => dateOverride !== null,

@@ -4,7 +4,7 @@ import { h, replace } from '../core/dom';
 import { focusable } from '../core/focus';
 import { net } from '../core/net';
 import { theme } from '../core/theme';
-import { settings, START_LABELS } from '../core/settings';
+import { featureOn, settings, START_LABELS, type FeatureId } from '../core/settings';
 import { placeById } from '../data/places';
 import { icon, type IconName } from '../ui/icons';
 import { button } from '../ui/widgets';
@@ -13,6 +13,7 @@ import { notesPane } from './panes/notes';
 import { notes } from '../core/notes';
 import { appsPane } from './panes/apps';
 import { aboutPane, homePane, performancePane, startPane, tvPane } from './panes/misc';
+import { featuresPane, featuresValue } from './panes/features';
 import type { Pane, PaneHost } from './panes/pane';
 import { servicesPane, storesPane } from './panes/services';
 import { themePane } from './panes/theme';
@@ -26,7 +27,20 @@ function performanceValue(): string {
   const light = s.motion === 'off' && s.cardShadows === 'off' && !s.focusGlow && s.backdropPicture === 'plain' && !s.movingDetails;
   return light ? 'Light mode' : 'Custom';
 }
-export type SectionId = 'account' | 'notes' | 'services' | 'stores' | 'weather' | 'apps' | 'theme' | 'performance' | 'start' | 'home' | 'tv' | 'about';
+export type SectionId =
+  | 'account'
+  | 'notes'
+  | 'services'
+  | 'stores'
+  | 'weather'
+  | 'apps'
+  | 'theme'
+  | 'performance'
+  | 'features'
+  | 'start'
+  | 'home'
+  | 'tv'
+  | 'about';
 
 interface Section {
   id: SectionId;
@@ -36,17 +50,27 @@ interface Section {
   icon: IconName;
   /** The current value, in grey at the row's right; amber while the sign-in is under way. */
   value: () => { text: string; warn?: boolean };
+  /** F14: the section is there only while this feature is on. */
+  feature?: FeatureId;
 }
 
 const SECTIONS: Section[] = [
-  { id: 'account', label: 'Account', setupLabel: 'Sign in to TMDB', icon: 'user', value: () => account.value() },
-  { id: 'notes', label: 'Phone notes', icon: 'phone', value: () => notes.value() },
+  { id: 'account', label: 'Account', setupLabel: 'Sign in to TMDB', icon: 'user', value: () => account.value(), feature: 'tmdb' },
+  { id: 'notes', label: 'Phone notes', icon: 'phone', value: () => notes.value(), feature: 'notes' },
   { id: 'services', label: 'Streaming services', icon: 'tv', value: () => ({ text: `${settings.get().services.length} ticked` }) },
   { id: 'stores', label: 'Stores for rent and buy', icon: 'cart', value: () => ({ text: `${settings.get().stores.length} ticked` }) },
-  { id: 'weather', label: 'Weather', setupLabel: 'Weather city', icon: 'cloud', value: () => ({ text: placeById(settings.get().place).name }) },
+  {
+    id: 'weather',
+    label: 'Weather',
+    setupLabel: 'Weather city',
+    icon: 'cloud',
+    value: () => ({ text: placeById(settings.get().place).name }),
+    feature: 'weather',
+  },
   { id: 'apps', label: 'Home row apps', icon: 'apps', value: () => ({ text: String(settings.get().homeApps.length) }) },
   { id: 'theme', label: 'Theme', icon: 'palette', value: () => ({ text: theme.label() }) },
   { id: 'performance', label: 'Performance', icon: 'gauge', value: () => ({ text: performanceValue() }) },
+  { id: 'features', label: 'Features', icon: 'list', value: () => ({ text: featuresValue() }) },
   { id: 'start', label: 'Open on start', icon: 'power', value: () => ({ text: START_LABELS[settings.get().openOnStart] }) },
   { id: 'home', label: 'Default Home', icon: 'home', value: () => ({ text: 'On' }) },
   { id: 'tv', label: 'TV settings', icon: 'settings', value: () => ({ text: '' }) },
@@ -71,7 +95,10 @@ export interface SetupOpts {
 export function launcherSettings(initial: SectionId = 'account', opts: { enter?: boolean; setup?: SetupOpts } = {}): Screen {
   const setup = opts.setup;
   const sections = setup ? SECTIONS.filter((s) => setup.steps.includes(s.id)) : SECTIONS;
-  let current: SectionId = sections.some((s) => s.id === initial) ? initial : sections[0].id;
+  /** F14: a section whose feature is off is hidden; the list keeps its row for when the feature comes back. */
+  const isShown = (s: Section) => !s.feature || featureOn(s.feature);
+  const firstShown = () => (sections.find(isShown) ?? sections[0]).id;
+  let current: SectionId = sections.some((s) => s.id === initial && isShown(s)) ? initial : firstShown();
   let shown: SectionId | null = null;
   let inPane = false;
 
@@ -100,6 +127,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
     apps: appsPane(host),
     theme: themePane(),
     performance: performancePane(host),
+    features: featuresPane(host),
     start: startPane(),
     home: homePane(),
     tv: tvPane(),
@@ -123,6 +151,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
 
   function paintValues() {
     sections.forEach((sec, i) => {
+      rows[i].style.display = isShown(sec) ? '' : 'none';
       let { text, warn } = sec.value();
       if (setup && sec.id === 'account' && text === 'Not signed in') text = 'Optional';
       const v = rows[i].querySelector<HTMLElement>('.sec-value')!;

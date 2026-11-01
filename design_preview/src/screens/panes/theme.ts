@@ -1,7 +1,7 @@
 import { h } from '../../core/dom';
 import { focusable } from '../../core/focus';
-import { FONT_LABELS, settings, TIME_OF_DAY_LABELS } from '../../core/settings';
-import { loadSwatchFonts, PERIOD_LABELS, theme, THEMES, type Period, type ThemeDef } from '../../core/theme';
+import { featureOn, FONT_LABELS, settings, TIME_OF_DAY_LABELS } from '../../core/settings';
+import { isPlainTheme, loadSwatchFonts, PERIOD_LABELS, theme, THEMES, type Period, type ThemeDef } from '../../core/theme';
 import type { Pane } from './pane';
 
 /**
@@ -26,11 +26,14 @@ export function swatch(t: ThemeDef, period: Period): HTMLElement {
  */
 export const themePane = (): Pane => ({
   render: () => {
-    loadSwatchFonts();
+    // F14: with Themes off, the Classic themes that need no download, on their plain colour, and nothing fetched.
+    const themes = featureOn('themes');
+    if (themes) loadSwatchFonts();
     const s = settings.get();
     const period = theme.period();
+    const current = theme.current().id;
     const option = (t: ThemeDef) => {
-      const on = t.id === s.theme;
+      const on = t.id === current;
       const el = focusable(h(`div.theme-opt${on ? '.is-selected' : ''}`, h('div.theme-pic', swatch(t, period)), h('div.theme-name', t.name)), {
         group: 'themes',
         key: `theme-${t.id}`,
@@ -45,6 +48,14 @@ export const themePane = (): Pane => ({
         h('div.lrow.theme-row', h('div.lr-main', h('div.lr-title', title), h('div.lr-sub', sub)), h(`span.theme-val${on ? '.is-on' : ''}`, value)),
         { group: 'theme-rows', key, onOk },
       );
+    if (!themes) {
+      return [
+        h('div.pane-title', 'Theme'),
+        h('div.pane-sub', 'Colours and type. Themes is off in Features, so nothing is downloaded: each theme shows on its plain colour, in the system font.'),
+        h('div.grp-h', 'Classic'),
+        h('div.theme-grid', THEMES.filter(isPlainTheme).map(option)),
+      ];
+    }
     return [
       h('div.pane-title', 'Theme'),
       h('div.pane-sub', 'Colours, type and the picture behind Home. Rows, apps and data stay as they are.'),

@@ -437,8 +437,9 @@ on the right.
 - **Sections and values:** Account (Not signed in, amber "Getting a code…", "Waiting…", "Signing in…", "Code
   expired", or the username), Phone notes (Off, On, or amber "3 not matched"), Streaming services ("8 ticked"), Stores
   for rent and buy ("5 ticked"), Weather (the city), Home row apps (7), Theme (Midnight, or "Nature · Halloween"),
-  Performance (All on, or Custom), Open on start (Home), Default Home (On), TV settings, About (2.0.0). Values update live. The list
-  stays inside title-safe and scrolls with focus when its sections don't fit.
+  Performance (All on, or Custom), Features ("6 of 6 on"), Open on start (Home), Default Home (On), TV settings, About
+  (2.0.0). Values update live. A section whose feature is off in Features is not listed (Account, Phone notes,
+  Weather). The list stays inside title-safe and scrolls with focus when its sections don't fit.
 - **Moving:** landing on a section shows its pane at once, as a preview. → or OK enters the pane, on its first control
   (the selected option in a segmented control), and the pane's border brightens. ← from the pane's left edge
   returns to the section. Back leaves a sub-state first (Choose lists, Change city, an app being moved), then the pane,
@@ -577,6 +578,25 @@ picks another theme.
   end (no card shadows, Motion Reduced, no animated details; glow and picture on) until the household chooses, and the
   pane says so; config.xml or config.json `light_defaults` can set or stop that per TV. The prototype starts with
   everything on; it applies Motion and the backdrop, and saves the card shadows and glow, which it doesn't draw.
+- **Features** (F14, the project lead's decision 2026-11-01; no Figma frame): one build, with each feature switched
+  on or off at run time. "Turn off what this household doesn’t use", then a row per feature laid out as Performance's,
+  each with an On / Off control; a feature that is off never starts: no page, no settings section and nothing
+  fetched for it. A family install sets the same switches in household.json, and a pushed config.json can too.
+  - **TMDB account:** off, Movies, TV Shows and Search are an empty state alone, "Movies needs a TMDB account", with
+    **Open Features** (first focus); the Account section, First run's Sign in to TMDB and quick settings' TMDB
+    account row go. Not signed in with it on, the pages work as before (My list on the TV).
+  - **Phone notes** needs TMDB account (it puts the phone's list on TMDB): while that is off its row says "Off ·
+    needs TMDB account" and ↑/↓ pass it by. Off, no Phone notes section, no import pill, and the TV doesn't listen.
+  - **Pick for me:** off, no Pick for me button on Movies and TV Shows; the chips lead on to the nav.
+  - **Prices:** off, every offer comes without its prices: cards and the title preview still say Rent or Buy and where
+    ("Rent on Apple TV Store"); the Stores pane stays, since it picks which stores' offers count.
+  - **Weather:** off, Home has no weather or forecast, and the Weather section, quick settings row and First run step
+    go.
+  - **Themes:** off, nothing is downloaded: the picker shows the Classic themes but Landscapes, each on its plain
+    colour, in the system font (Midnight keeps its bundled landscape); a saved Landscapes or Seasonal theme shows
+    Midnight until Themes is on again.
+  The section's value is "n of 6 on". ↓ goes to the next row's selected option and → stays within its control, as in
+  Performance.
 - **Open on start:** Home / Last app / Live TV, only saved.
 - **Default Home:** "This launcher is Home", "The remote’s Home button opens it", and **Choose Home app** (Android's
   Home app setting).

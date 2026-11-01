@@ -4,12 +4,14 @@ import { focusable } from '../core/focus';
 import { search, titlesInGenre, type Hit } from '../core/fuzzy';
 import { lists } from '../core/lists';
 import { net } from '../core/net';
+import { featureOn } from '../core/settings';
 import { store } from '../core/store';
 import { byId, TITLES } from '../data/catalog';
 import { isOwnIncluded } from '../data/offers';
 import type { Title } from '../types';
 import { icon } from '../ui/icons';
 import { button, chip, navBar, rowOf, smallCard } from '../ui/widgets';
+import { needsTmdb } from './needsTmdb';
 import { personScreen } from './person';
 import { titlePreview } from './preview';
 
@@ -63,7 +65,16 @@ export function searchScreen(): Screen {
   const viewport = h('div.search-viewport', results, h('div.bottom-fade-local'));
 
   // No guide line on Search (decided 2026-10-29): the panel and the results use the height.
-  const el = h('div.screen.screen--base.search', navBar('search'), bar, panel, viewport);
+  // F14: TMDB account off, Search is the empty state alone: no keyboard, no suggestions, nothing fetched.
+  const tmdbOff = needsTmdb('Search');
+  const el = h('div.screen.screen--base.search', navBar('search'), tmdbOff, bar, panel, viewport);
+  const tmdbOn = () => {
+    const on = featureOn('tmdb');
+    tmdbOff.style.display = on ? 'none' : '';
+    for (const part of [bar, panel, viewport]) part.style.display = on ? '' : 'none';
+    return on;
+  };
+  tmdbOn();
 
   function setQuery(q: string) {
     query = q.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
@@ -290,8 +301,14 @@ export function searchScreen(): Screen {
     label: 'Search',
     el,
     // On the full results the keyboard is hidden, so focus that loses its card lands on a result or the bar.
-    defaultFocus: () => (expanded ? firstResult() : keyboard.querySelector<HTMLElement>('[data-default]')),
+    defaultFocus: () =>
+      !featureOn('tmdb')
+        ? tmdbOff.querySelector<HTMLElement>('[data-focus]')
+        : expanded
+          ? firstResult()
+          : keyboard.querySelector<HTMLElement>('[data-default]'),
     onShow() {
+      if (!tmdbOn()) return;
       if (!snap) return render();
       snap = false;
       el.classList.add('is-snapping');
@@ -313,7 +330,7 @@ export function searchScreen(): Screen {
       screen.lastFocusKey = undefined;
     },
     onText(ch) {
-      if (!TYPEABLE.test(ch)) return false;
+      if (!featureOn('tmdb') || !TYPEABLE.test(ch)) return false;
       if (expanded) {
         expanded = false;
         app.focus(keyboard.querySelector<HTMLElement>('[data-default]'));
@@ -322,6 +339,7 @@ export function searchScreen(): Screen {
       return true;
     },
     onKey(k, f) {
+      if (!featureOn('tmdb')) return false;
       if (k === 'back' && expanded) {
         collapse();
         return true;

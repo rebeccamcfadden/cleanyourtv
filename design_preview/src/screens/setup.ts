@@ -2,7 +2,7 @@ import { account, USERNAME } from '../core/account';
 import { app, type Screen } from '../core/app';
 import { h, replace } from '../core/dom';
 import { focusable } from '../core/focus';
-import { settings, UNIT_LABELS } from '../core/settings';
+import { featureOn, settings, UNIT_LABELS } from '../core/settings';
 import { placeById } from '../data/places';
 import { PICK_SERVICES, SERVICES } from '../data/services';
 import { icon } from '../ui/icons';
@@ -26,7 +26,7 @@ const names = (all: string[], max = 2) => (all.length <= max ? all.join(', ') : 
 const tickedServices = () => PICK_SERVICES.filter((s) => settings.get().services.includes(s.id)).map((s) => s.name);
 const tickedStores = () => settings.get().stores.map((id) => SERVICES[id].name);
 
-const STEPS: Step[] = [
+const ALL_STEPS: Step[] = [
   {
     id: 'account',
     title: 'Sign in to TMDB',
@@ -92,6 +92,8 @@ const STEPS: Step[] = [
  * Coming back ticks the rows that were opened and puts focus on the next one not done.
  */
 export function setupScreen(): Screen {
+  // F14: a step whose feature is off isn't on the checklist (Sign in to TMDB, Weather city).
+  const STEPS = ALL_STEPS.filter((s) => (s.id !== 'account' || featureOn('tmdb')) && (s.id !== 'weather' || featureOn('weather')));
   const done = new Set<SectionId>();
   const titleEl = h('h1.setup-title');
   const leadEl = h('div.setup-lead');

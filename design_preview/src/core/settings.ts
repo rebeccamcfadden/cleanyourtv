@@ -11,6 +11,8 @@ export type ThemeFont = 'theme' | 'system';
 export type CardShadows = 'on' | 'focus' | 'off';
 export type BackdropPicture = 'photo' | 'plain';
 export type TimeOfDay = 'sun' | 'day';
+/** Launcher settings › Features (F14): what the launcher runs at all. */
+export type FeatureId = 'tmdb' | 'notes' | 'pick' | 'prices' | 'weather' | 'themes';
 
 interface Saved {
   motion: Motion;
@@ -39,6 +41,8 @@ interface Saved {
   focusGlow: boolean;
   backdropPicture: BackdropPicture;
   movingDetails: boolean;
+  /** Launcher settings › Features (F14): each feature on or off; off, it never starts. */
+  features: Record<FeatureId, boolean>;
 }
 
 const KEY = 'cleanyourtv-preview-settings-v2';
@@ -63,13 +67,16 @@ const defaults = (): Saved => ({
   focusGlow: true,
   backdropPicture: 'photo',
   movingDetails: true,
+  features: { tmdb: true, notes: true, pick: true, prices: true, weather: true, themes: true },
 });
 
 function load(): Saved {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      const saved = { ...defaults(), ...(JSON.parse(raw) as Partial<Saved>) };
+      const raw2 = JSON.parse(raw) as Partial<Saved>;
+      const d = defaults();
+      const saved = { ...d, ...raw2, features: { ...d.features, ...raw2.features } };
       // Seasonal · Nature was removed (2026-11-01): a TV that had it shows Vector art, as the launcher's ThemeStore does.
       if ((saved.theme as string) === 'seasonal-nature') saved.theme = 'seasonal-vector';
       return saved;
@@ -126,6 +133,57 @@ export const FONT_LABELS: Record<ThemeFont, string> = { theme: 'Theme font', sys
 export const SHADOW_LABELS: Record<CardShadows, string> = { on: 'On', focus: 'Focused card only', off: 'Off' };
 export const BACKDROP_LABELS: Record<BackdropPicture, string> = { photo: 'Photo', plain: 'Plain colour' };
 export const TIME_OF_DAY_LABELS: Record<TimeOfDay, string> = { sun: 'Follow the sun', day: 'Always day' };
+
+/**
+ * Launcher settings › Features (F14, the project lead 2026-11-01): one build, with each feature switched on or off at
+ * run time; a feature switched off never starts (no network calls, no pages, no settings section). The TV build reads
+ * the same switches from household.json and a pushed config.json (`features`), as a family install sets them. A
+ * feature that needs another is off while that one is.
+ */
+export const FEATURES: { id: FeatureId; label: string; sub: string; off: string; needs?: FeatureId }[] = [
+  {
+    id: 'tmdb',
+    label: 'TMDB account',
+    sub: 'Movies, TV Shows and Search, your TMDB lists, and the Account section',
+    off: 'Movies, TV Shows and Search say they need a TMDB account',
+  },
+  {
+    id: 'notes',
+    label: 'Phone notes',
+    sub: 'Send a watch list from a phone to the TV',
+    off: 'No Phone notes section and no import pill',
+    needs: 'tmdb',
+  },
+  { id: 'pick', label: 'Pick for me', sub: 'The Pick for me button on Movies and TV Shows', off: 'No Pick for me button' },
+  {
+    id: 'prices',
+    label: 'Prices',
+    sub: 'Rent and buy prices for the stores you ticked',
+    off: 'Rent and Buy still show where, without a price',
+  },
+  {
+    id: 'weather',
+    label: 'Weather',
+    sub: 'Today, tomorrow and the hourly strip on Home, from Open-Meteo',
+    off: 'No weather on Home, in quick settings or in setup',
+  },
+  {
+    id: 'themes',
+    label: 'Themes',
+    sub: 'Seasonal and Landscapes themes, downloaded backdrops and theme fonts',
+    off: 'Classic themes on their plain colour, in the system font',
+  },
+];
+
+/** Whether a feature runs: switched on, and so is the one it needs. */
+export function featureOn(id: FeatureId): boolean {
+  const f = FEATURES.find((x) => x.id === id)!;
+  return data.features[id] && (!f.needs || featureOn(f.needs));
+}
+
+export function setFeature(id: FeatureId, on: boolean) {
+  settings.set({ features: { ...data.features, [id]: on } });
+}
 
 /** A temperature kept in °C, shown in the chosen unit: "14°". */
 export function deg(c: number): string {

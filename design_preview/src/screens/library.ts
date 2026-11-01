@@ -2,6 +2,7 @@ import { app, type Screen } from '../core/app';
 import { h, replace } from '../core/dom';
 import { lists } from '../core/lists';
 import { net, SAVED_AT } from '../core/net';
+import { featureOn } from '../core/settings';
 import { TITLES } from '../data/catalog';
 import { subscribedCount } from '../data/offers';
 import type { Kind, Title } from '../types';
@@ -12,6 +13,7 @@ import { filtersDrawer } from './filters';
 import { dropdown } from './dropdown';
 import { recentRanks, SORTS, sortTitles, type SortId } from './librarySort';
 import { pickSetup } from './pick';
+import { needsTmdb } from './needsTmdb';
 import { titlePreview } from './preview';
 import { store } from '../core/store';
 
@@ -63,6 +65,13 @@ export function libraryScreen(kind: Kind): Screen {
   const grid = h('div.lib-grid');
 
   const render = () => {
+    // F14: TMDB account off: the page is the empty state alone, and nothing is fetched. Pick for me off: no button.
+    const tmdb = featureOn('tmdb');
+    tmdbOff.style.display = tmdb ? 'none' : '';
+    for (const c of page.children) if (c !== tmdbOff) (c as HTMLElement).style.display = tmdb ? '' : 'none';
+    guideEl.style.display = tmdb ? '' : 'none';
+    pickBtn.style.display = featureOn('pick') ? '' : 'none';
+    if (!tmdb) return app.refocus();
     const state = net.get();
     // Offline with nothing saved yet: no lists to count or show (06-states A).
     const empty = state === 'offline-empty';
@@ -220,10 +229,12 @@ export function libraryScreen(kind: Kind): Screen {
   };
 
   const pickBtn = button('Pick for me', { icon: 'shuffle', primary: true, key: 'pick', onOk: () => app.push(pickSetup(kind)) });
+  const tmdbOff = needsTmdb(heading);
 
   const page = h(
     'div.page-scroll',
     { 'data-scroll': 'y', 'data-scroll-pad': 70 },
+    tmdbOff,
     h(
       'div.lib-intro',
       h('div', h('h1.page-title', heading), contextEl),
@@ -258,9 +269,11 @@ export function libraryScreen(kind: Kind): Screen {
     label: heading,
     el,
     defaultFocus: () =>
-      net.get() === 'loading'
-        ? chipsEl.querySelector<HTMLElement>('.chip.is-selected')
-        : (grid.querySelector<HTMLElement>('[data-default]') ?? grid.querySelector<HTMLElement>('[data-focus]') ?? pickBtn),
+      !featureOn('tmdb')
+        ? tmdbOff.querySelector<HTMLElement>('[data-focus]')
+        : net.get() === 'loading'
+          ? chipsEl.querySelector<HTMLElement>('.chip.is-selected')
+          : (grid.querySelector<HTMLElement>('[data-default]') ?? grid.querySelector<HTMLElement>('[data-focus]') ?? pickBtn),
     onShow: () => {
       // F2: back on the page after more than an hour away, what was set on it starts again, from the top, with focus
       // on the page's default rather than a card that may now be out of view.
@@ -295,6 +308,8 @@ export function libraryScreen(kind: Kind): Screen {
       // F4: nothing is left of Sort, so ← stays on it.
       if (f.dataset.key === 'sort' && key === 'left') return true;
       if (!chipsEl.contains(f)) return false;
+      // Pick for me switched off (F14): the chips lead on to the nav, as any row does.
+      if (!featureOn('pick')) return false;
       const all = [...chipsEl.querySelectorAll<HTMLElement>('[data-focus]')];
       if (key === 'up' || (key === 'right' && all[all.length - 1] === f)) {
         app.focus(pickBtn);

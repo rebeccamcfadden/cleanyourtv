@@ -1230,6 +1230,15 @@
   gap: 16px;
   margin-top: 14px;
 }
+/* F14: Movies, TV Shows and Search with TMDB account off, where the page is this state alone. */
+.needs-tmdb {
+  padding-top: 120px;
+}
+.search > .needs-tmdb {
+  position: absolute;
+  top: 150px;
+  left: var(--safe-x);
+}
 .inline-err {
   display: flex;
   align-items: center;
@@ -2557,6 +2566,11 @@
   margin-top: 4px;
   font-size: 18px;
   color: var(--text-2);
+}
+/* F14: a feature that needs another one that is off: no control, just why. */
+.feat-blocked {
+  font-size: 20px;
+  color: var(--text-3);
 }
 /* Every control starts at the same x, so ↑/↓ go row by row (controls of different widths made the D-pad skip one). */
 .perf-ctl {
