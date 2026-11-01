@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.graphics.Bitmap;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
+import android.graphics.NinePatch;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
@@ -14,44 +15,48 @@ import java.util.Arrays;
 /**
  * The theme's glow around a focused tile and shadow under a resting one (Theme glow* and shadow*), drawn behind the
  * tile the way CSS box-shadow draws them: never under the tile itself, so a see-through tile shows none of it.
- * Nothing is blurred while drawing, a 1 GB TV can't afford that on every frame: the blurred shape is drawn once into
- * a small alpha mask with the tile cut out of it, and each draw stretches the mask's middle row and column along the
- * tile, nine-patch fashion. A glow with an offset (8-bit) is a hard shadow: the same mask without blur, moved down and
- * right. Main thread only: the paint and rects are shared.
+ * Nothing is blurred while drawing, a 1 GB TV can't afford that on every frame: the blurred shape is drawn once, in
+ * the theme's colour, into a small picture with the tile cut out of it and every row and column that would draw
+ * nothing cropped off, and each draw is that picture as one nine-patch stretched along the tile, its middle (under the
+ * tile) skipped. On a TV whose GPU redraws the whole screen every frame (the TCL's Mali-470), that is one draw and the
+ * least fill per tile. A glow with an offset (8-bit) is a hard shadow: the same shape without blur, moved down and
+ * right. Main thread only: the paint and rect are shared.
  */
 final class Glow {
     private Glow() {}
 
-    private static final int MAX_MASKS = 8;
+    private static final int MAX_MASKS = 12;
     private static final Mask[] MASKS = new Mask[MAX_MASKS];
     private static int nextSlot;
 
     private static final Paint PAINT = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-    private static final Rect SRC = new Rect();
-    private static final RectF DST = new RectF();
+    private static final Rect DST = new Rect();
 
     /**
-     * A shadow shape (the tile grown by spread, moved by dx, dy, blurred) with the tile cut out, for a tile whose
-     * corners take {@code core} px each way; the mask is {@code margin} px bigger than that tile all round.
+     * A shadow shape (the tile grown by spread, moved by dx, dy, blurred, in colour) with the tile cut out, for a tile
+     * whose corners take {@code core} px each way, as a nine-patch that reaches {@code left}, {@code top},
+     * {@code right} and {@code bottom} px beyond the tile (negative: it starts inside it).
      */
     private static final class Mask {
-        final int radius, blur, spread, dx, dy, core, margin;
-        final Bitmap bitmap;
+        final int radius, blur, spread, dx, dy, core, color;
+        final int left, top, right, bottom;
+        final NinePatch patch;
 
-        Mask(int radius, int blur, int spread, int dx, int dy, int core) {
+        Mask(int radius, int blur, int spread, int dx, int dy, int core, int color) {
             this.radius = radius;
             this.blur = blur;
             this.spread = spread;
             this.dx = dx;
             this.dy = dy;
             this.core = core;
+            this.color = color;
             // CSS blur B is a Gaussian of sigma B/2, visible to about 3 sigma.
             int pad = (int) Math.ceil(blur * 1.5f);
-            margin = pad + spread + Math.max(dx, dy);
+            int margin = pad + spread + Math.max(dx, dy);
             int tile = 2 * core + 1;
             int size = 2 * margin + tile;
-            bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ALPHA_8);
-            Canvas c = new Canvas(bitmap);
+            Bitmap shape = Bitmap.createBitmap(size, size, Bitmap.Config.ALPHA_8);
+            Canvas c = new Canvas(shape);
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
             p.setColor(0xFF000000);
             // Skia turns a blur radius into sigma = 0.57735 r + 0.5.
@@ -64,11 +69,29 @@ final class Glow {
             clear.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
             r.set(margin, margin, margin + tile, margin + tile);
             c.drawRoundRect(r, radius, radius, clear);
+            // In colour: an alpha-only picture takes the paint's colour. What rounds to nothing is cropped off.
+            Bitmap tinted = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+            Paint tint = new Paint();
+            tint.setColor(color);
+            new Canvas(tinted).drawBitmap(shape, 0, 0, tint);
+            shape.recycle();
+            int[] argb = new int[size * size];
+            tinted.getPixels(argb, 0, size, 0, 0, size, size);
+            // The stretched column and row, the middle of the tile, keep a pixel either side.
+            int mid = margin + core;
+            int[] box = ShadowPatch.crop(argb, size, size, new int[] {mid - 1, mid - 1, mid + 2, mid + 2});
+            Bitmap picture = Bitmap.createBitmap(tinted, box[0], box[1], box[2] - box[0], box[3] - box[1]);
+            if (picture != tinted) tinted.recycle();
+            left = margin - box[0];
+            top = margin - box[1];
+            right = box[2] - margin - tile;
+            bottom = box[3] - margin - tile;
+            patch = new NinePatch(picture, ShadowPatch.chunk(mid - box[0], mid - box[1]));
         }
 
-        boolean is(int radius, int blur, int spread, int dx, int dy, int core) {
+        boolean is(int radius, int blur, int spread, int dx, int dy, int core, int color) {
             return this.radius == radius && this.blur == blur && this.spread == spread && this.dx == dx
-                    && this.dy == dy && this.core == core;
+                    && this.dy == dy && this.core == core && this.color == color;
         }
     }
 
@@ -116,37 +139,24 @@ final class Glow {
         int ideal = radius + spread + Math.max(dx, dy) + (int) Math.ceil(blur * 1.5f);
         int fits = (int) Math.floor((Math.min(tile.width(), tile.height()) - 1) / 2f);
         int core = Math.max(0, Math.min(ideal, fits));
-        Mask m = mask(radius, blur, spread, dx, dy, core);
-        PAINT.setColor(color);
-        PAINT.setAlpha(Math.round((color >>> 24) * alpha / 255f));
-        float l = tile.left - m.margin, t = tile.top - m.margin, r = tile.right + m.margin, b = tile.bottom + m.margin;
-        int n = m.margin + m.core, s = m.bitmap.getWidth();
-        // A tile a fraction of a pixel smaller than the mask's squeezes its corners rather than overlapping them.
-        float cx = Math.min(n, (r - l) / 2f), cy = Math.min(n, (b - t) / 2f);
-        // The middle piece is skipped: it lies under the tile, where the mask is empty.
-        piece(c, m, 0, 0, n, n, l, t, l + cx, t + cy);
-        piece(c, m, n, 0, n + 1, n, l + cx, t, r - cx, t + cy);
-        piece(c, m, n + 1, 0, s, n, r - cx, t, r, t + cy);
-        piece(c, m, 0, n, n, n + 1, l, t + cy, l + cx, b - cy);
-        piece(c, m, n + 1, n, s, n + 1, r - cx, t + cy, r, b - cy);
-        piece(c, m, 0, n + 1, n, s, l, b - cy, l + cx, b);
-        piece(c, m, n, n + 1, n + 1, s, l + cx, b - cy, r - cx, b);
-        piece(c, m, n + 1, n + 1, s, s, r - cx, b - cy, r, b);
+        Mask m = mask(radius, blur, spread, dx, dy, core, color);
+        PAINT.setAlpha(alpha);
+        // NinePatch draws into whole pixels; the canvas is moved by the tile's fraction of a pixel instead, so a hard
+        // shadow's edge lands where the tile's does.
+        int x = (int) Math.floor(tile.left), y = (int) Math.floor(tile.top);
+        DST.set(x - m.left, y - m.top, x + Math.round(tile.width()) + m.right, y + Math.round(tile.height()) + m.bottom);
+        int saved = c.save();
+        c.translate(tile.left - x, tile.top - y);
+        m.patch.draw(c, DST, PAINT);
+        c.restoreToCount(saved);
     }
 
-    private static void piece(Canvas c, Mask m, int sl, int st, int sr, int sb, float dl, float dt, float dr, float db) {
-        if (dr <= dl || db <= dt) return;
-        SRC.set(sl, st, sr, sb);
-        DST.set(dl, dt, dr, db);
-        c.drawBitmap(m.bitmap, SRC, DST, PAINT);
-    }
-
-    /** The mask for a shape, made once: a theme uses a handful of tile radii and sizes. */
-    private static Mask mask(int radius, int blur, int spread, int dx, int dy, int core) {
+    /** The picture for a shape, made once: a theme uses a handful of tile radii and sizes. */
+    private static Mask mask(int radius, int blur, int spread, int dx, int dy, int core, int color) {
         for (Mask m : MASKS) {
-            if (m != null && m.is(radius, blur, spread, dx, dy, core)) return m;
+            if (m != null && m.is(radius, blur, spread, dx, dy, core, color)) return m;
         }
-        Mask m = new Mask(radius, blur, spread, dx, dy, core);
+        Mask m = new Mask(radius, blur, spread, dx, dy, core, color);
         MASKS[nextSlot] = m;
         nextSlot = (nextSlot + 1) % MAX_MASKS;
         return m;
