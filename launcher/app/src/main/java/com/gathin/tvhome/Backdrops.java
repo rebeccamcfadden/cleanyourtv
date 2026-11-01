@@ -97,6 +97,8 @@ final class Backdrops {
     /** The URL path on screen or on its way; null for other kinds. */
     private String wanted;
     private boolean loading;
+    /** Bumped by every schedule(): a next-edge answer for an older one is dropped. */
+    private int scheduled;
     private boolean imageShown;
     private boolean visible;
     private ValueAnimator fade;
@@ -117,7 +119,6 @@ final class Backdrops {
             key = BackdropKeys.Key.NONE;
             return;
         }
-        phase = phaseNow();
         switch (key.kind) {
             case NONE:
                 view.setBackground(null);
@@ -132,16 +133,46 @@ final class Backdrops {
                 load(() -> decodeRes(res));
                 break;
             case PIXEL:
-                view.setBackground(sky(t));
-                showPixel();
-                break;
             case URL:
                 view.setBackground(sky(t));
-                showUrl(BackdropKeys.pick(key, LocalDateTime.now().getHour(), phase));
-                prefetch();
+                if (key.phased) {
+                    showPhased();
+                    break;
+                }
+                phase = DayPhase.DAY;
+                if (key.kind == BackdropKeys.Kind.PIXEL) {
+                    showPixel();
+                } else {
+                    showUrl(BackdropKeys.pick(key, LocalDateTime.now().getHour(), phase));
+                    prefetch();
+                }
                 break;
         }
         schedule();
+    }
+
+    /**
+     * A phased picture: the part of the day is worked out on the decode thread, next to the decode, so the sun maths
+     * and the preferences reads stay off the path to Home's first frame; the sky shows until the picture fades in.
+     */
+    private void showPhased() {
+        int gen = ++generation;
+        loading = true;
+        BackdropKeys.Key k = key;
+        int hour = LocalDateTime.now().getHour();
+        SHOW.execute(() -> {
+            DayPhase p = ThemeStore.phase(activity, ZonedDateTime.now());
+            String path = k.kind == BackdropKeys.Kind.URL ? BackdropKeys.pick(k, hour, p) : null;
+            Drawable d = path != null ? decodeUrl(path) : decodePixel(k.name, p);
+            main.post(() -> {
+                if (gen != generation || activity.isDestroyed()) return;
+                loading = false;
+                phase = p;
+                wanted = path;
+                if (d != null) reveal(d);
+                if (path != null) prefetch();
+            });
+        });
     }
 
     /**
@@ -163,6 +194,7 @@ final class Backdrops {
 
     private void stop() {
         generation++;
+        scheduled++;
         loading = false;
         imageShown = false;
         wanted = null;
@@ -180,7 +212,21 @@ final class Backdrops {
     }
 
     private void refresh() {
-        DayPhase now = phaseNow();
+        if (!key.phased) {
+            refresh(DayPhase.DAY);
+            return;
+        }
+        // Worked out off the main thread too: refresh runs on every return to Home.
+        BackdropKeys.Key k = key;
+        SHOW.execute(() -> {
+            DayPhase now = ThemeStore.phase(activity, ZonedDateTime.now());
+            main.post(() -> {
+                if (key == k && !activity.isDestroyed()) refresh(now);
+            });
+        });
+    }
+
+    private void refresh(DayPhase now) {
         boolean turned = now != phase;
         phase = now;
         if (key.kind == BackdropKeys.Kind.URL && !loading) {
@@ -193,29 +239,36 @@ final class Backdrops {
         schedule();
     }
 
-    /** The part of the day for a phased key, else DAY; reading it costs a preferences read, never a frame. */
-    private DayPhase phaseNow() {
-        return key.phased ? ThemeStore.phase(activity, ZonedDateTime.now()) : DayPhase.DAY;
-    }
-
     /**
      * The next check while Home is on screen: on the hour for an hourly list, and when the part of the day changes for
      * a phased key. One post, whichever comes first; nothing runs in between.
      */
     private void schedule() {
         main.removeCallbacks(hourly);
+        int token = ++scheduled;
         if (!visible) return;
-        long ms = Long.MAX_VALUE;
+        long hourMs = Long.MAX_VALUE;
         if (key.kind == BackdropKeys.Kind.URL && key.paths.size() >= 2) {
             LocalDateTime now = LocalDateTime.now();
-            ms = Duration.between(now, now.truncatedTo(ChronoUnit.HOURS).plusHours(1)).toMillis();
+            hourMs = Duration.between(now, now.truncatedTo(ChronoUnit.HOURS).plusHours(1)).toMillis();
         }
-        if (key.phased) {
+        if (!key.phased) {
+            if (hourMs != Long.MAX_VALUE) main.postDelayed(hourly, hourMs + 1000);
+            return;
+        }
+        // The next edge of the day is worked out on the decode thread, then posted back.
+        long hour = hourMs;
+        SHOW.execute(() -> {
             ZonedDateTime now = ZonedDateTime.now();
             ZonedDateTime next = ThemeStore.nextPhaseChange(activity, now);
-            if (next != null) ms = Math.min(ms, Math.max(0, Duration.between(now, next).toMillis()));
-        }
-        if (ms != Long.MAX_VALUE) main.postDelayed(hourly, ms + 1000);
+            long ms = next == null ? hour : Math.min(hour, Math.max(0, Duration.between(now, next).toMillis()));
+            if (ms == Long.MAX_VALUE) return;
+            main.post(() -> {
+                if (token != scheduled || !visible) return;
+                main.removeCallbacks(hourly);
+                main.postDelayed(hourly, ms + 1000);
+            });
+        });
     }
 
     private void showPixel() {
@@ -281,26 +334,34 @@ final class Backdrops {
         a.start();
     }
 
+    /**
+     * Fetches the pictures worth having ahead (BackdropKeys.prefetch) onto disk only, on the low-priority thread; none
+     * is decoded until it is shown. Working out which ones (the next edge of the day, the next period) happens there
+     * too, off the main thread.
+     */
     private void prefetch() {
-        DayPhase next = phase, startsIn = DayPhase.DAY;
-        if (key.phased) {
-            ZonedDateTime now = ZonedDateTime.now();
-            ZonedDateTime change = ThemeStore.nextPhaseChange(activity, now);
-            if (change != null) next = ThemeStore.phase(activity, change);
-            startsIn = ThemeStore.phase(activity,
-                    BackdropKeys.nextPeriodStart(LocalDate.now()).atStartOfDay(now.getZone()));
-        }
-        for (String path : BackdropKeys.prefetch(key, LocalDate.now(), phase, next, startsIn)) {
-            if (path.equals(wanted) || file(path).isFile() || !QUEUED.add(path)) continue;
-            File f = file(path);
-            PREFETCH.execute(() -> {
+        BackdropKeys.Key k = key;
+        DayPhase now = phase;
+        String shown = wanted;
+        PREFETCH.execute(() -> {
+            DayPhase next = now, startsIn = DayPhase.DAY;
+            if (k.phased) {
+                ZonedDateTime t = ZonedDateTime.now();
+                ZonedDateTime change = ThemeStore.nextPhaseChange(activity, t);
+                if (change != null) next = ThemeStore.phase(activity, change);
+                startsIn = ThemeStore.phase(activity,
+                        BackdropKeys.nextPeriodStart(LocalDate.now()).atStartOfDay(t.getZone()));
+            }
+            for (String path : BackdropKeys.prefetch(k, LocalDate.now(), now, next, startsIn)) {
+                File f = file(path);
+                if (path.equals(shown) || f.isFile() || !QUEUED.add(path)) continue;
                 try {
-                    if (!f.isFile()) download(path, f);
+                    download(path, f);
                 } finally {
                     QUEUED.remove(path);
                 }
-            });
-        }
+            }
+        });
     }
 
     static Drawable sky(Theme t) {
