@@ -152,7 +152,9 @@ enum DayPhase {
      * stays up all day and negative when it stays down.
      */
     static double[] sun(double julian, double latitude, double longitude) {
-        double n = Math.ceil(julian - 2451545.0 + 0.0008 - 0.5);
+        // The solar cycle whose transit is nearest the moment, at this longitude: rounding without the longitude
+        // picks the neighbouring cycle on some days far from Greenwich (Auckland on 4 April 2026).
+        double n = Math.round(julian - 2451545.0 + 0.0008 + longitude / 360.0);
         double jStar = n - longitude / 360.0;
         double m = norm(357.5291 + 0.98560028 * jStar);
         double mr = Math.toRadians(m);

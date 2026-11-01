@@ -24,7 +24,8 @@ interface Edge {
 /** Sunrise and sunset (ms) for the solar day around a moment; 'up' or 'down' when the sun doesn't cross the horizon. */
 function sun(noonMs: number): [number, number] | 'up' | 'down' {
   const julian = noonMs / DAY_MS + 2440587.5;
-  const n = Math.ceil(julian - 2451545.0 + 0.0008 - 0.5);
+  // The solar cycle whose transit is nearest the moment at this longitude (as DayPhase.sun).
+  const n = Math.round(julian - 2451545.0 + 0.0008 + LON / 360);
   const jStar = n - LON / 360;
   const m = norm(357.5291 + 0.98560028 * jStar);
   const mr = rad(m);

@@ -140,6 +140,26 @@ public class DayPhaseTest {
     }
 
     @Test
+    public void noonIsDayEveryDayAllRoundTheWorld() {
+        // Each place's own solar cycle: rounding without the longitude picked the neighbouring one on some days far
+        // from Greenwich, such as Auckland on 4 April 2026, when New Zealand's clocks go back.
+        Object[][] places = {
+                {"Pacific/Auckland", -36.85, 174.76}, {"Pacific/Kiritimati", 1.87, -157.4},
+                {"Pacific/Apia", -13.83, -171.76}, {"Pacific/Honolulu", 21.31, -157.86},
+                {"America/Los_Angeles", 34.05, -118.24}, {"America/New_York", 40.71, -74.01},
+                {"Europe/Stockholm", STOCKHOLM_LAT, STOCKHOLM_LON}, {"Asia/Tokyo", 35.68, 139.69}};
+        for (Object[] place : places) {
+            ZoneId zone = ZoneId.of((String) place[0]);
+            double lat = (Double) place[1], lon = (Double) place[2];
+            for (LocalDate d = LocalDate.of(2026, 1, 1); d.getYear() == 2026; d = d.plusDays(1)) {
+                ZonedDateTime noon = d.atTime(13, 0).atZone(zone);
+                assertEquals(place[0] + " " + d, DayPhase.DAY, DayPhase.at(noon, lat, lon));
+            }
+        }
+        assertEquals(DayPhase.DAY, DayPhase.at(at(2026, 4, 4, 12, 0, ZoneId.of("Pacific/Auckland")), -36.85, 174.76));
+    }
+
+    @Test
     public void aPolarDayStartsAtItsMidnight() {
         // Pevek: the sun stops setting on 19 May.
         ZoneId magadan = ZoneId.of("Asia/Magadan");
