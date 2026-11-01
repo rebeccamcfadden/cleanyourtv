@@ -34,12 +34,13 @@ the shortcut changes.
 ## On each iPhone, once
 
 1. Scan the QR in the TV's Phone notes pane with the iPhone camera, and open the link.
-2. Tap **Get the shortcut**, then **Add Shortcut**, and come back to the page. The button shows when the TV has the
+2. Delete any older shortcut called **Send to TV** first (pairing runs it by name). Tap **Get the shortcut**, then
+   **Add Shortcut**, and come back to the page. The button shows when the TV has the
    household's shortcut link (`note_shortcut_url` in `tv.properties`, below); without it, make the shortcut once (next section) or
    build a simple one by hand.
 3. Tap **Pair this phone**. Shortcuts opens and asks whose list this phone's notes go to: type your list's name as it
    should show on the TV (`Rebecca`). It keeps the TV's address, the code and the name in a small file on the phone
-   (iCloud Drive › Shortcuts › `Send to TV.json`) and says "Paired with the TV".
+   (iCloud Drive › Shortcuts › `Send to TV.txt`) and says "Paired with the TV".
 
 After **New code** on the TV, or to send to another list, scan the QR and tap **Pair this phone** again. The first
 time a note is sent, iOS asks whether Shortcuts may find devices on your local network: **Allow**. If you tapped
@@ -52,46 +53,66 @@ anyone in the household. It does two things: started by **Pair this phone** it s
 note it sends the note with what it saved.
 
 ```
-If Shortcut Input contains "cleanyourtv-pair"          (Pair this phone)
-    keep the TV's url and auth, ask for the list name, save them to Send to TV.json
+If the input contains "cleanyourtv-pair"                 (Pair this phone)
+    keep the TV's url and auth, ask for the list name, save them to Send to TV.txt
 Otherwise                                                (a shared note)
-    read Send to TV.json, POST the note to the TV, show its answer
+    read Send to TV.txt, POST the note to the TV, show its answer
 End If
 ```
 
-In the **Shortcuts** app, tap **+** and rename the shortcut `Send to TV` (exactly: the pairing link runs it by
-name). Tap **ⓘ**, turn on **Show in Share Sheet**, then **Done**; in the **Receive** block at the top, tap **Any** →
-**Clear**, tick **Text** and **Rich Text**. Then add, in order (search each name in the bar at the bottom):
+**First, delete every shortcut called "Send to TV"** on the phone. Pair this phone runs the shortcut by its exact
+name: with an old one still there, a new one is called "Send to TV 1", and pairing runs the old one.
 
-1. **If**: *Shortcut Input* · **contains** · `cleanyourtv-pair`.
-2. Inside the If:
-   1. **Get Dictionary from Input** (*Shortcut Input*).
-   2. **Get File** from the **Shortcuts** folder, path `Send to TV.json`, **Error If Not Found** off.
-   3. **Get Dictionary Value**: Value for `list` in *File*.
-   4. **Ask for Input**: Text, prompt `Whose list do notes from this phone go to?`, default answer the *Dictionary
-      Value* from step 3 (empty the first time).
-   5. **Set Dictionary Value**: key `list`, value *Provided Input*, in the *Dictionary* from step 1.
-   6. **Save File**: the *Dictionary* from step 5, **Ask Where to Save** off, folder **Shortcuts**, subpath
-      `Send to TV.json`, **Overwrite If File Exists** on.
-   7. **Show Notification**: `Paired with the TV. Share a note to Send to TV.`
-3. Under **Otherwise**:
-   1. **Get File** from **Shortcuts**, path `Send to TV.json`, **Error If Not Found** off.
-   2. **If** *File* **does not have any value**: **Show Notification** `Scan the QR in the TV's Launcher settings →
-      Phone notes, then tap Pair this phone.`, then **Stop This Shortcut**; **End If**.
-   3. **Get Dictionary from Input** (*File*), then three **Get Dictionary Value** actions for `url`, `auth` and
-      `list`. Rename each result (tap it → **Rename**) to `url`, `auth` and `list`.
-   4. **Get Text from Input** (*Shortcut Input*).
-   5. **Get Contents of URL**: URL the *url* variable (clear any chip Shortcuts filled in first); tap **›**: Method
-      **POST**; header `Authorization` = the *auth* variable; Request Body **JSON** with Text fields `list` = the
-      *list* variable and `text` = the *Text* from step 4.
-   6. **Get Dictionary Value**: Value for `message` in *Contents of URL*, then **Show Notification** with it.
+New actions land at the bottom of the shortcut: press and hold one to drag it into the right part of an **If**.
 
-Test it: open the TV's QR page on this phone, tap **Pair this phone**, then share a note. Then, in the shortcut's
-**⋯** menu, choose **Share → Copy iCloud Link** and put the link in `launcher/tv.properties` as
+**Create it.** In **Shortcuts**, tap **+**, then the name at the top → **Rename** → `Send to TV` (exactly). Tap **ⓘ**,
+turn on **Show in Share Sheet**, **Done**. In the **Receive** block at the top: **Any** → **Clear**, tick **Text** and
+**Rich Text**; set **If there's no input** to **Ask For → Text** (for trying it with ▶).
+
+**Tell a pairing from a note.**
+
+1. **Get Text from Input** (*Shortcut Input*).
+2. **If**: *Text* · **contains** · `cleanyourtv-pair`. It comes with **Otherwise** and **End If**.
+
+**Between If and Otherwise: the pairing.**
+
+3. **Get Dictionary from Input** (*Shortcut Input*).
+4. **Get File**: **Shortcuts** folder, path `Send to TV.txt` (newer iOS: **Get File from Folder**). Tap the **›** after
+   the path and turn **Error If Not Found** off: the first time there is no file yet.
+5. **Get Dictionary Value**: **Value** for `list` in *File*.
+6. **Ask for Input**: **Text**, prompt `Whose list do notes from this phone go to?`, **Default Answer** the *Dictionary
+   Value* from step 5 (empty the first time).
+7. **Set Dictionary Value**: key `list`, value *Provided Input*; tap its dictionary and pick the *Dictionary* from
+   step 3.
+8. **Text**, holding the *Dictionary* from step 7 (this writes the settings as JSON text; Shortcuts saves text as a `.txt` file, so the name ends in `.txt`).
+9. **Save File**: the *Text* from step 8; **Ask Where to Save** off, **Shortcuts** folder, subpath `Send to TV.txt`,
+   **Overwrite If File Exists** on.
+10. **Show Notification**: `Paired with the TV. Share a note to Send to TV.`
+
+**Between Otherwise and End If: sending a note.**
+
+11. **Get File**: **Shortcuts**, path `Send to TV.txt`, **Error If Not Found** off (behind the **›**).
+12. **If** *File* **does not have any value**: inside it **Show Notification** `Scan the QR in the TV's Launcher
+    settings → Phone notes, then tap Pair this phone.` and **Stop This Shortcut**. Leave its Otherwise empty.
+13. After that inner **End If**: **Get Dictionary from Input** (*File* from step 11).
+14. Three times, for `url`, `auth` and `list`: **Get Dictionary Value** (Value for that key; tap its dictionary and pick
+    the one from step 13), then **Set Variable** with the same name.
+15. **Get Text from Input** (*Shortcut Input*).
+16. **Get Contents of URL**: tap the chip it fills in → **Clear Variable**, then set the URL to the variable *url*.
+    Tap **›**: Method **POST**; **Headers**: `Authorization` = the variable *auth* (it already says "Bearer …");
+    **Request Body: JSON** with Text fields `list` = the variable *list* and `text` = the *Text* from step 15.
+17. **Get Dictionary Value**: Value for `message` in *Contents of URL*, then **Show Notification** with it. **Done**.
+
+**Test it**: scan the TV's QR, tap **Pair this phone** (it asks for the list, then says "Paired with the TV"; the
+first time, allow it to use the Shortcuts folder; **Files › iCloud Drive › Shortcuts › Send to TV.txt** now exists),
+then share a note to **Send to TV**.
+
+**Share it**: in the shortcut's **⋯** menu, **Share → Copy iCloud Link**. A link is a copy of the shortcut as it is
+then: after changing the shortcut, copy a new one. Put it in `launcher/tv.properties` as
 `note_shortcut_url=https://www.icloud.com/shortcuts/…` before building the launcher (it is per household, and that
 file is never committed), or in a pushed `config.json` as `"note_shortcut_url": "…"`, which wins; `config.xml`'s
-`note_shortcut_url` is the last fallback. The setup page then shows
-**Get the shortcut** on every phone. Only iCloud shortcut links are accepted.
+`note_shortcut_url` is the last fallback. The setup page then shows **Get the shortcut** on every phone. Only iCloud
+shortcut links are accepted.
 
 ## A simple shortcut by hand
 
@@ -200,7 +221,7 @@ the TV signed in to TMDB; signed out, the pill says so and the line stays.
   phone keeps to itself and never sends to the TV.
 - It is plain HTTP on your home network: someone on your Wi-Fi who sees the code could add titles to your lists, and
   nothing more. The code never leaves the TV, the paired phones and their Shortcuts; don't share screenshots of it.
-- The shared shortcut holds no address or code: each phone keeps those in its own `Send to TV.json` (iCloud Drive ›
+- The shared shortcut holds no address or code: each phone keeps those in its own `Send to TV.txt` (iCloud Drive ›
   Shortcuts), so its iCloud link is safe to pass around the household.
 - The TV keeps each line's text and what it matched, so it doesn't look the same line up twice, and the latest note
   of each list until its titles are on the list (a note sent while the TV is signed out or offline waits there), and

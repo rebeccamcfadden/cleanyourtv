@@ -189,7 +189,7 @@ milestones: [docs/rework.md](docs/rework.md).
   never sent to the TV): a fixed page with **Get the shortcut** (the household's shared iCloud link, `note_shortcut_url`
   in `launcher/tv.properties`, a pushed `config.json` or `config.xml`; only `https://www.icloud.com/shortcuts/` links) and **Pair this phone**
   (`shortcuts://run-shortcut?name=Send%20to%20TV` with the address and `Authorization` value, which the shortcut keeps
-  in iCloud Drive › Shortcuts › `Send to TV.json`, asking for the list name; after New code a phone just pairs again;
+  in iCloud Drive › Shortcuts › `Send to TV.txt`, asking for the list name; after New code a phone just pairs again;
   the project lead, 2026-11-01), and the address and value to copy into a simple hand-built one. New code (asks first),
   How to set up a phone, and each list's last send with the lines not matched exactly, each a button that opens a picker
   (`NotePicker`: TMDB's best three answers as posters with title and year, and None of these, which is remembered; no
