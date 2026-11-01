@@ -600,16 +600,23 @@ In order, one PR each:
      SHA-256 written in the script (its `adb` can pair; `tools/tv.py` can't), and the APK from the same release
      against `SHA256SUMS`. It also compares the APK's signing certificate with the release key's digest, also written
      in the script, and stops at any mismatch;
-   - walks them through Developer options and debugging in plain words, then connects, or pairs with Wireless
+   - asks what is plugged into the TV's USB ports and whether its network comes through a USB Ethernet adapter, then
+     walks them through Developer options and debugging in plain words, and connects, or pairs with Wireless
      debugging's code (usual on Google TV);
    - reads the model, Android version and brand itself, and stops below `minSdk` 26;
+   - before changing anything, backs up the package list, the disabled list, `getprop` and settings to the laptop,
+     and writes the restore file that undoes every step it is about to take;
    - on Google TV, warns that Home needs `setupwraith` gone and that it can cost casting (Cast Fix, SHOWCASE.md);
-   - runs the Home guard, ported from `build-and-install`, and picks the key helpers by brand;
+   - runs the Home guard, ported from `build-and-install`. On a CVTE board (any `com.cvte.*` package) it keeps the
+     stock launcher (`com.cvte.tv.launcher.*`) enabled unless the `examples/` list for that exact board disables
+     it: it sets the new Home with `set-home-activity`, reboots once, and confirms Home and ADB came back before
+     anything else (#741);
+   - picks the key helpers by brand, and on a CVTE board only in a later pass, after that reboot;
    - helps them make their own TMDB, Watchmode and Movie of the Night keys: opens each sign-up page, gives the text for
      TMDB's app form, and checks each key with a test call. For re-runs it keeps them in one file in their Windows
      profile, encrypted with DPAPI (current user only), and never in plain text. A key never appears in full on
      screen, in the report or in a log (only its last four characters), and the script starts no transcript;
-   - pushes `household.json`, grants in-app updates and writes a restore file;
+   - pushes `household.json` and grants in-app updates, adding each step to the restore file;
    - ends with them switching debugging off, and checks the port is closed.
 
    Tested against fake TVs, as the shell scripts are.
@@ -621,10 +628,14 @@ In order, one PR each:
    (`ACTION_MANAGE_UNKNOWN_APP_SOURCES`), with a line saying what to switch on. On a TV without that screen, updates
    go back to re-running the installer, and About says that too. To check on a TV: a Home app replacing itself comes
    back cleanly (the #1101-style restart).
-6. **Debloat from a report.** The installer offers an exact `examples/` list for the model it read, with a backup, the
-   protected-package check, small batches and the firmware updater left on. Without one it disables only the stock
-   launcher and writes a report (model, Android version, package list; no IP, serial or Wi-Fi name) for the project
-   lead, who makes the list with her agent under PROMPT.md's rules; the next run applies it.
+6. **Debloat from a report.** A matching model doesn't make another household's choices theirs: a list can disable
+   apps its owner didn't use (YouTube Music and the Assistant in `examples/jvc-android-tv-menlo`). So before
+   applying a list for the model it read, the installer asks PROMPT.md's checklist question (streaming apps, the
+   voice assistant, Chromecast, Miracast, the firmware updater) and leaves out everything they tick. It then applies
+   the rest after the backup, with the protected-package check, in small batches, with the firmware updater left on.
+   Without a list it disables only the stock launcher (and not even that on a CVTE board, as in step 4), and writes a
+   report (model, Android version, package list, their ticks; no IP, serial or Wi-Fi name) for the project lead. She
+   makes the list with her agent under PROMPT.md's rules, and the next run applies it.
 
 - **Quotas are per key:** Watchmode's free plan is 2,500 credits a month, Movie of the Night's 1,000, and each TV
   budgets the whole quota for itself; hence a key per household. TMDB has no quota, but its key form asks for an app
