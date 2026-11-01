@@ -30,10 +30,20 @@
 <p id="nocode" class="warn" hidden>No pairing code in this link: scan the QR in the TV's Launcher settings → Phone notes again.</p>
 
 <ol>
-  <li>In Shortcuts, make a shortcut named <b>Send to TV</b>; in its details turn on <b>Show in Share Sheet</b> (Text and Notes).</li>
-  <li>Add <b>Get Text from Input</b>, then <b>Text</b> with your list's name, e.g. <code>Rebecca</code>.</li>
-  <li>Add <b>Get Contents of URL</b>: paste the address, Method <b>POST</b>, a header <code>Authorization</code> with the value above, and a JSON body with <code>list</code> (the Text) and <code>text</code> (the note's text).</li>
-  <li>Add <b>Get Dictionary Value</b> for <code>message</code>, then <b>Show Notification</b>.</li>
+  <li>In <b>Shortcuts</b>, tap <b>+</b>, then rename the new shortcut <b>Send to TV</b>.</li>
+  <li>Tap <b>&#9432;</b>, turn on <b>Show in Share Sheet</b>, then <b>Done</b>. In the <b>Receive Any input</b> block at the top, tap <b>Any</b>, then <b>Clear</b>, tick <b>Text</b> and <b>Rich Text</b>.</li>
+  <li>Search for and add <b>Get Text from Input</b>; leave it as it is.</li>
+  <li>Add <b>Get Contents of URL</b>. Tap <b>URL</b> and paste the address. Tap <b>&#8250;</b> to show its options:
+    <ul>
+      <li>Method: <b>POST</b></li>
+      <li>Headers, <b>Add new header</b>: key <code>Authorization</code>, value: paste the value above</li>
+      <li>Request Body: <b>JSON</b></li>
+      <li><b>Add new field &rarr; Text</b>: key <code>list</code>, value your list's name, typed, e.g. <code>Rebecca</code></li>
+      <li><b>Add new field &rarr; Text</b>: key <code>text</code>; tap the value, then tap the blue <b>Text</b> variable above the keyboard (don't type it)</li>
+    </ul>
+  </li>
+  <li>Add <b>Get Dictionary Value</b>: Value for key <code>message</code>. Then add <b>Show Notification</b> with the <b>Dictionary Value</b>. Tap <b>Done</b>.</li>
+  <li>Send: in Notes, open the note, then Share, then <b>Send to TV</b>. In Keep, use &#8942;, then Send, Send via other apps, <b>Send to TV</b>. Allow local network access when asked.</li>
 </ol>
 <p>The code stays on this phone: it is in the link after the #, which is never sent to the TV.</p>
 <script>

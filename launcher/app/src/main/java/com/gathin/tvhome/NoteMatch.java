@@ -171,9 +171,17 @@ final class NoteMatch {
     /** The line's title id, or null when nothing matches. */
     String match(NoteLines.Line l) throws IOException {
         if (l.id != null) return l.id;
+        if (l.kind != null) return best(l, search(l.kind == Kind.MOVIE ? "movie" : "tv", l));
+        if (l.hint != null) {
+            // Under "Movies to watch" a line is most likely a movie: ask for those first, then shows.
+            String first = l.hint == Kind.MOVIE ? "movie" : "tv";
+            String hit = best(l, search(first, l));
+            if (hit != null) return hit;
+            return best(l, search(first.equals("movie") ? "tv" : "movie", l));
+        }
         List<Candidate> found = new ArrayList<>();
-        if (l.kind == null || l.kind == Kind.MOVIE) found.addAll(search("movie", l));
-        if (l.kind == null || l.kind == Kind.SHOW) found.addAll(search("tv", l));
+        found.addAll(search("movie", l));
+        found.addAll(search("tv", l));
         return best(l, found);
     }
 
@@ -222,13 +230,45 @@ final class NoteMatch {
             if (exact == null || c.popularity > exact.popularity) exact = c;
         }
         if (exact != null) return exact.id;
-        // TMDB's first answer, when only a leading "The" differs: "Bear" for "The Bear", "The Arrival" for "Arrival".
+        // TMDB's first answer, when it is the line but for a leading "The" ("Birdcage" for "The Birdcage") or a slip
+        // of the keyboard ("Inglorious basterds", "Dead poet society", "Macfarland usa"): one letter in a title of
+        // six or more, two in one of twelve or more. Shorter lines must match exactly, so "Dun" never becomes "Dune".
         Candidate first = null;
         for (Candidate c : found) if (c.rank == 0 && (first == null || c.popularity > first.popularity)) first = c;
         if (first == null) return null;
         if (l.year > 0 && first.year != 0 && Math.abs(first.year - l.year) > 1) return null;
         String t = fold(first.title);
-        return t.equals("the" + want) || want.equals("the" + t) ? first.id : null;
+        if (t.equals("the" + want) || want.equals("the" + t)) return first.id;
+        return close(want, t) || close(want, fold(first.original)) ? first.id : null;
+    }
+
+    /** Within a slip of the keyboard, a leading "the" aside: see {@link #best}. */
+    static boolean close(String want, String title) {
+        String a = want.startsWith("the") ? want.substring(3) : want;
+        String b = title.startsWith("the") ? title.substring(3) : title;
+        int n = Math.min(a.length(), b.length());
+        int allowed = n >= 12 ? 2 : n >= 6 ? 1 : 0;
+        return allowed > 0 && Math.abs(a.length() - b.length()) <= allowed && distance(a, b, allowed) <= allowed;
+    }
+
+    /** Levenshtein distance, giving up (returning max + 1) once it can't be max or less. */
+    private static int distance(String a, String b, int max) {
+        int[] prev = new int[b.length() + 1], cur = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) prev[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            cur[0] = i;
+            int rowMin = cur[0];
+            for (int j = 1; j <= b.length(); j++) {
+                int cost = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
+                cur[j] = Math.min(Math.min(cur[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
+                rowMin = Math.min(rowMin, cur[j]);
+            }
+            if (rowMin > max) return max + 1;
+            int[] t = prev;
+            prev = cur;
+            cur = t;
+        }
+        return prev[b.length()];
     }
 
     /** Lower case, no accents, only letters and digits, "&" as "and": "Amélie", "amelie" and "AMÉLIE!" fold alike. */

@@ -31,8 +31,10 @@ final class NoteLines {
         final String query;
         /** The year in brackets, or 0. */
         final int year;
-        /** Movie or show when the line or its heading says so, else null. */
+        /** Movie or show when the line itself says so ("(tv)", "S2", a link), else null: only that kind is searched. */
         final Kind kind;
+        /** Movie or show when the note's title or a heading says so, else null: that kind is searched first. */
+        final Kind hint;
         /** Ticked, checked or struck through: watched. */
         final boolean ticked;
         /** A title id from a themoviedb.org link ("movie:603"), else null. */
@@ -41,9 +43,14 @@ final class NoteLines {
         final String key;
 
         Line(String query, int year, Kind kind, boolean ticked, String id) {
+            this(query, year, kind, ticked, id, null);
+        }
+
+        Line(String query, int year, Kind kind, boolean ticked, String id, Kind hint) {
             this.query = query;
             this.year = year;
             this.kind = kind;
+            this.hint = hint;
             this.ticked = ticked;
             this.id = id;
             this.key = id != null ? id : key(query) + (year > 0 ? " (" + year + ")" : "")
@@ -85,8 +92,10 @@ final class NoteLines {
             lines.add(s);
         }
         int first = firstTitleLine(lines);
+        boolean listNote = listNote(lines);
         Map<String, Line> out = new LinkedHashMap<>();
-        Kind section = null;
+        // The note's own title gives the first hint ("Movies to watch"); each heading after it, its own.
+        Kind section = first > firstNonEmpty(lines) ? kindOf(lines.get(firstNonEmpty(lines))) : null;
         for (int i = first; i < lines.size(); i++) {
             String s = lines.get(i);
             if (s.isEmpty()) continue;
@@ -98,13 +107,44 @@ final class NoteLines {
                 section = Kind.SHOW;
                 continue;
             }
-            if (!marked(s) && HEADING.matcher(s).matches()) continue;
+            // A heading: "Movies:", "# Later", or in a checklist or bullet note any line without a marker
+            // ("Shows to Watch" halfway down an Apple note). It is never a title; it may say movies or shows.
+            if (!marked(s) && (HEADING.matcher(s).matches() || listNote)) {
+                Kind k = kindOf(s);
+                if (k != null) section = k;
+                continue;
+            }
             Line l = line(s, section);
             if (l == null) continue;
             out.remove(l.key);
             out.put(l.key, l);
         }
         return Collections.unmodifiableList(new ArrayList<>(out.values()));
+    }
+
+    /** A checklist or bullet note: most of its non-empty lines carry a marker. */
+    private static boolean listNote(List<String> lines) {
+        int marked = 0, others = 0;
+        for (String s : lines) {
+            if (s.isEmpty()) continue;
+            if (marked(s)) marked++;
+            else others++;
+        }
+        return marked > 0 && marked >= others;
+    }
+
+    private static int firstNonEmpty(List<String> lines) {
+        for (int i = 0; i < lines.size(); i++) if (!lines.get(i).isEmpty()) return i;
+        return 0;
+    }
+
+    private static final Pattern MOVIE_WORD = Pattern.compile("\\b(?:movies?|films?)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SHOW_WORD = Pattern.compile("\\b(?:shows?|series|tv)\\b", Pattern.CASE_INSENSITIVE);
+
+    /** What a heading or a note's title says the lines under it are: movies, shows, or (both or neither) null. */
+    static Kind kindOf(String heading) {
+        boolean movie = MOVIE_WORD.matcher(heading).find(), show = SHOW_WORD.matcher(heading).find();
+        return movie == show ? null : movie ? Kind.MOVIE : Kind.SHOW;
     }
 
     /**
@@ -159,9 +199,9 @@ final class NoteLines {
         m = LINK.matcher(s);
         if (m.find()) {
             String id = TmdbAccountApi.id(m.group(1).toLowerCase(Locale.ROOT), Long.parseLong(m.group(2)));
-            if (id != null) return new Line(s, 0, "tv".equalsIgnoreCase(m.group(1)) ? Kind.SHOW : Kind.MOVIE, ticked, id);
+            if (id != null) return new Line(s, 0, "tv".equalsIgnoreCase(m.group(1)) ? Kind.SHOW : Kind.MOVIE, ticked, id, null);
         }
-        Kind kind = section;
+        Kind kind = null;
         int year = 0;
         // The year, kind and season come off the end in any order: "Dune (2021) (movie)", "Fargo S2 (2014)".
         for (boolean more = true; more; ) {
@@ -185,7 +225,7 @@ final class NoteLines {
         }
         s = s.replaceAll("[\\s\\-–—:,]+$", "").trim();
         if (s.isEmpty() || !hasLetterOrDigit(s)) return null;
-        return new Line(s, year, kind, ticked, null);
+        return new Line(s.replace('’', '\'').replace('‘', '\''), year, kind, ticked, null, kind == null ? section : null);
     }
 
     private static boolean hasLetterOrDigit(String s) {

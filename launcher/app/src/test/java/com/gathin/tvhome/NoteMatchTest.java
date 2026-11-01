@@ -105,6 +105,60 @@ public class NoteMatchTest {
     }
 
     @Test
+    public void aSlipOfTheKeyboardStillMatchesTmdbsFirstAnswer() throws Exception {
+        answer("movie:Inglorious basterds", movie(16869, "Inglourious Basterds", "2009-08-02", 60));
+        assertEquals("movie:16869", match.match(line("Inglorious basterds")));
+        answer("movie:Dead poet society", movie(207, "Dead Poets Society", "1989-06-02", 40));
+        assertEquals("movie:207", match.match(line("Dead poet society")));
+        answer("movie:Macfarland usa", movie(228203, "McFarland, USA", "2015-02-20", 15));
+        assertEquals("movie:228203", match.match(line("Macfarland usa")));
+        answer("movie:Birdcage", movie(11000, "The Birdcage", "1996-03-08", 20));
+        assertEquals("movie:11000", match.match(line("Birdcage")));
+        answer("movie:Angels and demons", movie(13448, "Angels & Demons", "2009-05-13", 30));
+        assertEquals("movie:13448", match.match(line("Angels and demons")));
+    }
+
+    @Test
+    public void notesAndDescriptionsDontMatchSomethingElse() throws Exception {
+        answer("movie:Spotlight is pm", movie(314365, "Spotlight", "2015-11-06", 30));
+        assertNull(match.match(line("Spotlight is pm")));
+        answer("movie:Billie Jean king movie", movie(339692, "Battle of the Sexes", "2017-09-22", 20));
+        assertNull(match.match(line("Billie Jean king movie")));
+        // Not the second answer, and not a short title two letters out.
+        answer("movie:Arival", movie(1, "Arrivals", "2020", 9), movie(329865, "Arrival", "2016-11-10", 50));
+        assertNull(match.match(line("Arival")));
+        answer("movie:Coda", movie(776503, "Cobra", "2021", 50));
+        assertNull(match.match(line("Coda")));
+    }
+
+    @Test
+    public void aHeadingAsksForItsKindFirst() throws Exception {
+        answer("movie:Slow Horses", movie(9, "Slow Horses", "2010", 1));
+        answer("tv:Slow Horses", show(95480, "Slow Horses", "2022-04-01", 70));
+        assertEquals("tv:95480", match.match(NoteLines.parse("Shows to watch\n- Slow Horses\n- Dark").get(0)));
+        assertEquals(1, asked.size());
+        assertTrue(asked.get(0).startsWith("/search/tv"));
+    }
+
+    @Test
+    public void aHeadingFallsBackToTheOtherKind() throws Exception {
+        answer("tv:Fargo", show(60622, "Fargo", "2014-04-15", 50));
+        assertEquals("tv:60622", match.match(NoteLines.parse("Movies to watch\n- Fargo\n- Dune").get(0)));
+        assertEquals(2, asked.size());
+        assertTrue(asked.get(0).startsWith("/search/movie"));
+        assertTrue(asked.get(1).startsWith("/search/tv"));
+    }
+
+    @Test
+    public void twoSpellingsOfOneFilmAddItOnce() throws Exception {
+        answer("movie:Synecdoche, New York", movie(4960, "Synecdoche, New York", "2008-10-24", 10));
+        answer("movie:Synecdoche New York", movie(4960, "Synecdoche, New York", "2008-10-24", 10));
+        NoteMatch.Plan p = match.plan("t", NoteLines.parse(NoteLinesTest.APPLE), new NoteMatch.Memory(),
+                Collections.<String>emptySet(), null);
+        assertEquals(1, Collections.frequency(p.add, "movie:4960"));
+    }
+
+    @Test
     public void aLinkNeedsNoSearch() throws Exception {
         assertEquals("movie:603", match.match(line("https://www.themoviedb.org/movie/603-the-matrix")));
         assertTrue(asked.isEmpty());

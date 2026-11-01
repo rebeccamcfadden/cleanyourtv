@@ -30,24 +30,57 @@ added. Lines that matched nothing are listed in **Launcher settings → Phone no
 
 ## On each iPhone, once
 
-Scan the QR in the TV's Phone notes pane first: the page it opens has the address and the `Authorization` value to
-copy, so nothing needs typing. Then, in the **Shortcuts** app, tap **+** for a new shortcut and name it **Send to TV**.
+Scan the QR in the TV's Phone notes pane with the iPhone camera first. The page it opens has the address and the
+`Authorization` value, each with a **Copy** button, so nothing needs typing. The finished shortcut has four actions:
 
-1. Tap the **ⓘ** (Details) and turn on **Show in Share Sheet**. Under the share sheet types, keep **Text** and
-   **Notes** ticked (or Any).
-2. Add **Get Text from Input** (from *Shortcut Input*).
-3. Add **Text** and type your list's name, as it should show on the TV: `Rebecca`.
-4. Add **Get Contents of URL**:
-   - URL: the address from the TV's Phone notes pane, e.g. `http://192.168.1.50:8765/notes`
-   - Method: **POST**
-   - Headers: `Authorization` = `Bearer K7QM-4PXT` (your TV's code)
-   - Request Body: **JSON**, with two fields:
-     - `list` (Text) = the **Text** from step 3
-     - `text` (Text) = the **Text** from step 2
-5. Add **Get Dictionary Value**: Get **Value** for `message` in *Contents of URL*.
-6. Add **Show Notification** (or **Show Result**) with the *Dictionary Value*.
+```
+Receive Text from Share Sheet
+Get Text from Input
+Get Contents of URL      (POST, JSON, to the TV)
+Get Dictionary Value     (message), then Show Notification
+```
 
-The first time it runs, iOS asks whether Shortcuts may find devices on your local network: **Allow**.
+**Create it.** In the **Shortcuts** app, on the **Shortcuts** tab, tap **+**. Tap the name at the top
+("New Shortcut") → **Rename** → `Send to TV`.
+
+**Put it in the share sheet.**
+
+1. Tap **ⓘ** at the bottom of the editor, turn on **Show in Share Sheet**, and tap **Done**.
+2. A block appears at the top: **Receive *Any* input from *Share Sheet***. Tap **Any** → **Clear**, tick **Text**
+   and **Rich Text**, then **Done**.
+3. Optional, for testing with ▶ in the editor: tap **If there's no input: Continue** and choose **Ask For → Text**.
+
+**Read the note as text.** In the action search bar at the bottom, type `get text` and add **Get Text from Input**.
+It reads "Get text from *Shortcut Input*"; leave it.
+
+**Send it to the TV.** Search `get contents`, add **Get Contents of URL**, then:
+
+1. Tap **URL** and enter the address from the TV's pane, e.g. `http://192.168.1.50:8765/notes`. It starts with
+   `http://` (not https) and ends with `/notes`.
+2. Tap **›** on the action to show its options and set:
+
+   | Option | Value |
+   |---|---|
+   | Method | **POST** (tap GET to change it) |
+   | Headers | **Add new header**: Key `Authorization`, Value `Bearer K7QM-4PXT`: the word `Bearer`, one space, then your TV's code |
+   | Request Body | **JSON** |
+   | Field 1 | **Add new field → Text**: Key `list`, Value your list's name as it should show on the TV, typed: `Rebecca` |
+   | Field 2 | **Add new field → Text**: Key `text`. For the value, tap the empty box, then tap the blue **Text** variable (from Get Text from Input) in the bar above the keyboard |
+
+   Field 2 must show a blue variable chip, not the typed word "Text"; otherwise the TV gets the word instead of the
+   note.
+
+**Show the TV's answer.**
+
+1. Search `dictionary value` and add **Get Dictionary Value**: Get **Value** for Key `message` in
+   *Contents of URL*.
+2. Search `notification` and add **Show Notification**; tap its text and pick the **Dictionary Value** variable.
+3. Tap **Done**.
+
+The first time it runs, iOS asks whether Shortcuts may find devices on your local network: **Allow**. If you
+tapped Don't Allow, turn it on in **Settings → Privacy & Security → Local Network → Shortcuts**.
+
+A second phone uses the same shortcut with its own list name in `list`.
 
 ## Sending a note
 
@@ -60,7 +93,8 @@ lines are looked up.
 ## Writing the note
 
 One title a line. The TV ignores the note's own title line, blank lines and headings, and takes off checkboxes,
-bullets and numbers.
+bullets and numbers. In a checklist (Apple Notes, Google Keep), a line without a box is a heading, and an empty box is
+skipped.
 
 | Write | Means |
 |---|---|
@@ -68,11 +102,13 @@ bullets and numbers.
 | `Dune (1984)` | From that year (or the next) |
 | `Fargo (tv)`, `Fargo (series)`, `Andor S2`, `The Bear - season 3` | A show |
 | `Fargo (movie)` | A movie |
-| `Movies:` or `Shows:` on a line of its own | The lines under it are movies, or shows |
+| `Movies to watch` or `Shows:` as a heading | The lines under it are looked up as movies first, or shows first; the other kind if that finds nothing. The whole note still goes to one list |
 | A themoviedb.org link | Exactly that title |
 | ☑ / `[x]` / ✓ / ~~struck through~~ | Watched: goes to Seen |
 
-The TV doesn't guess: "Dune" never becomes "Dune: Part Two". If a line didn't match, change it in the note (add the
+The TV forgives a leading "The" and a slip of the keyboard in a longer title ("Inglorious basterds", "Dead poet
+society"), but otherwise doesn't guess: "Dune" never becomes "Dune: Part Two", and "Billie Jean King movie" stays
+unmatched. Two spellings of one title add it once. If a line didn't match, change it in the note (add the
 year, or paste the title's themoviedb.org link) and send again; a changed line is looked up again.
 
 ## Safety
@@ -91,10 +127,11 @@ year, or paste the title's themoviedb.org link) and send again; a changed line i
 
 | The phone says | Do this |
 |---|---|
-| "Could not connect to the server" | The phone isn't on the home Wi-Fi, the TV is off or asleep, Phone notes is off, or the TV's address changed (check the pane, then the router reservation). |
+| "Could not connect to the server" | The phone isn't on the home Wi-Fi, the TV is off or asleep, Phone notes is off, or the TV's address changed (check the pane, then the router reservation). Also check the URL starts with `http://` and ends in `:8765/notes`, and that **Settings → Privacy & Security → Local Network → Shortcuts** is on. |
 | "Wrong pairing code" | Copy the code from the TV's pane into the Shortcut's header again (`Bearer ` then the code). |
 | "Too many wrong codes" | Wait five minutes. |
-| "Say which list the note is for" | The Shortcut's `list` field is empty. |
+| "Say which list the note is for" | The Shortcut's `list` field is empty, or its key isn't spelled `list`. |
+| "The note was empty" | The `text` field is the typed word, not the blue **Text** variable from Get Text from Input; or the share sheet sent nothing. |
 | Nothing new appears on the TV | The lines were sent before (only new lines count), or the TV isn't signed in to TMDB yet: they wait until it is. |
 | "The TV will add these once it's signed in to TMDB." | Sign in on the TV (**Launcher settings → Account**). The note waits on the TV and is added after the first sync. |
 | "The TV found no titles in that note." | The note had only its title, headings or blank lines. |
