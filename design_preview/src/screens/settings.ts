@@ -99,7 +99,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
     weather: weatherPane(host),
     apps: appsPane(host),
     theme: themePane(),
-    performance: performancePane(),
+    performance: performancePane(host),
     start: startPane(),
     home: homePane(),
     tv: tvPane(),

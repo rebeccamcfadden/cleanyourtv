@@ -2543,8 +2543,11 @@
   font-size: 18px;
   color: var(--text-2);
 }
-.perf-row .seg {
+/* Every control starts at the same x, so ↑/↓ go row by row (controls of different widths made the D-pad skip one). */
+.perf-ctl {
   flex: none;
+  display: flex;
+  width: 350px;
 }
 
 /* ===== V2 · First run (design 01-setup B) ===== */

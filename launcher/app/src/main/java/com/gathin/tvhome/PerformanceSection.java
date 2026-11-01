@@ -29,6 +29,9 @@ final class PerformanceSection implements SettingsSection {
     /** Whether config was read with no Motion saved, so it holds config.xml's and config.json's own values. */
     private boolean unsaved;
     private View first;
+    private Host host;
+    /** The controls' column: the widest one, Card shadows' On / Focused card only / Off. */
+    private static final float CONTROL_W = 350;
     /** The pane's controls, which the Light mode button moves to their lightest option. */
     private View motionSeg, shadowSeg, glowSeg, backdropSeg, detailsSeg;
 
@@ -85,6 +88,7 @@ final class PerformanceSection implements SettingsSection {
 
     @Override
     public View pane(Context ctx, Host host) {
+        this.host = host;
         LinearLayout pane = SettingsKit.column(ctx);
         pane.addView(SettingsKit.eyebrow(ctx, ctx.getString(R.string.settings_performance)));
         SettingsKit.add(pane, SettingsKit.title(ctx, ctx.getString(R.string.settings_performance), false), 10);
@@ -161,6 +165,49 @@ final class PerformanceSection implements SettingsSection {
         host.shell().toast(ctx.getString(R.string.perf_light_mode_done));
     }
 
+    /**
+     * ↓ goes to the next row's control, on its selected option. The controls have different widths, so the spatial
+     * D-pad would sometimes skip a narrow one for the wider one under it. (↑ already goes row by row: the controls
+     * start at the same x.)
+     */
+    @Override
+    public boolean onKey(Screen.Key key, View focused) {
+        if (key != Screen.Key.DOWN || focused == null) return false;
+        String below = below(Focus.group(focused));
+        View seg = below == null ? null : segOf(below);
+        View next = seg == null ? null : SettingsKit.selectedOption(seg);
+        if (next == null) return false;
+        host.shell().focus(next);
+        return true;
+    }
+
+    /** The pane's rows top to bottom, by their focus group. */
+    static final String[] ROWS = {"perf-light", "perf-motion", "perf-shadows", "perf-glow", "perf-backdrop",
+            "perf-details"};
+
+    /** The row under the one whose focus group is {@code group}, or null for the last row or any other group. */
+    static String below(String group) {
+        for (int i = 0; i < ROWS.length - 1; i++) if (ROWS[i].equals(group)) return ROWS[i + 1];
+        return null;
+    }
+
+    private View segOf(String group) {
+        switch (group) {
+            case "perf-motion":
+                return motionSeg;
+            case "perf-shadows":
+                return shadowSeg;
+            case "perf-glow":
+                return glowSeg;
+            case "perf-backdrop":
+                return backdropSeg;
+            case "perf-details":
+                return detailsSeg;
+            default:
+                return null;
+        }
+    }
+
     @Override
     public View firstFocus() {
         return first;
@@ -200,10 +247,16 @@ final class PerformanceSection implements SettingsSection {
         llp.topMargin = Ui.px(4);
         text.addView(line, llp);
         row.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        // Every control starts at the same x, so ↑/↓ go row by row: right-aligned controls of different widths left
+        // Motion's further right than Card shadows', and the D-pad skipped it.
+        LinearLayout column = Kit.unclip(new LinearLayout(ctx));
+        column.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        column.addView(control, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(Ui.px(CONTROL_W),
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         clp.leftMargin = Ui.px(16);
-        row.addView(control, clp);
+        row.addView(column, clp);
         return row;
     }
 

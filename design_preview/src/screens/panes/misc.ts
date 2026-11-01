@@ -1,4 +1,4 @@
-import { app } from '../../core/app';
+import { app, type Key } from '../../core/app';
 import { h } from '../../core/dom';
 import {
   BACKDROP_LABELS,
@@ -15,13 +15,13 @@ import { icon, type IconName } from '../../ui/icons';
 import { button, segmented } from '../../ui/widgets';
 import { confirmDialog } from '../confirm';
 import { placeholder } from '../placeholder';
-import { paneHead, type Pane } from './pane';
+import { paneHead, type Pane, type PaneHost } from './pane';
 
 const entry = (el: HTMLElement) => ((el.dataset.entry = ''), el);
 
 /** A Performance choice's row: its name over what it is, and its segmented control on the right. */
 const perfRow = (title: string, sub: string, control: HTMLElement) =>
-  h('div.perf-row', h('div.perf-text', h('div.perf-title', title), h('div.perf-sub', sub)), control);
+  h('div.perf-row', h('div.perf-text', h('div.perf-title', title), h('div.perf-sub', sub)), h('div.perf-ctl', control));
 
 const onOff = (group: string, get: () => boolean, set: (on: boolean) => void) =>
   segmented<'on' | 'off'>({
@@ -42,7 +42,28 @@ const onOff = (group: string, get: () => boolean, set: (on: boolean) => void) =>
  * light end (no shadows, Motion Reduced, nothing animated); the prototype is a TV with memory to spare, so it starts
  * with everything on. It draws no card shadows or glow, so those two are saved only; Motion and the backdrop apply.
  */
-export const performancePane = (): Pane => ({
+export const performancePane = (host: PaneHost): Pane => ({
+  /**
+   * ↓ goes to the next row's control, on its selected option: the controls have different widths, so the spatial
+   * D-pad would sometimes skip a narrow one for the wider one under it. ↑ already goes row by row.
+   */
+  onKey(key: Key, focused: HTMLElement) {
+    if (key !== 'down') return false;
+    const s = settings.get();
+    const rows = [
+      'perf-light',
+      `seg-motion-${s.motion}`,
+      `seg-shadows-${s.cardShadows}`,
+      `seg-glow-${s.focusGlow ? 'on' : 'off'}`,
+      `seg-backdrop-${s.backdropPicture}`,
+      `seg-details-${s.movingDetails ? 'on' : 'off'}`,
+    ];
+    const groups = ['perf-light', 'seg-motion', 'seg-shadows', 'seg-glow', 'seg-backdrop', 'seg-details'];
+    const at = groups.findIndex((g) => focused.dataset.key === g || focused.dataset.key?.startsWith(`${g}-`));
+    if (at < 0 || at === rows.length - 1) return false;
+    host.focusKey(rows[at + 1]);
+    return true;
+  },
   render: () => [
     h('div.eyebrow', 'Performance'),
     h('div.pane-title', 'Performance'),

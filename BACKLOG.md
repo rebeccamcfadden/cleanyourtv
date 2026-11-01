@@ -372,6 +372,18 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
   **Decided** (the project lead, 2026-11-01): a Launcher settings › Performance page. Card shadows On, Focused card
   only or Off, the focus glow, the backdrop picture (Photo or the theme's plain sky) and Animated details, beside Motion.
   A Light mode button at its top sets every choice to its lightest (Motion Off included).
+
+  **With the low-RAM start**, on the TCL (#41's build, `tools/bench.py` 36 keys × 3, 2026-11-01):
+
+  | | Jank | Movement p50 | Response p50 | Cold start p50 | PSS |
+  |---|---|---|---|---|---|
+  | Midnight, low-RAM start | 1.3 % | 19 ms | 19 ms | 798 ms | 30 MB |
+  | Daylight, low-RAM start | 1.4 % | 19 ms | 19 ms | 803 ms | 37 MB |
+  | Daylight, everything on (main, the runs above) | 71.2 %, 70.6 % | 212, 213 ms | 24 ms | 701, 709 ms | 51, 45 MB |
+
+  Reduced motion makes moves instant, so nearly no frame is late; the focus glow and the photo, which the low-RAM
+  start keeps, cost nothing visible next to that. Cold start was about 100 ms slower in these runs, not yet explained
+  (Reduced motion shouldn't add to it; worth a trace).
   A low-RAM TV (`ActivityManager.isLowRamDevice()`, which the TCL reports) or one whose config.xml or config.json
   sets `light_defaults` to on starts at the light end: no card shadows, Motion Reduced, no animated details; the focus
   glow (one tile) and the picture stay. The household's choices win; Follow theme and a theme push drop them.
