@@ -1,39 +1,71 @@
 # Themes
 
-> **Frozen for V2.** The reworked launcher in this fork reads only the per-TV keys in
-> [`config.xml`](../launcher/app/src/main/res/values/config.xml) (dock apps, hidden apps, the Live TV app, inputs, remote
-> keys), from a pushed `config.json` too; it doesn't read the look, layout or wallpaper keys below. This page stays as
-> a reference for V2 ([docs/rework.md](../docs/rework.md), M1b scope).
+The launcher's look is a theme, chosen on the TV in **Launcher settings › Theme**. A theme changes the colours, the
+type, the corners, the shading and focus glow, and the picture behind Home; the pages, rows, apps and data are the
+same in every theme. The themes are built into the launcher, drawn from the Figma file "CleanTV · Theme explorations"
+(`lwShqRaciMpDUDW5dYljNw`), and the [design preview](../design_preview/README.md) wears the same ones.
 
-A theme is a folder with a `config.json` and, optionally, a picture: a `wallpaper.jpg` or a `wallpapers/`
-collection. Pushing one changes the launcher's dock, layout and look on the TV without rebuilding the
-APK: the launcher reads `config.json` as an overlay over its built-in `config.xml` the next time it starts.
-Choices made in Launcher settings take priority until you choose Follow theme. Pushing a theme or
-using `tools/theme.sh --reset` also clears those on-TV column and motion choices.
+**Classic** themes keep their look all year. **Seasonal** themes follow the date through ten periods: Snow (January
+and February), Thaw (March), Spring rain (April), Bloom (May), Pride (June), Midsummer (July), Late summer (August),
+Autumn (September to mid-October, and November), Halloween (mid-October to 2 November) and Christmas (December). A
+Seasonal theme's colours and picture are its period's; its shapes and type are its style's.
+
+| Built-in theme | Look | Home on a TV |
+|---|---|---|
+| **Midnight** | The default: deep navy over an evening landscape, no glow or shadows, Roboto | <img src="../docs/themes/midnight.jpg" width="320" alt="Midnight theme"> |
+| **Daylight** | Light and airy: a misty lake, soft white tiles with a gentle shadow, Figtree | <img src="../docs/themes/daylight.jpg" width="320" alt="Daylight theme"> |
+| **OLED Black** | True black for OLED screens, no picture, Manrope | <img src="../docs/themes/oled.jpg" width="320" alt="OLED Black theme"> |
+| **High Contrast** | Black and white with a bold yellow focus ring and thicker lines, Atkinson Hyperlegible Next | <img src="../docs/themes/high-contrast.jpg" width="320" alt="High Contrast theme"> |
+| **Cinema** | A theatre curtain, sharp corners, a warm gold glow on focus and a soft vignette, DM Serif Display and DM Sans | <img src="../docs/themes/cinema.jpg" width="320" alt="Cinema theme"> |
+| **Landscapes** | A new landscape photo every hour (four in turn), Outfit | <img src="../docs/themes/landscapes.jpg" width="320" alt="Landscapes theme"> |
+| **Nature** (Seasonal) | A photo of the season, Outfit | <img src="../docs/themes/seasonal-nature.jpg" width="320" alt="Seasonal Nature theme"> |
+| **Vector art** (Seasonal) | A flat drawing of the season, rounder corners, Baloo 2 and Nunito | <img src="../docs/themes/seasonal-vector.jpg" width="320" alt="Seasonal Vector art theme"> |
+| **8-bit** (Seasonal) | A pixel-art scene of the season, square corners and hard offset shadows, Press Start 2P and Pixelify Sans | <img src="../docs/themes/seasonal-8bit.jpg" width="320" alt="Seasonal 8-bit theme"> |
+
+The screenshots are Home on a TCL TV (Android 9) at the end of October, so the Seasonal ones show Halloween.
+
+- **Typeface:** each theme's fonts come from Google Fonts, downloaded once and kept on the TV (Roboto until they
+  arrive); Launcher settings › Theme › Typeface can put every theme in the TV's own Roboto instead.
+- **Pictures:** Midnight's and 8-bit's are in the launcher; the others are downloaded once from
+  `theme_assets_url` in `launcher/tv.properties` (by default [`launcher/backdrops/`](../launcher/backdrops/README.md)
+  on this repository's `main`) and kept, with the theme's sky gradient while they load or offline.
+- **On a slow TV:** Launcher settings › Performance can turn off card shadows, the focus glow, the picture and the
+  animated details, or set them all at once with Light mode; a TV with little memory starts with the lighter choices.
+
+## Per-TV settings in a config.json
+
+A folder with a `config.json` pushed to the TV overrides the launcher's built-in
+[`config.xml`](../launcher/app/src/main/res/values/config.xml) without a rebuild: the per-TV keys (dock apps, hidden
+apps, the Live TV app, inputs, remote keys) in the [Keys](#keys) table. Several [`examples/`](../examples/) folders
+carry one. Pushing a folder, or using `tools/theme.sh --reset`, also clears the Performance and Open on start choices
+made on the TV; the Theme picker's choice stays.
 
 ```bash
-TV_HOST=192.168.1.50 tools/theme.sh themes/aurora          # push a theme and restart Home
+TV_HOST=192.168.1.50 tools/theme.sh examples/<your tv>      # push a folder's config.json and restart Home
 TV_HOST=192.168.1.50 tools/theme.sh --reset                # back to the built-in config.xml
-powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 themes\aurora
+powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 examples\<your tv>
 ```
 
 `tools/manage.py list themes` and `list switches` list them from this file, `show <name>` gives one with its
-screenshot, and `manage.py set <switch> <value> --theme <your folder>` writes a key into a theme of your own and
+screenshot, and `manage.py set <switch> <value> --theme <your folder>` writes a key into a folder of your own and
 pushes it with `theme.sh`.
 
-| Theme | What it does | Screenshot |
-|---|---|---|
-| `default/` | The built-in look written out as JSON, as a starting point for your own | <img src="default/screenshot.jpg" width="320" alt="default theme"> |
-| `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour | <img src="aurora/screenshot.jpg" width="320" alt="aurora theme"> |
-| `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower | <img src="dussehra/screenshot.jpg" width="320" alt="dussehra theme"> |
-| `glass/` | Dark navy wallpaper with soft teal and violet light, the cinematic top shelf, a frosted-glass dock, icon-only buttons and the focus glow in the app's colour, gliding without overshoot | <img src="glass/screenshot.jpg" width="320" alt="glass theme"> |
-| `ruska/` | A Finnish autumn ("ruska") dusk over a lake: spruce shoreline, birches in autumn colour, a few falling leaves, drawn in code by `make_wallpaper.py`. The app-colour glow stays off the picture so the autumn colours keep their own light; the dock is 70% opaque so the lake shows through, and the focus glows in the app's colour without overshoot | <img src="ruska/screenshot.jpg" width="320" alt="ruska theme"> |
-| `scenes/` | 14 dark illustrated landscapes in `wallpapers/`, a new one every hour; drawn from code by upstream's [`tools/scenes_wallpapers.py`](https://github.com/Gathin23/cleanyourtv/blob/main/tools/scenes_wallpapers.py) | <img src="scenes/screenshot.jpg" width="320" alt="scenes theme"> |
-| `six-columns/` | Six smaller tiles per row and one grid row visible under the dock | <img src="six-columns/screenshot.jpg" width="320" alt="six-columns theme"> |
-| `sweden/` | Three photos of Sweden from Wikimedia Commons (the aurora over Abisko, Vasabron at dusk, Skeppsbron in the evening), a new one every hour with its place and photographer under the buttons; six small tiles in a frosted-glass dock, round icon-only buttons, no hero name. The photos are CC BY / CC BY-SA, not MIT: see `sweden/CREDITS.md` | <img src="sweden/screenshot.jpg" width="320" alt="sweden theme"> |
+## The old launcher's theme folders
 
-Every theme folder has a `screenshot.jpg` of Home with that theme on a real TV. `tools/theme.sh` never
-pushes it; it is only here so you can see a theme before you try it.
+> **Frozen.** The folders here were themes for the old launcher: a `config.json` with its look and layout keys, a
+> picture and a screenshot. The reworked launcher reads only their per-TV keys, so they no longer change its look;
+> they stay as a reference ([docs/rework.md](../docs/rework.md), M1b scope).
+
+| Theme | What it did | Screenshot (old launcher) |
+|---|---|---|
+| `default/` | The built-in look written out as JSON, as a starting point for your own | [screenshot](default/screenshot.jpg) |
+| `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour | [screenshot](aurora/screenshot.jpg) |
+| `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower | [screenshot](dussehra/screenshot.jpg) |
+| `glass/` | Dark navy wallpaper with soft teal and violet light, the cinematic top shelf, a frosted-glass dock, icon-only buttons and the focus glow in the app's colour, gliding without overshoot | [screenshot](glass/screenshot.jpg) |
+| `ruska/` | A Finnish autumn ("ruska") dusk over a lake: spruce shoreline, birches in autumn colour, a few falling leaves, drawn in code by `make_wallpaper.py`. The app-colour glow stays off the picture so the autumn colours keep their own light; the dock is 70% opaque so the lake shows through, and the focus glows in the app's colour without overshoot | [screenshot](ruska/screenshot.jpg) |
+| `scenes/` | 14 dark illustrated landscapes in `wallpapers/`, a new one every hour; drawn from code by upstream's [`tools/scenes_wallpapers.py`](https://github.com/Gathin23/cleanyourtv/blob/main/tools/scenes_wallpapers.py) | [screenshot](scenes/screenshot.jpg) |
+| `six-columns/` | Six smaller tiles per row and one grid row visible under the dock | [screenshot](six-columns/screenshot.jpg) |
+| `sweden/` | Three photos of Sweden from Wikimedia Commons (the aurora over Abisko, Vasabron at dusk, Skeppsbron in the evening), a new one every hour with its place and photographer under the buttons; six small tiles in a frosted-glass dock, round icon-only buttons, no hero name. The photos are CC BY / CC BY-SA, not MIT: see `sweden/CREDITS.md` | [screenshot](sweden/screenshot.jpg) |
 
 ## Keys
 
@@ -147,6 +179,8 @@ A new key needs one there in the same pull request.
 
 ## Wallpapers
 
+*The old launcher's; the reworked launcher's pictures come with its built-in themes (above).*
+
 `wallpaper.jpg` is drawn full screen behind the launcher, centre-cropped. Keep it dark, 1920×1080 and
 under about 300 KB: the text, the hero name and the dock band are designed for black, and a 1 GB TV
 decodes the picture into memory on every Home start. Pictures larger than the screen are scaled down to
@@ -196,6 +230,8 @@ Android 10 is the known case. The default, `false`, keeps the normal motion.
 
 ## Time-of-day backdrop
 
+*The old launcher's; not read by the reworked launcher.*
+
 `"sky_intensity": 60` draws a dark gradient over the wallpaper and behind everything else, that follows the
 clock: night blues, a soft blue day, then a warm horizon that peaks at seven in the evening.
 The glow near the bottom edge travels from left to right with the sun. The colours stay dark so the
@@ -214,16 +250,13 @@ launcher follows the real sun only when `latitude` and `longitude` are set in
 
 ## Adding a theme
 
-Open a PR with a new folder here containing:
+A new built-in theme starts in the Figma file: a mode in its Theme variable collection. Its colours, corners, lines,
+shading and fonts then go into the launcher as a palette and a style in `Themes.java` (with a line in `ThemesTest`,
+which checks every theme's text contrast), into the design preview's `src/styles/themes.css`, and a picture, if it has
+one, into [`launcher/backdrops/`](../launcher/backdrops/README.md) with its credit. Add a row to the table at the top
+with a screenshot of Home on a real TV in `docs/themes/`, a 1280×720 JPEG under 300 KB with nothing that identifies
+the household (no account names, Wi-Fi names or cities).
 
-- `config.json`, the theme itself.
-- `screenshot.jpg`, **required**: Home on a real TV with the theme pushed, not a mock-up or an
-  emulator. Take it with `tools/tv.py 'screencap -p /sdcard/s.png'` and
-  `tools/tv.py --pull /sdcard/s.png s.png`, then save it as a JPEG at 1280×720 (16:9) under 300 KB,
-  for example `sips -z 720 1280 -s format jpeg s.png --out screenshot.jpg` on macOS. Leave the focus on
-  the dock so the glow and the hero name show. A PR without it fails CI (`tests/test_themes.py`).
-- `wallpaper.jpg` or `wallpapers/` if the theme uses them.
-
-Then add a row to the table above with the screenshot, the same way as the others. Keep the dock list
-generic (the big streaming apps) unless the theme is for a specific TV, and say which TV you tried it on
-in the PR description.
+The old launcher's folders took a `config.json`, a `wallpaper.jpg` or `wallpapers/` and a required `screenshot.jpg`
+of Home on a real TV (1280×720, 16:9, under 300 KB; `tests/test_themes.py` checks it); the folders above keep that
+shape.
