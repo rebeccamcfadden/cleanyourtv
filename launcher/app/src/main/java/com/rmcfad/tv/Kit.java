@@ -399,7 +399,8 @@ final class Kit {
         ImageView img = new ImageView(ctx);
         frame.content().addView(img, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        Art.into(img, t.art, Ui.px(w), Ui.px(h));
+        // The RingFrame's fill is the placeholder, and comes off while the art covers it (one fill, not two).
+        Art.intoFilled(img, t.art, Ui.px(w), Ui.px(h));
         return frame;
     }
 
