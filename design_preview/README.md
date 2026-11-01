@@ -543,6 +543,13 @@ picks another theme.
   (Stockholm; on the TV, the Weather place). The picture changes when the sun moves on; the colours stay the period's.
   Always day keeps the day picture. The dev bar's Time menu, or `?phase=dawn|day|sunset|night`, puts the preview on a
   part of the day. `src/core/daylight.ts` is the launcher's `DayPhase`.
+- **Snow and rain (F25):** with Launcher settings › Performance › Animated details on (off by default), snow or rain
+  falls over a Seasonal picture while Home is idle: it starts 3 s after the last key and stops on the next one, so
+  moving around Home never draws it. It falls by the real weather at the Weather place (the mock place's description;
+  snow only in Snow, Thaw, Autumn, Halloween and Christmas) and by the season when offline (Snow and Christmas snow,
+  Spring rain rains). It needs Motion Full and Backdrop picture = Photo. Vector art runs at 20 fps; 8-bit at 10 fps,
+  one scene pixel per flake. The colour follows the part of the day. The dev bar's Weather menu, or
+  `?fall=snow|rain|off`, forces it. `src/core/weatherfx.ts`; the launcher's `WeatherLayer` follows the same rules.
 - **Periods:** Snow 1 Jan – 28/29 Feb, Thaw March, Spring rain April, Bloom May, Pride June, Midsummer July, Late
   summer August, Autumn 1 Sep – 14 Oct and 3 – 30 Nov, Halloween 15 Oct – 2 Nov, Christmas December. The period is
   looked at again on the hour, so it turns over at midnight.
