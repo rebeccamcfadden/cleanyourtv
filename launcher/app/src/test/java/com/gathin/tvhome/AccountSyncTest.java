@@ -67,8 +67,11 @@ public class AccountSyncTest {
         List<String> steps = new ArrayList<>();
         new AccountSync(tmdb, SESSION, ledger, SETTINGS).withProgress((d, t) -> steps.add(d + "/" + t))
                 .run(local, 1000, true);
-        assertEquals("My list, Favorites and Seen, then the two shown lists",
-                Arrays.asList("0/5", "1/5", "2/5", "3/5", "4/5", "5/5"), steps);
+        // My list, Favorites and Seen, then each shown list: one step each, after a 0 to start.
+        int total = SyncList.values().length + SETTINGS.shown.size();
+        List<String> expected = new ArrayList<>();
+        for (int i = 0; i <= total; i++) expected.add(i + "/" + total);
+        assertEquals(expected, steps);
         steps.clear();
         new AccountSync(tmdb, SESSION, ledger, SETTINGS).withProgress((d, t) -> steps.add(d + "/" + t))
                 .run(local, 2000, false);
@@ -80,7 +83,8 @@ public class AccountSyncTest {
         List<String> steps = new ArrayList<>();
         new AccountSync(tmdb, SESSION, ledger, showing("No such list")).withProgress((d, t) -> steps.add(d + "/" + t))
                 .run(local, 1000, true);
-        assertEquals("4/4", steps.get(steps.size() - 1));
+        int total = SyncList.values().length + 1;
+        assertEquals(total + "/" + total, steps.get(steps.size() - 1));
     }
 
     @Test
