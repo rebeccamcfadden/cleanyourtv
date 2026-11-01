@@ -50,11 +50,11 @@ final class Data {
         Data data = new Data(catalog, Services.from(ctx, cfg, table), household, table,
                 new Accounts(ctx, household, token));
         Context app = ctx.getApplicationContext();
-        data.tickedStores = () -> ServicePicks.counted(ServiceChoices.stores(app));
+        data.tickedStores = () -> ServiceChoices.stores(app);
         return data;
     }
 
-    /** Launcher settings' Stores ticks (ServiceChoices), read each time so a change shows at once. */
+    /** Launcher settings' Stores ticks (ServiceChoices), read each time so a change shows at once; null if never set. */
     private java.util.function.Supplier<Set<ServiceId>> tickedStores;
 
     /** The offer a title's Watch button uses on this TV (Offers.bestOffer with the subscribed services). */
@@ -63,10 +63,18 @@ final class Data {
     }
 
     /**
-     * The stores the household ticked in Launcher settings, whose rent and buy offers count (design 07-prices A,
-     * Ticks); null means every store.
+     * The stores whose rent and buy offers count on the title page (design 07-prices A, Ticks): the ticked ones plus
+     * every store the Stores pane doesn't list ({@link ServicePicks#counted}); null means every store.
      */
     Set<ServiceId> stores() {
+        return tickedStores == null ? null : ServicePicks.counted(tickedStores.get());
+    }
+
+    /**
+     * The stores a card counts (F1): only the ones ticked in the Stores pane, so a store the pane doesn't list never
+     * names a card; null (no Stores choice made yet) means every store.
+     */
+    private Set<ServiceId> cardStores() {
         return tickedStores == null ? null : tickedStores.get();
     }
 
@@ -82,7 +90,7 @@ final class Data {
      */
     String offerLine(Title t) {
         if (!t.detailed && t.offers.isEmpty()) return "";
-        return PriceCards.cardLine(t, services.subscribed(), services.installed(), stores(), table);
+        return PriceCards.cardLine(t, services.subscribed(), services.installed(), cardStores(), table);
     }
 
     /**
@@ -90,7 +98,7 @@ final class Data {
      * (a blank provider) when none of its services or stores has the title. The title page uses {@link #bestOffer}.
      */
     Offer cardOffer(Title t) {
-        return PriceCards.cardOffer(t, services.subscribed(), services.installed(), stores());
+        return PriceCards.cardOffer(t, services.subscribed(), services.installed(), cardStores());
     }
 
     boolean isIncluded(Offer o) {

@@ -74,12 +74,16 @@ const isInstalled = (id: ServiceId) =>
 
 /**
  * The offers a card counts (F1, 2026-11-01): a subscription the household ticked, a free service whose app is
- * installed or that is ticked, and the ticked stores' rent and buy ({@link offersOf}). The title preview still shows
- * every offer.
+ * installed or that is ticked, and rent and buy only from a store ticked in the Stores pane (one the pane doesn't
+ * list never names a card). The title preview still shows every offer.
  */
 export const cardOffersOf = (t: Title) =>
   offersOf(t).filter((o) =>
-    o.type === 'sub' ? isTicked(o.service) : o.type === 'free' ? isInstalled(o.service) || isTicked(o.service) : true,
+    o.type === 'sub'
+      ? isTicked(o.service)
+      : o.type === 'free'
+        ? isInstalled(o.service) || isTicked(o.service)
+        : settings.get().stores.includes(o.service),
   );
 
 /** "Included only" in Movies and TV Shows, Pick for me and Search: the cards' rule ({@link cardOffersOf}). */
