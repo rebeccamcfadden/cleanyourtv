@@ -194,9 +194,13 @@ Verify
 - If a remote button relies on an accessibility helper, check that the service is enabled and bound
   for the current user, then ask me to press the real button; an injected key is not proof (see
   `docs/TROUBLESHOOTING.md`).
-- When done, give me the restore script (`tools/restore.sh`, or `restore.ps1` on Windows) and a short note
-  that explains how to re-enable any app, how to change the apps on the Home row, and how to change the
-  weather location.
+- When done, give me three things. First, the exact restore command for this TV:
+  `tools/restore.sh <the debloat list you applied> <the TV's real stock launcher package, from the backup>`
+  (`restore.ps1` on Windows). It re-enables only the packages in that list, and its default stock launcher,
+  `com.google.android.tvlauncher`, is wrong on many TVs, so always name the real one. Second, an undo line
+  for every change that list does not cover: a package you disabled outside the list, `set-home-activity`,
+  and any setting you changed, each with the value it had before. Third, a short note that explains how to
+  re-enable any app, how to change the apps on the Home row, and how to change the weather location.
 
 ---
 
