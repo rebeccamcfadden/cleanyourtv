@@ -73,6 +73,10 @@ final class LibraryPage extends Screen {
 
     private final ViewGroup box;
     private final View pick;
+    /** F14: the needs-a-TMDB-account state, in place of the page while TmdbGate says so. */
+    private final FrameLayout gate;
+    private TmdbGate.Need gateShown = TmdbGate.Need.NONE;
+    private final View guide;
     private final TextView context;
     private final TextView scope;
     private final TextView filterSummary;
@@ -137,6 +141,13 @@ final class LibraryPage extends Screen {
                 ViewGroup.LayoutParams.MATCH_PARENT);
         blp.topMargin = Ui.px(SCROLL_TOP);
         root.addView(box, blp);
+        gate = new FrameLayout(ctx);
+        gate.setPadding(Ui.px(Ui.SAFE_X), Ui.px(40), Ui.px(Ui.SAFE_X), 0);
+        gate.setVisibility(View.GONE);
+        FrameLayout.LayoutParams glp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT);
+        glp.topMargin = Ui.px(SCROLL_TOP);
+        root.addView(gate, glp);
 
         // .lib-intro: the heading and its context on the left, Pick for me on the right.
         LinearLayout intro = Kit.unclip(new LinearLayout(ctx));
@@ -207,7 +218,7 @@ final class LibraryPage extends Screen {
 
         root.addView(Kit.bottomFade(ctx));
         // The real catalogue's scores and availability are not illustrative (V2): say where they come from.
-        View guide = Kit.guide(ctx, ctx.getString(data.catalog.isRemote() ? R.string.prices_library_guide
+        guide = Kit.guide(ctx, ctx.getString(data.catalog.isRemote() ? R.string.prices_library_guide
                         : R.string.library_guide_left),
                 ctx.getString(R.string.library_guide_right));
         guideRight = Kit.guideRight(guide);
@@ -260,6 +271,11 @@ final class LibraryPage extends Screen {
 
     @Override
     View defaultFocus() {
+        // F14: without TMDB, the state's button.
+        if (gateShown != TmdbGate.Need.NONE) {
+            View b = Focus.byKey(gate, TmdbGate.KEY);
+            if (b != null) return b;
+        }
         // 06-states A: while loading, the selected list chip; offline with nothing saved, Wi-Fi settings.
         if (state == CatalogState.Lists.LOADING) {
             View chip = Focus.byKey(chips, chipKey(list));
@@ -392,6 +408,25 @@ final class LibraryPage extends Screen {
         markLeft();
     }
 
+    /**
+     * F14: while TMDB account is off, or the TV isn't signed in, the page is only the state that says so (TmdbGate),
+     * and nothing is loaded for it. True while it shows.
+     */
+    private boolean showGate() {
+        TmdbGate.Need need = TmdbGate.need(data.accounts);
+        boolean on = need != TmdbGate.Need.NONE;
+        if (need != gateShown) {
+            gate.removeAllViews();
+            if (on) gate.addView(TmdbGate.block(ctx, label, need));
+            gateShown = need;
+        }
+        box.setVisibility(on ? View.GONE : View.VISIBLE);
+        guide.setVisibility(on ? View.GONE : View.VISIBLE);
+        gate.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (shell.top() == this) shell.refocus();
+        return on;
+    }
+
     // ---- F2: what the page keeps while it is left ---------------------------------------------------------------
 
     /** At the page's making: what was set on it before, if it was left an hour ago or less since the TV started. */
@@ -497,6 +532,7 @@ final class LibraryPage extends Screen {
 
     /** Brings everything up to date with the household, the chosen list and the filters (library.ts, render). */
     void render() {
+        if (showGate()) return;
         List<Title> pool = LibraryLists.pool(data.catalog.all(), kind, data.household);
         // The filters judge the titles on their details: load those not in yet (the cache first, then TMDB).
         data.catalog.want(ids(pool));
