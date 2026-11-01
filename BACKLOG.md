@@ -436,6 +436,8 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
 - **Cold start and jank:** V1 measured 1.9–2.1 s (TotalTime) against M1's 2.8 s and the old launcher's 2.7 s, but 47 %
   of frames were janky while pressing keys on Home ([docs/rework.md](docs/rework.md#results-2026-10-30-main-at-0212b6a4)).
   Phase 0 looks for the cause; measure again on the TV with `tools/bench.py` ([perf-ab](docs/workflows/perf-ab.md)).
+- **Backdrop bake:** a 960x540 backdrop bake scaled up (about 1 MB) for TVs without the light start; the full-size bake
+  cost +17 MB PSS on the TCL for no jank gain (#55).
 
 ## From M2
 

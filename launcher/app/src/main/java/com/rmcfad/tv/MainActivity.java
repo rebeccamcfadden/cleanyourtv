@@ -208,7 +208,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         root.addView(backdrop, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        backdrops = new Backdrops(this, backdrop);
+        backdrops = new Backdrops(this, backdrop, root, Ui.BG);
         Overlays.add(root, this, theme);
         stage = new FrameLayout(this);
         root.addView(stage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -217,7 +217,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         ImportPill pill = new ImportPill(this, Notes.get(this));
         root.addView(pill, ImportPill.place(false));
         setContentView(root);
-        // root is opaque, so the window's own black under it would be a second full-screen fill on every frame.
+        // root is opaque (its own fill, or the backdrop's picture over it, see Backdrops), so the window's own black
+        // under it would be another full-screen fill on every frame.
         getWindow().setBackgroundDrawable(null);
         loadBackdrop();
 

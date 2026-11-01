@@ -16,6 +16,7 @@ import android.os.Looper;
 import android.os.Process;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
+import android.view.View;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -102,10 +103,15 @@ final class Backdrops {
     private boolean imageShown;
     private boolean visible;
     private ValueAnimator fade;
+    /** The activity's root, whose plain fill is only needed while no opaque picture covers the screen. */
+    private final View root;
+    private final int rootFill;
 
-    Backdrops(Activity activity, ImageView view) {
+    Backdrops(Activity activity, ImageView view, View root, int rootFill) {
         this.activity = activity;
         this.view = view;
+        this.root = root;
+        this.rootFill = rootFill;
         this.filesDir = activity.getFilesDir();
     }
 
@@ -207,6 +213,24 @@ final class Backdrops {
         main.removeCallbacks(hourly);
         view.setImageDrawable(null);
         view.setImageAlpha(255);
+        root.setBackgroundColor(rootFill);
+    }
+
+    /**
+     * The picture has settled at full alpha: the sky under it, and the root's fill under that, would only be extra
+     * full-screen fills on every frame (the TCL's GPU repaints the whole screen each frame). A picture with
+     * transparent pixels keeps both.
+     */
+    private void covered(Drawable d) {
+        if (!opaque(d)) return;
+        view.setBackground(null);
+        root.setBackground(null);
+    }
+
+    private static boolean opaque(Drawable d) {
+        if (!(d instanceof BitmapDrawable)) return false;
+        Bitmap b = ((BitmapDrawable) d).getBitmap();
+        return b != null && !b.hasAlpha();
     }
 
     /** Stops a fade-in where it is; cleared first, so its end leaves the sky under the picture alone. */
@@ -321,7 +345,7 @@ final class Backdrops {
         view.setImageDrawable(d);
         if (ms <= 0) {
             view.setImageAlpha(255);
-            view.setBackground(null);
+            covered(d);
             return;
         }
         view.setImageAlpha(0);
@@ -332,8 +356,7 @@ final class Backdrops {
             @Override
             public void onAnimationEnd(Animator animation) {
                 view.setImageAlpha(255);
-                // The picture covers the screen: the sky under it would only be a second full-screen fill per frame.
-                if (fade == a) view.setBackground(null);
+                if (fade == a) covered(d);
             }
         });
         fade = a;
