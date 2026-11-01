@@ -397,6 +397,8 @@ final class Accounts implements Household.Recorder {
             return true;
         }
         if (!shownEdits.start(listId, titleId, on, shownHas(listId, titleId))) return false;
+        // Where the title stood, so a refused removal puts it back in the same place ("Recently added" reads it).
+        int at = on ? -1 : shownIndex(listId, titleId);
         editShown(listId, titleId, on);
         worker.execute(() -> {
             boolean ok;
@@ -410,11 +412,33 @@ final class Accounts implements Household.Recorder {
             boolean took = ok;
             main.post(() -> {
                 Boolean now = shownEdits.finish(listId, titleId, took);
-                if (now != null && s == session) editShown(listId, titleId, now);
+                // Signed out meanwhile: the TV's copy is still this account's, so a refusal still undoes it. Another
+                // account signed in since: its copies aren't touched.
+                if (now != null && (s == session || session == null)) {
+                    if (!took && now && at >= 0) editShownAt(listId, titleId, at);
+                    else editShown(listId, titleId, now);
+                }
                 done.accept(took);
             });
         });
         return true;
+    }
+
+    /** Where titleId stands on the saved copy of the shown list numbered listId, or -1. */
+    private int shownIndex(long listId, String titleId) {
+        for (ImportedLists.Entry e : ImportedLists.restore(shownRefs(), prefs.getString(IMPORTED, null), unnamed)) {
+            if (e.id == listId) return e.ids.indexOf(titleId);
+        }
+        return -1;
+    }
+
+    /** The saved copy of the shown list numbered listId with titleId put back at {@code at}, shown at once. */
+    private void editShownAt(long listId, String titleId, int at) {
+        List<ImportedLists.Entry> saved = ImportedLists.restore(shownRefs(), prefs.getString(IMPORTED, null), unnamed);
+        List<ImportedLists.Entry> next = ImportedLists.withTitleAt(saved, listId, titleId, at);
+        if (next.equals(saved)) return;
+        prefs.edit().putString(IMPORTED, ImportedLists.save(next)).apply();
+        loadImported();
     }
 
     /** Whether a title menu change to titleId on the shown list numbered listId is still out to TMDB. */

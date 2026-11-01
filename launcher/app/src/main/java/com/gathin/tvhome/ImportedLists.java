@@ -144,6 +144,25 @@ final class ImportedLists {
         return out;
     }
 
+    /**
+     * The copies with a title put back on the TMDB list numbered {@code listId} at {@code at} (clamped to the list),
+     * where it stood before a removal TMDB refused, so its "Recently added" place comes back too; every other list as
+     * it was, and nothing changes when the title is already on it.
+     */
+    static List<Entry> withTitleAt(List<Entry> lists, long listId, String titleId, int at) {
+        List<Entry> out = new ArrayList<>();
+        for (Entry e : lists) {
+            if (listId <= 0 || e.id != listId || e.ids.contains(titleId)) {
+                out.add(e);
+                continue;
+            }
+            List<String> ids = new ArrayList<>(e.ids);
+            ids.add(Math.max(0, Math.min(at, ids.size())), titleId);
+            out.add(new Entry(e.ref, e.id, e.name, ids));
+        }
+        return out;
+    }
+
     // ---- The copies kept for offline ---------------------------------------------------------------------------
 
     /**

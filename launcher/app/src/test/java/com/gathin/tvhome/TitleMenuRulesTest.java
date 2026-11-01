@@ -211,4 +211,19 @@ public class TitleMenuRulesTest {
         assertEquals(lists, ImportedLists.withTitle(lists, 42, ID, true));
         assertEquals(lists, ImportedLists.withTitle(lists, 0, ID, true));
     }
+
+    @Test
+    public void aRefusedRemovalPutsTheTitleBackWhereItWas() {
+        ImportedLists.Entry picks = new ImportedLists.Entry(ListRef.parse("8221116"), 8221116, "Our picks",
+                Arrays.asList("movie:1", "movie:2", "movie:3"));
+        List<ImportedLists.Entry> lists = Collections.singletonList(picks);
+        List<ImportedLists.Entry> removed = ImportedLists.withTitle(lists, 8221116, "movie:1", false);
+        assertEquals(Arrays.asList("movie:2", "movie:3"), removed.get(0).ids);
+        // Back at index 0, not at the end: "Recently added" treats the last title as newest.
+        assertEquals(lists, ImportedLists.withTitleAt(removed, 8221116, "movie:1", 0));
+        // An index past the end (the list shrank meanwhile) clamps; a title already there is left alone.
+        assertEquals(Arrays.asList("movie:2", "movie:3", "movie:1"),
+                ImportedLists.withTitleAt(removed, 8221116, "movie:1", 9).get(0).ids);
+        assertEquals(lists, ImportedLists.withTitleAt(lists, 8221116, "movie:2", 0));
+    }
 }

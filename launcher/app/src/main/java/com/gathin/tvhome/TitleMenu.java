@@ -84,7 +84,10 @@ final class TitleMenu {
         router.toast(toast);
     }
 
-    /** The lists menu showing, if any: a late TMDB answer re-ticks it from the household, whichever menu sent it. */
+    /**
+     * The lists menu's state, kept as a tag on the menu's own view ({@link R.id#ui_title_lists}) so it goes when the
+     * menu and its activity go: a late TMDB answer finds it only while that menu is the one on top.
+     */
     private static final class Lists {
         final Screen screen;
         final Title title;
@@ -98,8 +101,6 @@ final class TitleMenu {
             this.card = card;
         }
     }
-
-    private static Lists showing;
 
     /**
      * The lists menu: My list, then the shown TMDB lists the TV can change, each ticked when the title is on it. OK
@@ -120,7 +121,7 @@ final class TitleMenu {
         Lists open = new Lists(menu, t, card);
         open.lists.addAll(lists);
         open.rows.addAll(rows);
-        showing = open;
+        menu.view.setTag(R.id.ui_title_lists, open);
         shell.push(menu);
     }
 
@@ -154,8 +155,9 @@ final class TitleMenu {
         Shell shell = router.shell();
         Data data = router.data();
         Screen top = shell.top();
-        Lists open = showing;
-        if (open != null && top == open.screen) {
+        Object tag = top != null ? top.view.getTag(R.id.ui_title_lists) : null;
+        if (tag instanceof Lists) {
+            Lists open = (Lists) tag;
             if (!open.title.id.equals(t.id)) return;
             for (int i = 0; i < open.rows.size(); i++) {
                 MenuPanel.setTicked(open.rows.get(i), data.household.isOn(t, open.lists.get(i)));
@@ -166,6 +168,21 @@ final class TitleMenu {
         if (page != null && top == page) {
             page.onShow();
             shell.refocus();
+            // onShow() keeps cards whose title and place didn't change, so their list line is redrawn here too.
+            refreshCards(page.view, t, data);
+        }
+    }
+
+    /** Redraws the list line of every card for t under root (a refused change may not move the card). */
+    private static void refreshCards(View root, Title t, Data data) {
+        Title on = Kit.titleOf(root);
+        if (on != null && on.id.equals(t.id)) {
+            Kit.refreshTitleCard(root, data);
+            return;
+        }
+        if (root instanceof android.view.ViewGroup) {
+            android.view.ViewGroup g = (android.view.ViewGroup) root;
+            for (int i = 0; i < g.getChildCount(); i++) refreshCards(g.getChildAt(i), t, data);
         }
     }
 
