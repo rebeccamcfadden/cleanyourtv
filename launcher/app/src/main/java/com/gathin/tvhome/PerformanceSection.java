@@ -70,7 +70,9 @@ final class PerformanceSection implements SettingsSection {
     /** "All on", "Light mode" at the lightest, "Lighter" while a light-start TV has nothing saved, else "Custom". */
     @Override
     public CharSequence value(Context ctx) {
-        MotionChoice m = systemOff(ctx) ? MotionChoice.REDUCED : motion(ctx);
+        MotionChoice m = motion(ctx);
+        // Android's animations off keep motion reduced: Full shows as Reduced, Off stays Off.
+        if (m == MotionChoice.FULL && systemOff(ctx)) m = MotionChoice.REDUCED;
         PerfChoices p = PerfPrefs.load(ctx, config);
         if (m == MotionChoice.FULL && p.same(PerfChoices.FULL)) return ctx.getString(R.string.perf_value_all_on);
         if (m == MotionChoice.OFF && p.same(PerfChoices.MINIMUM)) return ctx.getString(R.string.perf_value_light_mode);
@@ -166,13 +168,22 @@ final class PerformanceSection implements SettingsSection {
     }
 
     /**
-     * ↓ goes to the next row's control, on its selected option. The controls have different widths, so the spatial
-     * D-pad would sometimes skip a narrow one for the wider one under it. (↑ already goes row by row: the controls
-     * start at the same x.)
+     * ↓ goes to the next row's control, on its selected option, and → stays within its control. The controls have
+     * different widths, so the spatial D-pad would skip a narrow one or jump rows. (↑ already goes row by row: the
+     * controls start at the same x.)
      */
     @Override
     public boolean onKey(Screen.Key key, View focused) {
-        if (key != Screen.Key.DOWN || focused == null) return false;
+        if (focused == null) return false;
+        // → stays in its own control: at a narrow control's last option, the page's spatial D-pad would jump to a
+        // wider control on the next row.
+        if (key == Screen.Key.RIGHT && segOf(Focus.group(focused)) != null) {
+            ViewGroup seg = (ViewGroup) focused.getParent();
+            int i = seg.indexOfChild(focused);
+            if (i >= 0 && i + 1 < seg.getChildCount()) host.shell().focus(seg.getChildAt(i + 1));
+            return true;
+        }
+        if (key != Screen.Key.DOWN) return false;
         String below = below(Focus.group(focused));
         View seg = below == null ? null : segOf(below);
         View next = seg == null ? null : SettingsKit.selectedOption(seg);
@@ -192,6 +203,7 @@ final class PerformanceSection implements SettingsSection {
     }
 
     private View segOf(String group) {
+        if (group == null) return null;
         switch (group) {
             case "perf-motion":
                 return motionSeg;

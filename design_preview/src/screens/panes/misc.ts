@@ -44,10 +44,20 @@ const onOff = (group: string, get: () => boolean, set: (on: boolean) => void) =>
  */
 export const performancePane = (host: PaneHost): Pane => ({
   /**
-   * ↓ goes to the next row's control, on its selected option: the controls have different widths, so the spatial
-   * D-pad would sometimes skip a narrow one for the wider one under it. ↑ already goes row by row.
+   * ↓ goes to the next row's control, on its selected option, and → stays within its control: the controls have
+   * different widths, so the spatial D-pad would skip a narrow one or jump rows. ↑ already goes row by row.
    */
   onKey(key: Key, focused: HTMLElement) {
+    // → stays in its own control: at a narrow control's last option, the page's spatial D-pad would jump to a wider
+    // control on the next row.
+    if (key === 'right') {
+      const seg = focused.closest('.seg');
+      if (!seg) return false;
+      const opts = [...seg.querySelectorAll<HTMLElement>('.seg-opt')];
+      const next = opts[opts.indexOf(focused) + 1];
+      if (next?.dataset.key) host.focusKey(next.dataset.key);
+      return true;
+    }
     if (key !== 'down') return false;
     const s = settings.get();
     const rows = [
