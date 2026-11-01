@@ -232,7 +232,7 @@ final class LibraryPage extends Screen {
             protected void onWindowVisibilityChanged(int visibility) {
                 super.onWindowVisibilityChanged(visibility);
                 if (visibility != View.VISIBLE) markLeft();
-                else if (recall() && shell.top() == LibraryPage.this) render();
+                else if (recall() && shell.top() == LibraryPage.this) startedAgain();
             }
 
             @Override
@@ -240,11 +240,20 @@ final class LibraryPage extends Screen {
                 super.onWindowFocusChanged(hasWindowFocus);
                 if (hasWindowFocus && getWindowVisibility() == View.VISIBLE && recall()
                         && shell.top() == LibraryPage.this) {
-                    render();
+                    startedAgain();
                 }
             }
         }, new FrameLayout.LayoutParams(0, 0));
         render();
+    }
+
+    /**
+     * Cleared while on screen (standby, or back from an app after the hour): render, and put focus on the page's
+     * default, since the focused card may now be scrolled out of view and refocus() keeps a view that is still there.
+     */
+    private void startedAgain() {
+        render();
+        shell.focus(shell.restoreTarget(this));
     }
 
     @Override
@@ -417,7 +426,10 @@ final class LibraryPage extends Screen {
      * list chip and sort start again (no filters, All lists, A–Z), from the top. Returns whether they did.
      */
     private boolean recall() {
-        boolean stale = RECALL.isLeft(kind) ? RECALL.back(kind) == null : offsSeen != RECALL.offs();
+        // Left: the saved choices, unless the hour or a standby since the leaving cleared them. Either way, a standby
+        // since the page last showed clears them too (one it never saw while on screen, before being left).
+        boolean wasLeft = RECALL.isLeft(kind);
+        boolean stale = (wasLeft && RECALL.back(kind) == null) || offsSeen != RECALL.offs();
         offsSeen = RECALL.offs();
         if (!stale) return false;
         filters.clear();
