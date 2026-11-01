@@ -156,7 +156,7 @@ try {
                 if ($LASTEXITCODE -eq 0 -and (Test-Path $last)) {
                     $lastCode = [int]((Get-Content $last -Raw | ConvertFrom-Json).versionCode)
                     if ($versionCode -le $lastCode) {
-                        throw "versionCode $versionCode is not above the last release's $lastCode: raise it in a pull request first."
+                        throw "versionCode $versionCode is not above the last release's ${lastCode}: raise it in a pull request first."
                     }
                 }
             } finally { Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue }
