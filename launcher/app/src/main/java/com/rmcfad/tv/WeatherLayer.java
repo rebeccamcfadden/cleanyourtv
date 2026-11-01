@@ -70,7 +70,14 @@ final class WeatherLayer extends View {
     private void rearm() {
         stop();
         removeCallbacks(start);
-        if (homeVisible) postDelayed(start, IDLE_MS);
+        if (homeVisible && hasWindowFocus()) postDelayed(start, IDLE_MS);
+    }
+
+    /** A translucent panel over Home (Quick settings, the TV's settings, the input picker) takes the keys: stop under it. */
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        rearm();
     }
 
     private static boolean allowed() {
@@ -79,7 +86,7 @@ final class WeatherLayer extends View {
     }
 
     private void start() {
-        if (running || !homeVisible || !isAttachedToWindow() || !allowed()) return;
+        if (running || !homeVisible || !isAttachedToWindow() || !hasWindowFocus() || !allowed()) return;
         WeatherFall.Fall f = WeatherFall.of(condition, SeasonCalendar.at(LocalDate.now()));
         if (f == WeatherFall.Fall.NONE) return;
         boolean px = Ui.theme().backdrop.startsWith("pixel:");
