@@ -63,11 +63,11 @@ export function notesPane(_host: PaneHost): Pane {
                   h('div.kv', h('span', 'Address'), h('b.notes-mono', INBOX_URL)),
                   h('div.kv', h('span', 'Pairing code'), h('b.notes-code', notes.code())),
                 ),
-                // Scanned with the iPhone camera: http://<tv>:8765/setup#<code>, a page to copy both into the Shortcut.
+                // Scanned with the iPhone camera: http://<tv>:8765/setup#<code>, a page to get the shared Shortcut and pair it.
                 h(
                   'div.notes-qr',
                   h('div.notes-qr-img', { html: qrSvg(200) }),
-                  h('div.notes-qr-cap', 'Scan with the iPhone camera to copy the address and code into the Shortcut'),
+                  h('div.notes-qr-cap', 'Scan with the iPhone camera to add the Shortcut or pair the phone again'),
                 ),
               ),
               h('div.pane-note.pane-note--tiny', 'Plain HTTP on your home network: the code only lets a phone add titles to your lists.'),
@@ -80,7 +80,7 @@ export function notesPane(_host: PaneHost): Pane {
                     app.push(
                       confirmDialog({
                         title: 'Make a new pairing code?',
-                        body: 'Phones with the old code can’t send until their Shortcut has the new one.',
+                        body: 'Phones with the old code can’t send until they scan the new QR and pair again.',
                         actions: [{ label: 'New code', primary: true, onOk: notes.newCode }],
                       }),
                     ),
