@@ -190,6 +190,9 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         PerfChoices.apply(PerfPrefs.load(this, cfg));
         // F14: which features run, before anything that starts one is built.
         Features.apply(FeaturePrefs.load(this));
+        // The Phone notes inbox lives as long as the process: it opens or closes with the switches the launcher is
+        // built with now.
+        Notes.get(this).allow(Features.isOn(Features.Feature.NOTES));
         if (!ThemeFonts.apply(this, theme)) ThemeFonts.fetch(this, theme, fontsArrived);
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
         // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
