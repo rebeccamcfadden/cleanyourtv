@@ -4,14 +4,28 @@ import { net } from './net';
 // the TV over the home network with a pairing code. The TV looks each new line up on TMDB and adds it to that
 // person's TMDB list. Mocked here: the dev bar's Jump menu "sends" a note, and the import runs on a timer.
 
+/** One of TMDB's answers for a line it didn't match exactly. */
+export interface NoteCandidate {
+  title: string;
+  year: number;
+  kind: 'Movie' | 'TV show';
+}
+
+/** A line not matched exactly, as written, with TMDB's best three answers (none when it had none). */
+export interface NoteAsk {
+  line: string;
+  ticked?: boolean;
+  top: NoteCandidate[];
+}
+
 export interface NoteSend {
   list: string;
   /** "Today 19:40". */
   at: string;
   lines: number;
   added: number;
-  /** Lines that matched no title, as written. */
-  unmatched: string[];
+  /** Lines not matched exactly: asked about in the pane (the picker). */
+  unmatched: NoteAsk[];
 }
 
 export interface Importing {
@@ -82,10 +96,28 @@ export const notes = {
     return unmatched ? { text: `${unmatched} not matched`, warn: true } : { text: 'On' };
   },
   /**
-   * A phone sends a note (dev bar): `lines` new lines, of which `misses` match nothing. Offline, the lines wait and
+   * The picker answered a line (the project lead, 2026-11-01): `pick` goes onto the list (Seen, for a ticked line),
+   * or null is "None of these", remembered so the line isn't asked again. Either way it leaves Last sends.
+   */
+  answer(list: string, line: string, pick: NoteCandidate | null) {
+    const s = sends.find((x) => x.list === list);
+    if (!s) return;
+    const ask = s.unmatched.find((a) => a.line === line);
+    s.unmatched = s.unmatched.filter((a) => a.line !== line);
+    if (pick && ask && !ask.ticked) {
+      s.added += 1;
+      clearTimeout(finishTimer);
+      finish({ list, added: 1, unmatched: 0, offline: false });
+      return;
+    }
+    emit();
+  },
+  /**
+   * A phone sends a note (dev bar): `lines` lines, of which `misses` weren't matched exactly. The pill counts every
+   * line from the start ("0 of 12"). Offline, the lines wait and
    * the pill says so. One import at a time: in this mock, a send during an import is dropped (the TV queues it).
    */
-  simulate(list: string, lines: number, misses: string[]) {
+  simulate(list: string, lines: number, misses: NoteAsk[]) {
     if (!on || importing) return;
     clearTimeout(finishTimer);
     finished = null;

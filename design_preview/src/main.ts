@@ -150,7 +150,18 @@ const jumps: [string, string, () => void][] = [
     'Phone notes · a phone sends a note (3 not matched)',
     () => {
       notes.setOn(true);
-      notes.simulate('Rebecca', 12, ['Zzyzx Road extended', 'that one with the dog', 'Dune 3']);
+      notes.simulate('Rebecca', 12, [
+        {
+          line: 'Inglorious basterds',
+          top: [
+            { title: 'Inglourious Basterds', year: 2009, kind: 'Movie' },
+            { title: 'Basterds Reunion', year: 2020, kind: 'Movie' },
+            { title: 'The Basterds', year: 2015, kind: 'TV show' },
+          ],
+        },
+        { line: 'Dead poet society', ticked: true, top: [{ title: 'Dead Poets Society', year: 1989, kind: 'Movie' }] },
+        { line: 'that one with the dog', top: [] },
+      ]);
     },
   ],
   [

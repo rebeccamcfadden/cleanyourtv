@@ -6,12 +6,14 @@ import { icon } from '../../ui/icons';
 import { qrSvg } from '../../ui/qr';
 import { button, segmented } from '../../ui/widgets';
 import { confirmDialog } from '../confirm';
+import { notePicker } from '../notePicker';
 import type { Pane, PaneHost } from './pane';
 
 /**
  * Phone notes (no Figma design yet; drafted here from the Account pane's parts): turn the inbox on, read the
- * address and pairing code to type into the "Send to TV" Shortcut, and see each list's last send with the lines that
- * matched nothing. Off by default.
+ * address and pairing code to type into the "Send to TV" Shortcut, and see each list's last send with the lines not
+ * matched exactly, each a button that opens the picker (notePicker; focusable, so the pane scrolls down to them). Off
+ * by default.
  */
 export function notesPane(_host: PaneHost): Pane {
   const onOff = segmented<'on' | 'off'>({
@@ -35,7 +37,16 @@ export function notesPane(_host: PaneHost): Pane {
         s.unmatched.length ? h('span.notes-warn', `${s.unmatched.length} not matched`) : h('span.notes-good', { html: icon('check', 20) }),
       ),
       s.unmatched.length
-        ? h('div.notes-miss', s.unmatched.map((l) => h('span.notes-line', l)))
+        ? h(
+            'div.notes-asks',
+            s.unmatched.map((a) =>
+              button(`${a.line} · ${a.top.length ? 'Choose' : 'Not on TMDB'}`, {
+                small: true,
+                key: `notes-ask-${s.list}-${a.line}`,
+                onOk: () => app.push(notePicker(s.list, a)),
+              }),
+            ),
+          )
         : null,
     );
 

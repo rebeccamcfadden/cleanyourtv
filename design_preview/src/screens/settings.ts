@@ -182,6 +182,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
 
   const screen: Screen = {
     label: setup ? 'First run · Settings' : 'Launcher settings',
+    pillAtTop: true,
     el,
     defaultFocus: () => (inPane ? entryOf() : null) ?? rowOf(current),
     onShow: () => rerender(),

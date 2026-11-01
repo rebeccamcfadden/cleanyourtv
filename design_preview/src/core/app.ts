@@ -25,6 +25,8 @@ export interface Screen {
   onFocus?(el: HTMLElement): void;
   /** Called each time the screen becomes the top of the stack. */
   onShow?(): void;
+  /** Phone notes' import pill moves to the top centre while this page shows (Launcher settings: its pane runs to the bottom). */
+  pillAtTop?: boolean;
   /**
    * Called when a tab's page stops being the current tab (another tab, Back to Home, the remote's Home), not when
    * something is pushed over it. Search forgets its query here.
@@ -75,6 +77,15 @@ class App {
 
   top(): Screen | undefined {
     return this.stack[this.stack.length - 1];
+  }
+
+  /** Whether the page showing, under any popups and dialogs, wants the import pill at the top. */
+  pillAtTop(): boolean {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      const s = this.stack[i];
+      if (!s.layer || s.layer === 'screen') return !!s.pillAtTop;
+    }
+    return false;
   }
 
   /** Whether the screen is anywhere in the stack, shown or not. */

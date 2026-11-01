@@ -74,7 +74,9 @@ left and parked work on the right.
 The prototype goes further than Figma in places. These exist only here: the filters drawer, the rent/buy dialog,
 the Episodes, Cast & crew and More like this tabs, the Inputs, Wi-Fi and quick-settings dropdowns, the person
 page stub, the empty and no-match states of Movies and TV Shows, the focusable search bar on the full results,
-and the Seen icon (an eye, so it no longer matches My list's tick).
+the Seen icon (an eye, so it no longer matches My list's tick), and Phone notes' picker for a line TMDB didn't match
+exactly (TMDB's best three as posters with title and year, and None of these; drawn as the confirm dialog, with no
+design yet; the project lead, 2026-11-01).
 
 ### V2 designs
 
@@ -437,14 +439,16 @@ A ticked line goes to Seen. Off by default.
 | State | Pane | First focus |
 |---|---|---|
 | Off | "Send lists from your phones", what it does, an **On / Off** switch, "Off: the TV doesn’t listen for phones." | The switch |
-| On | The switch; amber "Sign in to TMDB in Account first…" while signed out; Address (`http://<tv>:8765/notes`) and Pairing code ("K7QM-4PXT", 8 characters without 0/O or 1/I/L) beside a QR that opens `http://<tv>:8765/setup#<code>` on the iPhone, a page with **Get the shortcut** (the household's shared iCloud link) and **Pair this phone**, which hands the Shortcut both to keep, so a new code means pairing again (the code stays in the link's fragment; the project lead, 2026-10-31 and 2026-11-01); a tiny note that it is plain HTTP on the home network and the code only lets a phone add titles; **New code** (asks first: phones pair again) and **How to set up a phone**; Last sends, one row per list (when, lines, added, and an amber "3 not matched" with the lines that matched nothing as written, to fix in the note) | The switch |
+| On | The switch; amber "Sign in to TMDB in Account first…" while signed out; Address (`http://<tv>:8765/notes`) and Pairing code ("K7QM-4PXT", 8 characters without 0/O or 1/I/L) beside a QR that opens `http://<tv>:8765/setup#<code>` on the iPhone, a page with **Get the shortcut** (the household's shared iCloud link) and **Pair this phone**, which hands the Shortcut both to keep, so a new code means pairing again (the code stays in the link's fragment; the project lead, 2026-10-31 and 2026-11-01); a tiny note that it is plain HTTP on the home network and the code only lets a phone add titles; **New code** (asks first: phones pair again) and **How to set up a phone**; Last sends, one row per list (when, lines, added, and an amber "3 not matched" with each line not matched exactly as a button, "Inglorious basterds · Choose", that opens the picker: OK on a poster puts it on the list, or on Seen for a ticked line; None of these stops asking; the lines being focusable, the pane scrolls down to them) | The switch |
 
 The dev bar's Jump to → "Phone notes · a phone sends a note" plays a send; `?notes=on` starts with it on.
 
 #### Import pill
 
 While a note is looked up, a small pill sits at the bottom centre of whatever screen shows, between the guide line's
-ends: an accent dot, "Importing Rebecca · 6 of 12" and a thin bar (only the new lines count). At the end it reads
+ends, and on Launcher settings at the top centre on the title's line, as its pane runs to the bottom edge (the project
+lead, 2026-11-01): an accent dot, "Importing Rebecca · 6 of 12" and a thin bar (every line of the note counts, so it
+reads "0 of 12" from the start). At the end it reads
 "Partner · 8 added" with a tick for four seconds, or in amber "Rebecca · 9 added · 3 not matched", or "Rebecca ·
 waiting for the internet" when the TV went offline (the lines are tried again). Never focusable; the shape is the
 offline pill's (06-states A), amber only for a problem. Motion Off drops its slide.
