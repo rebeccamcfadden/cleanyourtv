@@ -850,13 +850,23 @@ final class HomePage extends Screen {
                 weatherStore.retry();
             }
             weatherStore.refresh();
-            refreshApps(false);
-            refreshInputs();
+            // The apps and inputs are read back from the system (PackageManager, TvInputManager: binder calls) after
+            // the first frame back on Home, as MainActivity does for the nav, so they never hold that frame up.
+            view.removeCallbacks(refreshAfterFrame);
+            view.post(refreshAfterFrame);
         } else {
+            view.removeCallbacks(refreshAfterFrame);
             activity.unregisterReceiver(clockReceiver);
             putDown();
         }
     }
+
+    /** Home's app row and inputs, checked again once Home is back on screen (setVisible). */
+    private final Runnable refreshAfterFrame = () -> {
+        if (!visible) return;
+        refreshApps(false);
+        refreshInputs();
+    };
 
     /** Home's root: tells the page when it is attached to a visible window, which is when Home is on screen. */
     private static final class HomeFrame extends FrameLayout {
