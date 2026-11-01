@@ -207,11 +207,9 @@ try {
     }
 
     # ---- The release's files --------------------------------------------------------------------------------------
+    # Already checked above: no release has this tag, so whatever is here is a dry run's or an unpublished try's.
     $out = Join-Path $KeyDir "releases\$tag"
-    if (Test-Path $out) {
-        if (-not $DryRun) { throw "$out exists already; move it away if that release was never published." }
-        Remove-Item -Recurse -Force $out
-    }
+    if (Test-Path $out) { Remove-Item -Recurse -Force $out }
     New-Item -ItemType Directory -Force $out | Out-Null
     $apkName = "hometv-launcher-$tag.apk"
     Copy-Item $apk (Join-Path $out $apkName)
@@ -219,9 +217,6 @@ try {
     $version = [ordered]@{ versionCode = $versionCode; versionName = $versionName; apk = $apkName; sha256 = $apkSha;
                            certSha256 = $pinned; minSdk = 26; commit = $head }
     [IO.File]::WriteAllText((Join-Path $out 'version.json'), (($version | ConvertTo-Json) -replace "`r`n", "`n") + "`n")
-    # The family installer (step 4) ships beside the APK once it exists.
-    $installer = Join-Path $PSScriptRoot 'family-install.ps1'
-    if (Test-Path $installer) { Copy-Item $installer $out }
     $sums = Get-ChildItem $out -File | Where-Object Name -ne 'SHA256SUMS' | Sort-Object Name | ForEach-Object {
         "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
     }
