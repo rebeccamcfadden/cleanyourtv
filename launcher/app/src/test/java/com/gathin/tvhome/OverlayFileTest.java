@@ -87,6 +87,25 @@ public class OverlayFileTest {
     }
 
     @Test
+    public void aCopyThatCouldNotBeWrittenIsTriedAgain() throws IOException {
+        File file = write("config.json", "{\"a\":1}");
+        File copy = tmp.newFolder("copy-is-a-folder");
+        assertEquals("{\"a\":1}", overlay.read(file, copy, true));
+        assertEquals(1, warnings.size());
+        overlay.read(file, copy, true);
+        assertEquals("an I/O failure isn't remembered", 2, overlay.reads);
+    }
+
+    @Test
+    public void badJsonIsRememberedUntilTheFileChanges() throws IOException {
+        File file = write("config.json", "{nope");
+        File copy = new File(tmp.getRoot(), "copy.json");
+        assertNull(overlay.read(file, copy, true));
+        assertNull(overlay.read(file, copy, true));
+        assertEquals(1, overlay.reads);
+    }
+
+    @Test
     public void aLeadingBomIsDropped() throws IOException {
         File copy = new File(tmp.getRoot(), "copy.json");
         assertEquals("{\"a\":1}", overlay.read(write("bom.json", "\uFEFF{\"a\":1}"), copy, true));

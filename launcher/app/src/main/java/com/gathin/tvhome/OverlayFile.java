@@ -41,6 +41,7 @@ final class OverlayFile {
         String now = stamp(file);
         if (now.equals(stamp)) return text;
         reads++;
+        ioError = false;
         String t = readText(file);
         copies++;
         if (t == null) {
@@ -49,13 +50,19 @@ final class OverlayFile {
             try (FileOutputStream out = new FileOutputStream(copy)) {
                 out.write(t.getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) {
+                ioError = true;
                 warn.accept("could not keep a copy of " + file + ": " + e.getMessage());
             }
         }
-        stamp = now;
+        // A file that couldn't be read or copied is tried again next time, as before; bad JSON or size waits for
+        // the file to change.
+        stamp = ioError ? null : now;
         text = t;
         return t;
     }
+
+    /** Set when the last read or copy failed on I/O rather than on the file's content. */
+    private boolean ioError;
 
     static String stamp(File file) {
         return file != null && file.isFile() ? file.length() + "@" + file.lastModified() : "absent";
@@ -76,7 +83,11 @@ final class OverlayFile {
             if (t.startsWith("\uFEFF")) t = t.substring(1);   // Windows editors add a BOM
             new JSONObject(t);
             return t;
-        } catch (IOException | JSONException | RuntimeException e) {
+        } catch (IOException e) {
+            ioError = true;
+            warn.accept("ignoring " + file + ": " + e.getMessage());
+            return null;
+        } catch (JSONException | RuntimeException e) {
             warn.accept("ignoring " + file + ": " + e.getMessage());
             return null;
         }
