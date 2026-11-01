@@ -414,7 +414,11 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
   offscreen layers on every frame (swap 13 ms against 2 ms), which they no longer do. Left: the TV has no
   `EGL_EXT_buffer_age`, so every frame redraws the whole screen, and from the fifth frame of a sideways move the GPU
   falls behind (swap 1 → 10 ms, about 30% of those frames over 16.7 ms). Fewer full-screen passes (backdrop and
-  shade baked into one picture) is the next thing to try.
+  shade baked into one picture) is the next thing to try. Measured after the change (2026-11-01, 24 keys × 2 and 3
+  atrace runs): the offscreen frames are gone (190 of 587 before, none after), but jank is unchanged (46.9 % both): the
+  other frames got slower (p50 12.4 → 16.3 ms, swap 2 → 7 ms), so the GPU's fill rate is the limit and the saving moved
+  rather than disappeared. Cutting jank needs fewer full-screen frames per move (shorter or no fades and slides), which
+  changes the look: a question for the project lead.
 - **Accessibility in the prototype:** the launcher now reports the current preview tab and nav section as selected
   and reads Pick for me's fields with their value; the prototype has no ARIA roles or states to match.
 
