@@ -77,22 +77,20 @@ final class Data {
 
     /**
      * A small card's third line ({@link PriceCards#cardLine}): "Prime Video · Included", "Rent from 39 kr · 4
-     * stores", with the prices already known; "" for a title whose details (and so its availability) haven't arrived.
+     * stores", with the prices already known, from the household's ticked services, its installed free ones and its
+     * ticked stores; "" when none of those has the title, or its details (and so its availability) haven't arrived.
      */
     String offerLine(Title t) {
         if (!t.detailed && t.offers.isEmpty()) return "";
-        return PriceCards.cardLine(t, services.subscribed(), stores(), table);
+        return PriceCards.cardLine(t, services.subscribed(), services.installed(), stores(), table);
     }
 
     /**
-     * The offer a library card names: the best one, else a subscription the household doesn't have, so a title on a
-     * service that isn't set up reads "Apple TV · Subscription" rather than "Not available".
+     * The offer a library card names ({@link PriceCards#cardOffer}): the best of the household's own offers, or null
+     * (a blank provider) when none of its services or stores has the title. The title page uses {@link #bestOffer}.
      */
-    Offer shownOffer(Title t) {
-        Offer o = bestOffer(t);
-        if (o != null) return o;
-        for (Offer s : t.offers) if (s.type == OfferType.SUB) return s;
-        return null;
+    Offer cardOffer(Title t) {
+        return PriceCards.cardOffer(t, services.subscribed(), services.installed(), stores());
     }
 
     boolean isIncluded(Offer o) {

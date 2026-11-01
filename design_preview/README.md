@@ -331,8 +331,12 @@ clunky.) Rows are 72 px; the panel is opaque (no blur).
 - **Card line:** each card's third line says how to watch it: "Prime Video · Included", "YouTube · Free", or the
   cheapest way to pay across the stores, "Rent from 39 kr · 4 stores" (else "Buy from 99 kr · 2 stores"; one store:
   "Apple TV Store · Rent 29 kr", or "Rakuten TV · Rent" when its price isn't known; a show's seasons: "Buy a season
-  from 199 kr · 2 stores"). Quality is left to Where to watch. The title preview's More like this and the person
-  page use the same cards.
+  from 199 kr · 2 stores"). Quality is left to Where to watch. Only the household's services and stores count (F1,
+  2026-11-01): a subscription it ticked in Streaming services, a free service (SVT Play, Pluto TV, Cineast, YouTube)
+  whose app is installed or that is ticked, and the stores ticked in Stores; when none of them has the title the line
+  is blank. The Movies and TV Shows cards' provider and "Included", "Free" or price follow the same rule; the title
+  preview (Watch, Where to watch) still shows every offer. The title preview's More like this and the person page use
+  the same cards.
 
 ### Prices
 
