@@ -1,0 +1,194 @@
+package com.gathin.tvhome;
+
+import android.content.Context;
+import android.provider.Settings;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Launcher settings › Performance (the project lead's decision, 2026-11-01; design_preview/src/screens/panes/misc.ts
+ * performancePane): what the launcher draws and moves, each a segmented choice on its own row. Motion (Full, Reduced
+ * or Off, MotionChoice, the quick-settings Motion row's choice too), card shadows (On, Focused card only, Off), the
+ * focus glow, the backdrop picture (Photo or the theme's plain colour) and the animated details (the Theme pane's old
+ * Moving details). No master switch. A TV that starts at the light end (Config#lightDefaults: low-RAM, or config's
+ * light_defaults) starts with PerfChoices.LIGHT and Motion Reduced, and the pane says so; a choice saved here wins.
+ *
+ * <p>Motion keeps its rules: a TV whose config sets reduced_motion is never Full, so Full isn't offered there; with
+ * Android's animations off, motion stays reduced whatever is chosen. Everything takes effect when Home is rebuilt, as
+ * the page closes (Host#valueChanged moves the change count).
+ */
+final class PerformanceSection implements SettingsSection {
+    private Config config;
+    /** Whether config was read with no Motion saved, so it holds config.xml's and config.json's own values. */
+    private boolean unsaved;
+    private View first;
+
+    PerformanceSection(Config config) {
+        this.config = config;
+    }
+
+    /**
+     * The Motion in effect. Config folds a saved Motion into its Animations switch, so once About's Follow theme drops
+     * that choice the config is read again, once, to get the file's own value back.
+     */
+    private MotionChoice motion(Context ctx) {
+        if (!unsaved && !ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
+                .contains(MotionChoice.KEY)) {
+            config = Config.load(ctx);
+            unsaved = true;
+        }
+        return MotionPrefs.load(ctx, config);
+    }
+
+    @Override
+    public String id() {
+        return "performance";
+    }
+
+    @Override
+    public int label() {
+        return R.string.settings_performance;
+    }
+
+    @Override
+    public int icon() {
+        return R.drawable.ic_ui_gauge;
+    }
+
+    /** "All on", "Lighter" while a light-start TV has nothing saved, else "Custom". */
+    @Override
+    public CharSequence value(Context ctx) {
+        MotionChoice m = systemOff(ctx) ? MotionChoice.REDUCED : motion(ctx);
+        PerfChoices p = PerfPrefs.load(ctx, config);
+        if (m == MotionChoice.FULL && p.same(PerfChoices.FULL)) return ctx.getString(R.string.perf_value_all_on);
+        android.content.SharedPreferences prefs = ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
+        boolean saved = PerfChoices.anySaved(prefs.getAll()) || prefs.contains(MotionChoice.KEY);
+        if (config.lightDefaults && !saved) return ctx.getString(R.string.perf_value_lighter);
+        return ctx.getString(R.string.perf_value_custom);
+    }
+
+    @Override
+    public View pane(Context ctx, Host host) {
+        LinearLayout pane = SettingsKit.column(ctx);
+        pane.addView(SettingsKit.eyebrow(ctx, ctx.getString(R.string.settings_performance)));
+        SettingsKit.add(pane, SettingsKit.title(ctx, ctx.getString(R.string.settings_performance), false), 10);
+        SettingsKit.add(pane, SettingsKit.sub(ctx, ctx.getString(R.string.perf_sub)), 8);
+        if (config.lightDefaults) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.perf_light_note)), 14);
+
+        // Motion: Full isn't offered where the TV's config keeps motion reduced.
+        MotionChoice now = motion(ctx);
+        boolean configReduced = config.reducedMotion;
+        List<MotionChoice> offered = new ArrayList<>();
+        for (MotionChoice m : MotionChoice.values()) if (!configReduced || m != MotionChoice.FULL) offered.add(m);
+        String[] codes = new String[offered.size()];
+        CharSequence[] labels = new CharSequence[offered.size()];
+        for (int i = 0; i < offered.size(); i++) {
+            codes[i] = offered.get(i).code;
+            labels[i] = ctx.getString(motionLabel(offered.get(i)));
+        }
+        View motion = SettingsKit.segmented(ctx, "perf-motion", codes, labels, now.code, true, value -> {
+            MotionPrefs.save(ctx, MotionChoice.parse(value));
+            host.valueChanged();
+        });
+        SettingsKit.addWide(pane, row(ctx, R.string.perf_motion, R.string.perf_motion_sub, motion), 22);
+        first = SettingsKit.selectedOption(motion);
+        if (configReduced) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.motion_forced_config)), 8);
+        if (systemOff(ctx)) SettingsKit.add(pane, SettingsKit.note(ctx, ctx.getString(R.string.motion_forced_system)), 8);
+
+        PerfChoices p = PerfPrefs.load(ctx, config);
+        PerfChoices.Shadows[] shadows = PerfChoices.Shadows.values();
+        String[] shadowCodes = new String[shadows.length];
+        for (int i = 0; i < shadows.length; i++) shadowCodes[i] = shadows[i].code;
+        View shadow = SettingsKit.segmented(ctx, "perf-shadows", shadowCodes, new CharSequence[]{
+                ctx.getString(R.string.perf_on), ctx.getString(R.string.perf_shadows_focus),
+                ctx.getString(R.string.perf_off)}, p.shadows.code, true, value -> {
+            PerfPrefs.saveShadows(ctx, PerfChoices.Shadows.parse(value));
+            host.valueChanged();
+        });
+        SettingsKit.addWide(pane, row(ctx, R.string.perf_shadows, R.string.perf_shadows_sub, shadow), 12);
+
+        View glow = onOff(ctx, "perf-glow", p.glow, on -> PerfPrefs.saveGlow(ctx, on), host);
+        SettingsKit.addWide(pane, row(ctx, R.string.perf_glow, R.string.perf_glow_sub, glow), 12);
+
+        View backdrop = SettingsKit.segmented(ctx, "perf-backdrop",
+                new String[]{PerfChoices.BACKDROP_PHOTO, PerfChoices.BACKDROP_PLAIN},
+                new CharSequence[]{ctx.getString(R.string.perf_backdrop_photo),
+                        ctx.getString(R.string.perf_backdrop_plain)},
+                p.plainBackdrop ? PerfChoices.BACKDROP_PLAIN : PerfChoices.BACKDROP_PHOTO, true, value -> {
+                    PerfPrefs.saveBackdrop(ctx, PerfChoices.BACKDROP_PLAIN.equals(value));
+                    host.valueChanged();
+                });
+        SettingsKit.addWide(pane, row(ctx, R.string.perf_backdrop, R.string.perf_backdrop_sub, backdrop), 12);
+
+        View details = onOff(ctx, "perf-details", p.details, on -> PerfPrefs.saveDetails(ctx, on), host);
+        SettingsKit.addWide(pane, row(ctx, R.string.perf_details, R.string.perf_details_sub, details), 12);
+        return pane;
+    }
+
+    @Override
+    public View firstFocus() {
+        return first;
+    }
+
+    private interface Save {
+        void save(boolean on);
+    }
+
+    private static View onOff(Context ctx, String group, boolean on, Save save, Host host) {
+        return SettingsKit.segmented(ctx, group, new String[]{"on", "off"},
+                new CharSequence[]{ctx.getString(R.string.perf_on), ctx.getString(R.string.perf_off)},
+                on ? "on" : "off", true, value -> {
+                    save.save("on".equals(value));
+                    host.valueChanged();
+                });
+    }
+
+    /** A choice's row: its name over a line saying what it is, and the segmented control on the right. */
+    private static View row(Context ctx, int title, int sub, View control) {
+        LinearLayout row = Kit.unclip(new LinearLayout(ctx));
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(Ui.px(84));
+        row.setPadding(Ui.px(26), Ui.px(12), Ui.px(20), Ui.px(12));
+        row.setBackground(Ui.round(Ui.SURFACE, Ui.RADIUS_L));
+        LinearLayout text = new LinearLayout(ctx);
+        text.setOrientation(LinearLayout.VERTICAL);
+        TextView name = Ui.line(ctx, Ui.T_BODY, Ui.TEXT_1, Ui.MEDIUM);
+        name.setText(title);
+        text.addView(name);
+        TextView line = Ui.text(ctx, 18, Ui.TEXT_2, Ui.REGULAR);
+        line.setText(sub);
+        line.setMaxLines(2);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        llp.topMargin = Ui.px(4);
+        text.addView(line, llp);
+        row.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        clp.leftMargin = Ui.px(16);
+        row.addView(control, clp);
+        return row;
+    }
+
+    private static int motionLabel(MotionChoice m) {
+        switch (m) {
+            case REDUCED:
+                return R.string.motion_reduced;
+            case OFF:
+                return R.string.motion_off;
+            default:
+                return R.string.motion_full;
+        }
+    }
+
+    private static boolean systemOff(Context ctx) {
+        return Settings.Global.getFloat(ctx.getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f;
+    }
+}

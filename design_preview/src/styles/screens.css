@@ -2513,7 +2513,39 @@
   background: var(--on-accent);
   color: var(--accent);
 }
-/* ===== V2 · First run (design 01-setup B) ===== */
+/* Launcher settings › Performance: a row per choice, its name and line on the left, the segmented control right. */
+.perf-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 22px;
+}
+.perf-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 84px;
+  padding: 12px 20px 12px 26px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+.perf-text {
+  flex: 1;
+  min-width: 0;
+}
+.perf-title {
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--text-1);
+}
+.perf-sub {
+  margin-top: 4px;
+  font-size: 18px;
+  color: var(--text-2);
+}
+.perf-row .seg {
+  flex: none;
+}/* ===== V2 · First run (design 01-setup B) ===== */
 .screen--setup {
   background:
     linear-gradient(rgba(var(--shade-rgb), 0.9), rgba(var(--shade-rgb), 0.93)),
