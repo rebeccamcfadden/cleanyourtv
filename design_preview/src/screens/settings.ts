@@ -53,6 +53,55 @@ const SECTIONS: Section[] = [
   { id: 'about', label: 'About', icon: 'info', value: () => ({ text: '2.0.0' }) },
 ];
 
+/**
+ * F23 (the project lead, 2026-11-01): the section list in groups, under small headings, in a clearer order. Two
+ * groupings to choose from in the dev bar's Settings list menu (or ?settings=a, a+, b, b+): A, the lead engineer's,
+ * and B, the project lead's suggestion. Each with or without the rows still to come, dimmed and not focusable, so the
+ * list's length can be judged. Headings only: every section keeps its place in the path (Launcher settings › Phone
+ * notes), so nothing that names one changes. First run keeps its four steps, without headings.
+ */
+export type ListLayout = 'today' | 'a' | 'a+' | 'b' | 'b+';
+export const LIST_LAYOUTS: [ListLayout, string][] = [
+  ['today', 'today, no groups'],
+  ['a', 'A · groups (lead)'],
+  ['a+', 'A · groups (lead) + rows to come'],
+  ['b', 'B · groups (Rebecca)'],
+  ['b+', 'B · groups (Rebecca) + rows to come'],
+];
+type ComingId = 'keys' | 'features' | 'region';
+/** Sections still to come: API keys by QR (F16), Features (F14), Region (F12). */
+const COMING: Record<ComingId, { label: string; icon: IconName; item: string }> = {
+  keys: { label: 'API keys', icon: 'lock', item: 'F16' },
+  features: { label: 'Features', icon: 'list', item: 'F14' },
+  region: { label: 'Region', icon: 'pin', item: 'F12' },
+};
+interface Group {
+  title: string;
+  items: (SectionId | ComingId)[];
+}
+const GROUPINGS: Record<'a' | 'b', Group[]> = {
+  a: [
+    { title: 'Accounts', items: ['account', 'notes'] },
+    { title: 'What you watch', items: ['services', 'stores', 'keys', 'features'] },
+    { title: 'Home & look', items: ['theme', 'performance', 'apps', 'weather'] },
+    { title: 'This TV', items: ['start', 'home', 'region', 'tv', 'about'] },
+  ],
+  b: [
+    { title: 'Accounts', items: ['account', 'notes'] },
+    { title: 'Services', items: ['services', 'stores', 'keys'] },
+    { title: 'General', items: ['theme', 'weather', 'apps', 'start', 'home', 'region'] },
+    { title: 'System', items: ['performance', 'features', 'tv', 'about'] },
+  ],
+};
+let listLayout: ListLayout = 'today';
+export const settingsList = {
+  get: () => listLayout,
+  set(l: ListLayout) {
+    listLayout = l;
+  },
+};
+const isComing = (id: SectionId | ComingId): id is ComingId => id in COMING;
+
 /** First run's cut-down split (V2 design r2-setup-checklist): the four setup sections and a footer to step through. */
 export interface SetupOpts {
   steps: SectionId[];
@@ -70,12 +119,19 @@ export interface SetupOpts {
  */
 export function launcherSettings(initial: SectionId = 'account', opts: { enter?: boolean; setup?: SetupOpts } = {}): Screen {
   const setup = opts.setup;
-  const sections = setup ? SECTIONS.filter((s) => setup.steps.includes(s.id)) : SECTIONS;
+  const groups = setup || listLayout === 'today' ? null : GROUPINGS[listLayout[0] as 'a' | 'b'];
+  const coming = listLayout.endsWith('+');
+  const byId = (id: SectionId) => SECTIONS.find((s) => s.id === id)!;
+  const sections = setup
+    ? SECTIONS.filter((s) => setup.steps.includes(s.id))
+    : groups
+      ? groups.flatMap((g) => g.items.filter((id): id is SectionId => !isComing(id)).map(byId))
+      : SECTIONS;
   let current: SectionId = sections.some((s) => s.id === initial) ? initial : sections[0].id;
   let shown: SectionId | null = null;
   let inPane = false;
 
-  const list = h('div.sec-list', { 'data-scroll': 'y', 'data-scroll-pad': 0 });
+  const list = h(`div.sec-list${groups ? '.sec-list--grouped' : ''}`, { 'data-scroll': 'y', 'data-scroll-pad': groups ? 56 : 0 });
   const scroll = h('div.pane-scroll', { 'data-scroll': 'y', 'data-scroll-pad': 40 });
   const foot = h('div.pane-foot');
   const pane = h('div.set-pane', scroll, setup ? foot : null);
@@ -118,7 +174,25 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
       { group: 'sections', key: `sec-${sec.id}`, isDefault: sec.id === current, onFocus: () => show(sec.id), onOk: () => enter(sec.id) },
     ),
   );
-  replace(list, rows);
+  replace(
+    list,
+    groups
+      ? groups.map((g) => [
+          h('div.sec-head', g.title),
+          g.items.map((id) => {
+            if (!isComing(id)) return rows[sections.findIndex((s) => s.id === id)];
+            if (!coming) return null;
+            const c = COMING[id];
+            return h(
+              'div.sec.sec--coming',
+              h('span.sec-icon', { html: icon(c.icon, 28) }),
+              h('span.sec-label', c.label),
+              h('span.sec-value', `Coming · ${c.item}`),
+            );
+          }),
+        ])
+      : rows,
+  );
   const rowOf = (id: SectionId) => rows[sections.findIndex((s) => s.id === id)];
 
   function paintValues() {

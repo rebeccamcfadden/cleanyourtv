@@ -17,7 +17,7 @@ import { pickSetup } from './screens/pick';
 import { placeholder } from './screens/placeholder';
 import { titlePreview } from './screens/preview';
 import { searchScreen } from './screens/search';
-import { launcherSettings } from './screens/settings';
+import { launcherSettings, LIST_LAYOUTS, settingsList, type ListLayout } from './screens/settings';
 import { setupScreen } from './screens/setup';
 import { notes } from './core/notes';
 import { importPill } from './ui/importPill';
@@ -107,6 +107,20 @@ const preview = (tab: 'movies' | 'tv', id: string) => () => {
   app.goTab(tab);
   app.push(titlePreview(getTitle(id)));
 };
+
+// F23: how Launcher settings groups its sections; picking one opens Launcher settings with it (?settings=a, a+, b, b+).
+const listSelect = document.getElementById('settingsList') as HTMLSelectElement;
+for (const [id, label] of LIST_LAYOUTS) listSelect.append(new Option(`Settings list: ${label}`, id));
+const startList = params.get('settings');
+const isListLayout = (v: string | null): v is ListLayout => LIST_LAYOUTS.some(([id]) => id === v);
+if (isListLayout(startList)) settingsList.set(startList);
+listSelect.value = settingsList.get();
+listSelect.addEventListener('change', () => {
+  if (isListLayout(listSelect.value)) settingsList.set(listSelect.value);
+  listSelect.blur();
+  app.goTab('home');
+  app.push(launcherSettings());
+});
 
 /** Jump targets; the id also works as ?jump=<id> in the URL. */
 const jumps: [string, string, () => void][] = [

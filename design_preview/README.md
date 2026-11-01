@@ -59,6 +59,12 @@ The **Theme** menu (or `?theme=cinema`, any id from [Theme](#theme)) picks a the
 and keeps it. The **Date** menu (or `?date=2026-10-31`) puts the preview on a day in each Seasonal period, or back on
 today, so every period can be reviewed without waiting for it.
 
+The **Settings list** menu (or `?settings=a`, `a+`, `b`, `b+`) shows Launcher settings' sections in groups, under
+small headings, to choose a grouping (F23, not decided yet): **A** Accounts · What you watch · Home & look · This TV;
+**B** Accounts · Services · General · System. The `+` versions add the sections still to come (API keys, Features,
+Region), dimmed and not focusable, to judge the list's length. Headings only: every section keeps its name, so a path
+such as Launcher settings › Phone notes stays as it is. First run keeps its four steps without headings.
+
 ## Figma
 
 File `7gFFvfdGdXJVLZnj18Zah4` (private; ask the owner for access). One page, laid out as a main column on the
