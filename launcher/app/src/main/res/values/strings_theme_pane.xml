@@ -16,7 +16,7 @@
     <string name="theme_font_system">System font</string>
     <!-- Time of day (F22): a Seasonal theme's picture follows sunrise and sunset at the Weather place, or stays day. -->
     <string name="theme_time_of_day">Time of day</string>
-    <string name="theme_time_of_day_sub">Seasonal pictures follow the sun</string>
+    <string name="theme_time_of_day_sub">For Seasonal themes</string>
     <string name="theme_time_sun">Follow the sun</string>
     <string name="theme_time_day">Always day</string>
 
