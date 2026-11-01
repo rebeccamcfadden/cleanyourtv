@@ -610,7 +610,8 @@ In order, one PR each:
    later is a new app, and their lists, ticks and sign-in stay behind in the old one.
 1. **Settings at run time.** A `household.json` pushed over ADB into the launcher's files folder, as `tools/theme.sh`
    pushes `config.json`: the TMDB token, the Watchmode and Movie of the Night keys, the region, this TV's share of
-   each key's quota (for two TVs on one key), the shown lists and the default weather place. The launcher moves it
+   each key's quota (for two TVs on one key), the shown lists, the default weather place and the Features switches
+   (F14; today config.xml's `feature_<id>` and a pushed config.json's `features`). The launcher moves it
    into private storage and deletes the file. The `tv.properties` keys stay as the fallback for our own builds. This
    lets one public APK carry no secrets.
 2. **US region.** The region as a setting, SE by default, US from `household.json`: TMDB's region and watch
