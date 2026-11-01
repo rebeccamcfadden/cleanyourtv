@@ -588,10 +588,10 @@ In order, one PR each:
    providers, the US services with their TV apps and ServiceIds, prices in dollars, Watchmode `regions=US`, Movie of
    the Night `country=us`, iTunes `us`. Today SE is a constant (`TmdbApi.REGION`, `WatchProviders.REGION`), with
    kronor. A first step towards [Two regions](#two-regions).
-3. **Signed releases.** A release keystore kept outside git and backed up; `tools/release.ps1` builds, signs and
-   uploads to a GitHub Release (`gh release create`) from the project lead's PC, with no CI release workflow: the APK,
-   the installer script and a `SHA256SUMS` file for both. AGENTS.md's "This fork" gets a line allowing signed APKs on
-   GitHub Releases, never in the tree and never with keys.
+3. **Signed releases.** A release keystore kept outside git and backed up; a new PowerShell release script in
+   `tools/` builds, signs and uploads to a GitHub Release (`gh release create`) from the project lead's PC, with no CI
+   release workflow: the APK, the installer script and a `SHA256SUMS` file for both. AGENTS.md's "This fork" gets a
+   line allowing signed APKs on GitHub Releases, never in the tree and never with keys.
 4. **Family installer.** A PowerShell script. Two ways to start it, both from one tagged release, never from `main`:
    the release page's script, downloaded and checked against `SHA256SUMS` first (the first choice), or a one-liner
    pasted during the call (`irm <tagged url> | iex`), for when SmartScreen blocks the download; the one-liner is the
