@@ -68,6 +68,29 @@ public class OverlayFileTest {
     }
 
     @Test
+    public void theCopyIsReadAgainOnlyWhenItChanged() throws IOException {
+        File copy = write("copy.json", "{\"kept\":true}");
+        File gone = new File(tmp.getRoot(), "gone.json");
+        overlay.read(gone, copy, false);
+        assertEquals("{\"kept\":true}", overlay.read(gone, copy, false));
+        assertEquals(1, overlay.copyReads);
+        write("copy.json", "{\"kept\":false}");
+        assertEquals("{\"kept\":false}", overlay.read(gone, copy, false));
+        assertEquals(2, overlay.copyReads);
+    }
+
+    @Test
+    public void aCopyThatCouldNotBeDeletedIsTriedAgain() throws IOException {
+        File copy = tmp.newFolder("copy-with-something-in-it");
+        assertTrue(new File(copy, "x").createNewFile());
+        File gone = new File(tmp.getRoot(), "gone.json");
+        assertNull(overlay.read(gone, copy, true));
+        assertEquals(1, warnings.size());
+        overlay.read(gone, copy, true);
+        assertEquals("a failed delete isn't remembered", 2, overlay.reads);
+    }
+
+    @Test
     public void noStorageMeansNoOverlay() {
         File copy = new File(tmp.getRoot(), "copy.json");
         assertNull(overlay.read(null, copy, true));
