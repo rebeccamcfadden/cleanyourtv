@@ -136,4 +136,28 @@ final class NoteWords {
         if (ipv4 == null || ipv4.isEmpty() || c.isEmpty()) return null;
         return "http://" + ipv4 + ":" + port + "/setup#" + c;
     }
+
+    /** Where an iCloud shortcut link is allowed to point; anything else is dropped. */
+    static final String ICLOUD_SHORTCUTS = "https://www.icloud.com/shortcuts/";
+
+    /**
+     * note_shortcut_url as the setup page may link it: an iCloud shortcut link ("https://www.icloud.com/shortcuts/
+     * 0a1b…") with nothing that could leave an HTML attribute, else "".
+     */
+    static String shortcutLink(String raw) {
+        String s = raw == null ? "" : raw.trim();
+        if (!s.startsWith(ICLOUD_SHORTCUTS) || s.length() == ICLOUD_SHORTCUTS.length() || s.length() > 200) return "";
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            boolean ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+                    || c == '/' || c == ':' || c == '.' || c == '-' || c == '_';
+            if (!ok) return "";
+        }
+        return s;
+    }
+
+    /** The setup page with the household's shortcut link (or none) in place of its {{shortcut}} mark. */
+    static String setupPage(String template, String rawLink) {
+        return template == null ? null : template.replace("{{shortcut}}", shortcutLink(rawLink));
+    }
 }

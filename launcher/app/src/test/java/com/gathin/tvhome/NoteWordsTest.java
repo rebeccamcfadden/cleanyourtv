@@ -113,4 +113,41 @@ public class NoteWordsTest {
         assertNull(NoteWords.setupUrl(null, NoteInbox.DEFAULT_PORT, "K7QM-4PXT"));
         assertNull(NoteWords.setupUrl("192.168.1.50", NoteInbox.DEFAULT_PORT, ""));
     }
+
+    @Test
+    public void onlyAnICloudShortcutLinkReachesTheSetupPage() {
+        String link = "https://www.icloud.com/shortcuts/0a1b2c3d4e5f60718293a4b5c6d7e8f9";
+        assertEquals(link, NoteWords.shortcutLink("  " + link + "\n"));
+        assertEquals("", NoteWords.shortcutLink(null));
+        assertEquals("", NoteWords.shortcutLink(""));
+        assertEquals("", NoteWords.shortcutLink("https://www.icloud.com/shortcuts/"));
+        assertEquals("", NoteWords.shortcutLink("http://www.icloud.com/shortcuts/0a1b"));
+        assertEquals("", NoteWords.shortcutLink("https://evil.example/shortcuts/0a1b"));
+        assertEquals("", NoteWords.shortcutLink("https://www.icloud.com.evil.example/shortcuts/0a1b"));
+        assertEquals("nothing that leaves the attribute", "",
+                NoteWords.shortcutLink("https://www.icloud.com/shortcuts/0a1b\"><script>x()</script>"));
+        assertEquals("", NoteWords.shortcutLink("https://www.icloud.com/shortcuts/0a1b?x=1&y=2"));
+        assertEquals("", NoteWords.shortcutLink("javascript:alert(1)"));
+    }
+
+    @Test
+    public void theSetupPageGetsTheLinkOrNothing() {
+        String page = "<body data-shortcut=\"{{shortcut}}\">";
+        String link = "https://www.icloud.com/shortcuts/0a1b2c";
+        assertEquals("<body data-shortcut=\"" + link + "\">", NoteWords.setupPage(page, link));
+        assertEquals("<body data-shortcut=\"\">", NoteWords.setupPage(page, ""));
+        assertEquals("<body data-shortcut=\"\">", NoteWords.setupPage(page, "https://evil.example/\""));
+        assertNull(NoteWords.setupPage(null, link));
+    }
+
+    /** The page (res/raw/notes_setup.html) and the shortcut in docs/phone-notes.md agree on how a pairing looks. */
+    @Test
+    public void theSetupPagePairsTheShortcutByName() throws java.io.IOException {
+        String page = new String(java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get("src/main/res/raw/notes_setup.html")), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(page.contains("data-shortcut=\"{{shortcut}}\""));
+        assertTrue(page.contains("'shortcuts://run-shortcut?name=' + encodeURIComponent('Send to TV')"));
+        assertTrue(page.contains("pair: 'cleanyourtv-pair'"));
+        assertTrue("the shortcut keeps the whole header value", page.contains("auth: 'Bearer ' + code"));
+    }
 }

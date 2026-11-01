@@ -90,6 +90,13 @@ final class Notes {
         return json != null ? json.optBoolean("note_inbox", on) : on;
     }
 
+    /** config.xml's note_shortcut_url, overlaid by a pushed config.json: the shared "Send to TV" shortcut's link. */
+    private static String shortcutUrl(Context ctx) {
+        String url = ctx.getString(R.string.note_shortcut_url);
+        JSONObject json = Config.overlay(ctx);
+        return json != null ? json.optString("note_shortcut_url", url) : url;
+    }
+
     /** The account whose lists notes go to; each new Data hands its own. Main thread. */
     void attach(Accounts a) {
         accounts = a;
@@ -135,7 +142,8 @@ final class Notes {
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
             byte[] buf = new byte[4096];
             for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
-            return new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+            return NoteWords.setupPage(new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8),
+                    shortcutUrl(app));
         } catch (IOException | android.content.res.Resources.NotFoundException e) {
             return null;
         }

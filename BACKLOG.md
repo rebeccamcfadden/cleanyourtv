@@ -185,8 +185,12 @@ milestones: [docs/rework.md](docs/rework.md).
   Off switch (`note_inbox` in `config.xml` or a pushed `config.json` is the default, off; the household's choice is
   saved on the TV and wins), the TV's Wi-Fi address (Ethernet when there is no Wi-Fi; "Not on Wi-Fi" without either),
   the pairing code (8 characters without 0/O or 1/I/L, made when it is first turned on), a QR beside them (the project
-  lead, 2026-10-31) that opens `http://<tv>:8765/setup#<code>` on the iPhone, a fixed page to copy the address and
-  `Authorization` value from (the code stays in the link's fragment, never sent to the TV), New code (asks first),
+  lead, 2026-10-31) that opens `http://<tv>:8765/setup#<code>` on the iPhone (the code stays in the link's fragment,
+  never sent to the TV): a fixed page with **Get the shortcut** (the household's shared iCloud link, `note_shortcut_url`
+  in `config.xml` or a pushed `config.json`; only `https://www.icloud.com/shortcuts/` links) and **Pair this phone**
+  (`shortcuts://run-shortcut?name=Send%20to%20TV` with the address and `Authorization` value, which the shortcut keeps
+  in iCloud Drive › Shortcuts › `Send to TV.json`, asking for the list name; after New code a phone just pairs again;
+  the project lead, 2026-11-01), and the address and value to copy into a simple hand-built one. New code (asks first),
   How to set up a phone, and each list's last send with the lines that matched nothing; the row reads Off, On or, in amber,
   "3 not matched". While on, `NoteInbox` listens on port 8765 for `POST /notes` (and `GET /setup`, the QR's page)
   from private addresses only, one

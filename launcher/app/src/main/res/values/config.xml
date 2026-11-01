@@ -256,6 +256,11 @@
          switch in Launcher settings saves the household's choice, which wins. Off by default; a pushed config.json
          can set "note_inbox": true. -->
     <bool name="note_inbox">false</bool>
+    <!-- The household's shared "Send to TV" shortcut, as an iCloud link (https://www.icloud.com/shortcuts/…; anything
+         else is ignored). When set, the page the pane's QR opens has a "Get the shortcut" button beside "Pair this
+         phone"; empty, phones build the shortcut by hand (docs/phone-notes.md). A pushed config.json can set
+         "note_shortcut_url". -->
+    <string name="note_shortcut_url" translatable="false"></string>
 
     <!-- Kept for examples/*/config.json: keys those files set, so they keep their meaning. The current launcher
          doesn't read them; themes/README.md describes what the old Home did with them, for V2. -->
