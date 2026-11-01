@@ -623,12 +623,13 @@ Home** and "The same pages are in Launcher settings."; on the right a help pane 
 - **Features** (F14, the project lead 2026-11-01): every feature starts off, and this step is the one place in First
   run that turns them on. Its pane is Launcher settings' Features pane, headed "Everything starts off. Turn on what
   this household wants; each one you turn on is set up next." Turning one on opens its setup at once, in the same
-  cut-down split with **Back to Features** and **Done**: TMDB account opens Sign in to TMDB (Account), Weather the
-  city (Weather on Home), Phone notes its pairing (Phone notes), Themes the picker (Theme); Prices opens the price keys
-  page (Builder B's F16: a phone scans a QR to enter the Watchmode and Movie of the Night keys, each checked; a stub
-  here until it exists, and a TV without a TMDB key gets F16's key page before Sign in). Pick for me needs no setup.
-  Back from a setup returns to the Features step on the switch just turned on. There is no other on/off in First run:
-  Sign in to TMDB and Weather city are no longer rows of their own.
+  cut-down split with "First run · Back returns to Features", **Back to Features** and **Done**: TMDB account opens
+  Sign in to TMDB (Account), Weather the city (Weather on Home), Phone notes its pairing (Phone notes), Themes the
+  picker (Theme); Prices opens the price keys page (Builder B's F16: a phone scans a QR to enter the Watchmode and
+  Movie of the Night keys, each checked; a stub here until it exists, and a TV without a TMDB key gets F16's key page
+  before Sign in). Pick for me needs no setup. On the TV, TMDB account and Phone notes rebuild the launcher before
+  their setup opens. Back from a setup returns to the Features step on the switch just turned on. There is no other
+  on/off in First run: Sign in to TMDB and Weather city are no longer rows of their own.
 - **OK on a row** opens the same split and panes as Launcher settings, cut down to these three sections, titled "Set up
   your Home screen", with "First run · Back returns to the checklist" and a footer under the pane: "Step 2 of 3 ·
   changes save at once", **Back to checklist** and **Next: Stores** (the last step: **Done**). Focus starts in the

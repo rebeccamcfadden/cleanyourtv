@@ -215,7 +215,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
     h(
       'div.set-head',
       h('h1.page-title', setup ? 'Set up your Home screen' : 'Launcher settings'),
-      h('span.set-hint', setup ? 'First run · Back returns to the checklist' : 'Back closes · changes save at once'),
+      h('span.set-hint', setup ? (setup.backLabel ? 'First run · Back returns to Features' : 'First run · Back returns to the checklist') : 'Back closes · changes save at once'),
     ),
     list,
     pane,
