@@ -96,10 +96,10 @@ final class Art {
         bind(v, TmdbApi.backdrop(art, widthPx), widthPx, heightPx, true);
     }
 
-    /** Shows a loaded image; an intoFilled view's fill comes off under it. */
+    /** Shows a loaded image; an intoFilled view's fill comes off under it, unless the image has transparent parts. */
     private static void showImage(ImageView v, Bitmap b) {
         v.setImageBitmap(b);
-        fill(v, false);
+        fill(v, b.hasAlpha());
     }
 
     /** Shows the placeholder (or nothing); an intoFilled view's fill goes back on. */
