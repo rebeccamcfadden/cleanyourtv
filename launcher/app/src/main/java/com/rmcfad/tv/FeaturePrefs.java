@@ -13,6 +13,9 @@ import java.util.Map;
 final class FeaturePrefs {
     private FeaturePrefs() {}
 
+    /** Kept with the switches: whether this TV ran the launcher before F14 (keepAllOn). */
+    static final String KEY_KEEP_ALL_ON = "features_keep_all_on";
+
     /**
      * This TV's config as last read (config.xml with a pushed config.json): read once as the launcher is built, since
      * reading config.json means a file read (and a copy) each time. Main thread.
@@ -44,18 +47,20 @@ final class FeaturePrefs {
     }
 
     /**
-     * This TV's config for each feature: config.xml's {@code feature_<id>}, then a pushed config.json's
+     * This TV's config for each feature: config.xml's {@code feature_<id>} (each on instead, on a TV that ran the
+     * launcher before F14: {@link Features#keepAllOn}), then a pushed config.json's
      * {@code "features": {"<id>": true|false}}, which wins.
      */
     static Map<String, Boolean> config(Context ctx) {
         Resources res = ctx.getResources();
+        boolean all = keepAllOn(ctx);
         Map<String, Boolean> out = new HashMap<>();
-        out.put(Features.Feature.TMDB.id, res.getBoolean(R.bool.feature_tmdb));
-        out.put(Features.Feature.NOTES.id, res.getBoolean(R.bool.feature_notes));
-        out.put(Features.Feature.PICK.id, res.getBoolean(R.bool.feature_pick));
-        out.put(Features.Feature.PRICES.id, res.getBoolean(R.bool.feature_prices));
-        out.put(Features.Feature.WEATHER.id, res.getBoolean(R.bool.feature_weather));
-        out.put(Features.Feature.THEMES.id, res.getBoolean(R.bool.feature_themes));
+        out.put(Features.Feature.TMDB.id, all || res.getBoolean(R.bool.feature_tmdb));
+        out.put(Features.Feature.NOTES.id, all || res.getBoolean(R.bool.feature_notes));
+        out.put(Features.Feature.PICK.id, all || res.getBoolean(R.bool.feature_pick));
+        out.put(Features.Feature.PRICES.id, all || res.getBoolean(R.bool.feature_prices));
+        out.put(Features.Feature.WEATHER.id, all || res.getBoolean(R.bool.feature_weather));
+        out.put(Features.Feature.THEMES.id, all || res.getBoolean(R.bool.feature_themes));
         JSONObject json = Config.overlay(ctx);
         JSONObject pushed = json == null ? null : json.optJSONObject("features");
         if (pushed != null) {
@@ -73,6 +78,15 @@ final class FeaturePrefs {
         p.edit().putBoolean(f.key(), on)
                 .putLong(Config.SETTINGS_REVISION_KEY, p.getLong(Config.SETTINGS_REVISION_KEY, 0) + 1)
                 .apply();
+    }
+
+    /** Whether this TV keeps every feature on (Features#keepAllOn), decided on its first start with F14 and kept. */
+    private static boolean keepAllOn(Context ctx) {
+        SharedPreferences p = prefs(ctx);
+        if (p.contains(KEY_KEEP_ALL_ON)) return p.getBoolean(KEY_KEEP_ALL_ON, false);
+        boolean keep = Features.keepAllOn(null, FirstRunPage.freshInstall(ctx));
+        p.edit().putBoolean(KEY_KEEP_ALL_ON, keep).apply();
+        return keep;
     }
 
     private static SharedPreferences prefs(Context ctx) {

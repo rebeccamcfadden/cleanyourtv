@@ -8,9 +8,11 @@ import java.util.Map;
  * Launcher settings › Features (F14, the project lead 2026-11-01; design_preview's Features pane): one build, with six
  * features switched on or off at run time. A feature that is off never starts: no page, no network call, no server.
  * Each switch is the household's choice saved on the TV, else this TV's config (config.xml {@code feature_<id>}, or a
- * pushed config.json's {@code "features": {"<id>": false}}, as a family install sets it), else on. A feature that needs
- * another (Phone notes needs TMDB account) is off while that one is. Pure Java, unit-tested (FeaturesTest); FeaturePrefs
- * reads and saves the switches, and {@link #current} is what the launcher was built with.
+ * pushed config.json's {@code "features": {"<id>": true}}, as a family install sets it), else off: a new install starts
+ * with every feature off, and First run's Features step turns them on (the project lead, 2026-11-01). A TV that ran the
+ * launcher before F14 keeps them all on ({@link #keepAllOn}). A feature that needs another (Phone notes needs TMDB
+ * account) is off while that one is. Pure Java, unit-tested (FeaturesTest); FeaturePrefs reads and saves the switches,
+ * and {@link #current} is what the launcher was built with.
  */
 final class Features {
 
@@ -51,10 +53,19 @@ final class Features {
 
     static final String KEY_PREFIX = "feature_";
 
-    /** Every feature on: a build with no config and no choices. */
-    static final Features ALL_ON = new Features(new EnumMap<>(Feature.class));
+    /** Every feature on. */
+    static final Features ALL_ON = every(true);
 
-    /** Each feature's own switch; a feature not in the map is on. */
+    /** Every feature off: a new install with no config and no choices, and the launcher before it is built. */
+    static final Features ALL_OFF = every(false);
+
+    private static Features every(boolean on) {
+        Map<Feature, Boolean> m = new EnumMap<>(Feature.class);
+        for (Feature f : Feature.values()) m.put(f, on);
+        return new Features(m);
+    }
+
+    /** Each feature's own switch; a feature not in the map is off. */
     private final Map<Feature, Boolean> switches;
 
     private Features(Map<Feature, Boolean> switches) {
@@ -63,7 +74,7 @@ final class Features {
 
     /**
      * The switches in effect: each saved choice ({@code feature_<id>} booleans), else the config's ({@code config}, by
-     * feature id), else on.
+     * feature id), else off.
      */
     static Features resolve(Map<String, ?> saved, Map<String, Boolean> config) {
         Map<Feature, Boolean> out = new EnumMap<>(Feature.class);
@@ -78,8 +89,7 @@ final class Features {
 
     /** The feature's own switch, whatever it needs. */
     boolean switchedOn(Feature f) {
-        Boolean v = switches.get(f);
-        return v == null || v;
+        return Boolean.TRUE.equals(switches.get(f));
     }
 
     /** Whether the feature runs: switched on, and so is what it needs. */
@@ -104,7 +114,17 @@ final class Features {
         return true;
     }
 
-    private static Features current = ALL_ON;
+    /**
+     * Whether this TV keeps every feature on where the household saved no switch (the project lead, 2026-11-01): a TV
+     * that ran the launcher before F14 had them all, and finished First run without a Features step. Decided once, on
+     * the first start with F14 ({@code decided} null): a launcher updated rather than freshly installed is such a TV;
+     * a fresh install starts with them off, and stays that way after later updates.
+     */
+    static boolean keepAllOn(Boolean decided, boolean freshInstall) {
+        return decided != null ? decided : !freshInstall;
+    }
+
+    private static Features current = ALL_OFF;
 
     /** The switches the launcher was built with; set when MainActivity builds it, and by services that start alone. */
     static Features current() {
@@ -112,7 +132,7 @@ final class Features {
     }
 
     static void apply(Features f) {
-        current = f == null ? ALL_ON : f;
+        current = f == null ? ALL_OFF : f;
     }
 
     /** Shorthand for {@code current().on(f)}. */

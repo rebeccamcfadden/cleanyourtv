@@ -53,6 +53,9 @@ final class LauncherSettingsPage extends Screen implements SettingsSection.Host 
 
         /** Back on the list: return to the checklist. */
         void close();
+
+        /** A feature was just turned on in the Features step: its setup opens next (F14). */
+        default void featureTurnedOn(Features.Feature f) {}
     }
 
     static final String GROUP_SECTIONS = "sections";
@@ -403,6 +406,16 @@ final class LauncherSettingsPage extends Screen implements SettingsSection.Host 
     public void themeChanged() {
         changed(ctx);
         activity.recreate();
+    }
+
+    @Override
+    public boolean inSetup() {
+        return setup != null;
+    }
+
+    @Override
+    public void featureTurnedOn(Features.Feature f) {
+        if (setup != null) setup.featureTurnedOn(f);
     }
 
     @Override

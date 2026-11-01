@@ -52,6 +52,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     static final String ACTION_FIRST_RUN = "com.rmcfad.tv.action.FIRST_RUN";
     /** Survive a rebuild with First run open: the checklist reopens with the same steps done. */
     private static final String KEY_FIRST_RUN = "first_run_opened";
+    /** And a feature's setup opened from its Features step (F14), which reopens over it. */
+    private static final String KEY_FIRST_RUN_SETUP = "first_run_setup";
     private FirstRunPage firstRun;
     private static final String MENU_INPUTS = "Inputs";
     private static final String MENU_NETWORK = "Wi-Fi";
@@ -254,6 +256,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         ArrayList<String> firstRunDone = savedInstanceState == null ? null
                 : savedInstanceState.getStringArrayList(KEY_FIRST_RUN);
         if (firstRunDone != null) openFirstRun(firstRunDone);
+        String firstRunSetup = savedInstanceState == null ? null : savedInstanceState.getString(KEY_FIRST_RUN_SETUP);
+        if (firstRunDone != null && firstRunSetup != null && firstRun != null) firstRun.reopenSetup(firstRunSetup);
         // Rebuilt with Launcher settings open (a theme change, or a choice made before a trip to another app).
         String section = savedInstanceState == null ? null : savedInstanceState.getString(KEY_SETTINGS_SECTION);
         if (section != null) openLauncherSettings(section, savedInstanceState.getBoolean(KEY_SETTINGS_IN_PANE));
@@ -586,7 +590,10 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        if (firstRun != null && shell.has(firstRun)) out.putStringArrayList(KEY_FIRST_RUN, firstRun.opened());
+        if (firstRun != null && shell.has(firstRun)) {
+            out.putStringArrayList(KEY_FIRST_RUN, firstRun.opened());
+            out.putString(KEY_FIRST_RUN_SETUP, firstRun.setupShowing());
+        }
         if (settingsPage != null && shell.has(settingsPage)) {
             out.putString(KEY_SETTINGS_SECTION, settingsPage.section());
             out.putBoolean(KEY_SETTINGS_IN_PANE, settingsPage.inPane());

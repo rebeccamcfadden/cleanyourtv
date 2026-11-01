@@ -63,6 +63,14 @@ interface SettingsSection {
         /** Shows another section and enters its pane (a switched-off feature's Open Features). */
         void enter(String id);
 
+        /** First run's cut-down split rather than Launcher settings: Features' lead says what turning one on does. */
+        default boolean inSetup() {
+            return false;
+        }
+
+        /** A feature was just turned on in First run's Features step: First run opens its setup next. */
+        default void featureTurnedOn(Features.Feature f) {}
+
         Shell shell();
     }
 }

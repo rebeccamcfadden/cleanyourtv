@@ -590,11 +590,18 @@ questions on 2026-10-31.
 - **Row values:** Streaming services and Stores for rent and buy show the ticked names as the prototype does, the
   first two then "+N" ("Netflix, Prime Video +6"; one name alone; nothing when none is ticked), in the panes' order and
   with their names (`FirstRunRules.names`). The line under Streaming services is the count ("8 ticked"), as in the
-  prototype. Weather's value is left out while it is "Default" beside the Default pill, and the signed-in account
-  shows the username without the avatar.
-- **A step that recreates the launcher:** a rebuild (Theme or Typeface, for example) reopens First run with its done
-  steps, not the split it was in. None of the four steps rebuilds mid-split today; a new step that does needs the
-  restore path to know it came from First run.
+  prototype. Features shows the features on, the same way, or "All off", which is left out while it repeats the All
+  off pill; its line is the count ("2 of 6 on").
+- **Features step (F14, the project lead 2026-11-01):** the steps are Features, Streaming services and Stores. Every
+  feature starts off on a new install, and this is the only on/off in First run: turning one on opens its setup at
+  once over the step, in the split cut down to that section, with Back to Features and Done (`FirstRunRules.setupOf`:
+  TMDB account → Sign in to TMDB, Weather → Weather city, Phone notes → its pane, Themes → Theme; Pick for me none).
+  Prices opens nothing until Builder B's F16 key page exists; a build without a TMDB token has no Sign in to open.
+- **A step that recreates the launcher:** TMDB account and Phone notes rebuild the launcher before their setup (it
+  makes the TMDB client and the notes inbox only with them on; `FirstRunRules.setupNeedsRebuild`), and a theme change
+  in Theme rebuilds it too. The rebuild reopens First run with its done steps, the Features step on that switch, and
+  the setup over it (MainActivity keeps `first_run_setup`). A rebuild from the Features, Streaming services or Stores
+  split itself reopens only the checklist.
 
 ## Family install
 

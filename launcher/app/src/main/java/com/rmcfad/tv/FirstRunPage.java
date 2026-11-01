@@ -17,6 +17,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -25,17 +26,21 @@ import java.util.Set;
 
 /**
  * First run (design_preview/README.md, First run; V2 design 01-setup B; src/screens/setup.ts): a page without the
- * nav, "Set up your Home screen", one row per step (Sign in to TMDB, Streaming services, Stores for rent and buy,
- * Weather city), each with its number, title, a line under it, the section's current value and a pill; Start using
- * Home under them; on the right a help pane for the focused row, or for Start.
+ * nav, "Set up your Home screen", one row per step (Features, Streaming services, Stores for rent and buy), each with
+ * its number, title, a line under it, the section's current value and a pill; Start using Home under them; on the
+ * right a help pane for the focused row, or for Start.
+ *
+ * <p>Features (F14, the project lead 2026-11-01): every feature starts off, and this step is the only on/off in First
+ * run. Turning one on opens its setup at once ({@link #setUp}): Sign in to TMDB, Weather city, Phone notes or Theme,
+ * in the same split cut down to that one section, with Back to Features and Done. TMDB account and Phone notes need
+ * the launcher rebuilt with them first, so the launcher rebuilds and comes back to that setup over the Features step.
  *
  * <p>OK on a row opens Launcher settings' own split and panes cut down to these steps ({@link FirstRunSplit}). Coming
  * back, every step whose pane was opened is done (FirstRunRules.done): a green check in place of its number and no
  * pill, and focus goes to the next row not done, or Start. The done steps are kept in First run's preferences, so
  * they stay ticked after the launcher restarts. With every row done the page reads "You’re all set". Start and Back
- * go Home (MainActivity#closeFirstRun). Without a TMDB token there is no Account section, and the checklist has three
- * steps. Streaming services and Stores show the ticked names ("Netflix, Prime Video +6"), Streaming services' line
- * the count.
+ * go Home (MainActivity#closeFirstRun). Streaming services and Stores show the ticked names ("Netflix, Prime Video
+ * +6"), Streaming services' line the count; Features the features on ("All off" for none) and how many.
  *
  * <p>It shows by itself once, on the first start after a fresh install, never after an update (the project lead,
  * 2026-10-31; FirstRunRules.showOnStart); first_run_checklist false turns that off. The intent action
@@ -65,6 +70,13 @@ final class FirstRunPage extends Screen {
     private final LinearLayout help;
     private final View start;
     private LauncherSettingsPage split;
+    /** A feature's setup opened from the Features step, over the split, and its section id. */
+    private LauncherSettingsPage featureSetup;
+    private String featureSetupId;
+    /** The split's Features pane, to put focus back on the switch whose setup closes. */
+    private FeaturesSection features;
+    /** A setup to open once the launcher is rebuilt with its feature on (MainActivity keeps it over the rebuild). */
+    private String pendingSetup;
     /** A step's split was opened: the next onShow is the way back from it. */
     private boolean returning;
 
@@ -89,7 +101,7 @@ final class FirstRunPage extends Screen {
     }
 
     /** Whether the launcher is as first installed, not updated since; false when the package can't be read. */
-    private static boolean freshInstall(Context ctx) {
+    static boolean freshInstall(Context ctx) {
         try {
             PackageInfo info = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
             return FirstRunRules.freshInstall(info.firstInstallTime, info.lastUpdateTime);
@@ -109,18 +121,20 @@ final class FirstRunPage extends Screen {
         if (!p.getBoolean(KEY_SHOWN, false)) p.edit().putBoolean(KEY_SHOWN, true).apply();
     }
 
-    /**
-     * First run's own sections, Launcher settings' panes for its steps: made afresh for each split. A step whose feature
-     * is switched off in Features is left out (F14, Sign in to TMDB and Weather city): the checklist is for setting up
-     * what this TV runs, and Launcher settings still shows the feature as off.
-     */
+    /** First run's own sections, Launcher settings' panes for its steps, in the steps' order: made afresh for each split. */
     private static List<SettingsSection> stepSections(MainActivity activity) {
         List<SettingsSection> out = new ArrayList<>();
         for (SettingsSection s : SettingsSections.all(activity)) {
-            if (s instanceof FeatureOffSection && ((FeatureOffSection) s).off(activity)) continue;
             if (FirstRunRules.STEPS.contains(s.id())) out.add(s);
         }
+        out.sort(Comparator.comparingInt(s -> FirstRunRules.STEPS.indexOf(s.id())));
         return out;
+    }
+
+    /** Launcher settings' section of that id, made afresh; null when this build has none (Account without a token). */
+    private static SettingsSection sectionFor(MainActivity activity, String id) {
+        for (SettingsSection s : SettingsSections.all(activity)) if (s.id().equals(id)) return s;
+        return null;
     }
 
     private FirstRunPage(MainActivity activity, FrameLayout root, Collection<String> done) {
@@ -246,7 +260,7 @@ final class FirstRunPage extends Screen {
         value.setDuplicateParentStateEnabled(true);
         row.addView(value, gap(wrap()));
 
-        boolean muted = "account".equals(id);
+        boolean muted = "features".equals(id);
         TextView pill = Ui.line(ctx, Ui.T_MIN, Ui.TEXT_2, Ui.MEDIUM);
         pill.setText(pillOf(id));
         pill.setTextColor(Ui.colors(muted ? Ui.TEXT_2 : Ui.ACCENT, muted ? Ui.TEXT_2 : Ui.ACCENT, Ui.ON_ACCENT));
@@ -296,7 +310,10 @@ final class FirstRunPage extends Screen {
         return id;
     }
 
-    /** First run's own name for a step, or 0 for any other id: only {@link #titleOf} reads it. */
+    /**
+     * First run's own name for a step, or a feature's setup opened from it, or 0 for any other id: only
+     * {@link #titleOf} reads it.
+     */
     private static int titleRes(String id) {
         switch (id) {
             case "account":
@@ -314,29 +331,20 @@ final class FirstRunPage extends Screen {
 
     /** The pill while a row isn't done: its value is a guess the household can keep. */
     private static int pillOf(String id) {
-        switch (id) {
-            case "account":
-                return R.string.first_run_optional;
-            case "weather":
-                return R.string.first_run_default;
-            default:
-                return R.string.first_run_suggested;
-        }
+        return "features".equals(id) ? R.string.first_run_all_off : R.string.first_run_suggested;
     }
 
     private String lineOf(String id) {
         switch (id) {
-            case "account":
-                return ctx.getString(activity.data().accounts.signedIn() ? R.string.first_run_account_line_in
-                        : R.string.first_run_account_line);
+            case "features":
+                return ctx.getString(R.string.features_value, FeaturePrefs.live(ctx).onCount(),
+                        Features.Feature.values().length);
             case "services":
                 Set<ServiceId> ticked = activity.data().services.subscribed();
                 return ctx.getString(R.string.settings_ticked, ServicePicks.count(ticked,
                         ServicePicks.listed(ticked)));
-            case "stores":
-                return ctx.getString(R.string.first_run_stores_line);
             default:
-                return ctx.getString(R.string.first_run_weather_line);
+                return ctx.getString(R.string.first_run_stores_line);
         }
     }
 
@@ -347,7 +355,7 @@ final class FirstRunPage extends Screen {
 
     /**
      * The value on a row: Streaming services' and Stores' ticked names, as the prototype has them ("Netflix, Prime
-     * Video +6"); the section's own for the rest (the account, the weather place).
+     * Video +6"); Features' names on, or "All off"; the section's own for anything else.
      */
     private CharSequence valueOf(String id) {
         Services services = activity.data().services;
@@ -363,6 +371,12 @@ final class FirstRunPage extends Screen {
                     names.add(StoresSection.storeName(ctx, table, s));
                 }
                 return FirstRunRules.names(names);
+            case "features":
+                Features on = FeaturePrefs.live(ctx);
+                for (Features.Feature f : Features.Feature.values()) {
+                    if (on.on(f)) names.add(ctx.getString(FeaturesSection.label(f)));
+                }
+                return names.isEmpty() ? ctx.getString(R.string.first_run_all_off) : FirstRunRules.names(names);
             default:
                 SettingsSection s = section(id);
                 return s == null ? "" : s.value(ctx);
@@ -450,18 +464,15 @@ final class FirstRunPage extends Screen {
     /** A row's help: 0 the title, 1 the body, 2 the note. */
     private static int helpRes(String id, int part) {
         switch (id) {
-            case "account":
-                return part == 0 ? R.string.first_run_account_help_title
-                        : part == 1 ? R.string.first_run_account_help_body : R.string.first_run_account_help_note;
+            case "features":
+                return part == 0 ? R.string.first_run_features_help_title
+                        : part == 1 ? R.string.first_run_features_help_body : R.string.first_run_features_help_note;
             case "services":
                 return part == 0 ? R.string.first_run_services_help_title
                         : part == 1 ? R.string.first_run_services_help_body : R.string.first_run_services_help_note;
-            case "stores":
+            default:
                 return part == 0 ? R.string.first_run_stores_help_title
                         : part == 1 ? R.string.first_run_stores_help_body : R.string.first_run_stores_help_note;
-            default:
-                return part == 0 ? R.string.first_run_weather_help_title
-                        : part == 1 ? R.string.first_run_weather_help_body : R.string.first_run_weather_help_note;
         }
     }
 
@@ -502,9 +513,18 @@ final class FirstRunPage extends Screen {
 
     /** OK on a row: the step is done, and Launcher settings' split opens on its pane. */
     private void open(String id) {
+        open(id, null);
+    }
+
+    /** The split on id's pane; on the Features step, focus starts on focus's switch when it isn't null. */
+    private void open(String id, Features.Feature focus) {
         markDone(id);
         returning = true;
-        split = FirstRunSplit.open(activity, stepSections(activity), steps, id, new FirstRunSplit.Listener() {
+        List<SettingsSection> sections = stepSections(activity);
+        features = null;
+        for (SettingsSection s : sections) if (s instanceof FeaturesSection) features = (FeaturesSection) s;
+        if (features != null && focus != null) features.focusOn(focus);
+        split = FirstRunSplit.open(activity, sections, steps, id, new FirstRunSplit.Listener() {
             @Override
             public void entered(String step) {
                 markDone(step);
@@ -513,6 +533,11 @@ final class FirstRunPage extends Screen {
             @Override
             public void back() {
                 closeSplit();
+            }
+
+            @Override
+            public void featureTurnedOn(Features.Feature f) {
+                setUp(f);
             }
         });
         activity.shell().push(split);
@@ -527,8 +552,86 @@ final class FirstRunPage extends Screen {
         s.closed();
     }
 
+    /**
+     * A feature just turned on in the Features step: its setup opens over the step (FirstRunRules.setupOf), after a
+     * rebuild when the launcher must run with the feature first (FirstRunRules.setupNeedsRebuild).
+     */
+    private void setUp(Features.Feature f) {
+        String id = FirstRunRules.setupOf(f);
+        if (id == null || sectionFor(activity, id) == null) return;
+        if (FirstRunRules.setupNeedsRebuild(f, Features.isOn(f))) {
+            pendingSetup = id;
+            activity.recreate();
+            return;
+        }
+        openSetup(id);
+    }
+
+    /** The feature's setup over the Features step: its one section, with Back to Features and Done. */
+    private void openSetup(String id) {
+        SettingsSection section = sectionFor(activity, id);
+        if (section == null) return;
+        featureSetupId = id;
+        featureSetup = FirstRunSplit.openFeatureSetup(activity, section, new FirstRunSplit.Listener() {
+            @Override
+            public void entered(String step) {}
+
+            @Override
+            public void back() {
+                closeFeatureSetup();
+            }
+        });
+        activity.shell().push(featureSetup);
+    }
+
+    /**
+     * Back to Features: the setup's section stops what it left running, and the step shows again with focus on the
+     * switch just turned on (after a rebuild the step never had focus to give back).
+     */
+    private void closeFeatureSetup() {
+        LauncherSettingsPage s = featureSetup;
+        String id = featureSetupId;
+        featureSetup = null;
+        featureSetupId = null;
+        if (s == null) return;
+        if (activity.shell().top() == s) activity.shell().pop();
+        s.closed();
+        Features.Feature f = featureOf(id);
+        FeaturesSection pane = features;
+        if (f == null || pane == null) return;
+        view.post(() -> {
+            View target = pane.switchOf(f);
+            if (target != null && split != null && activity.shell().top() == split) activity.shell().focus(target);
+        });
+    }
+
+    /** The feature whose setup is that section, or null. */
+    private static Features.Feature featureOf(String setupId) {
+        for (Features.Feature f : Features.Feature.values()) {
+            if (setupId != null && setupId.equals(FirstRunRules.setupOf(f))) return f;
+        }
+        return null;
+    }
+
+    /**
+     * The feature setup showing (or about to, once rebuilt), for MainActivity to reopen after a rebuild; else null.
+     */
+    String setupShowing() {
+        if (pendingSetup != null) return pendingSetup;
+        return featureSetup != null && activity.shell().has(featureSetup) ? featureSetupId : null;
+    }
+
+    /** Rebuilt during a feature's setup: the Features step again, on that feature's switch, and the setup over it. */
+    void reopenSetup(String id) {
+        open(FeaturesSection.ID, featureOf(id));
+        openSetup(id);
+    }
+
     /** The checklist has left the stack (Start, Back, the remote's Home, or the launcher rebuilt). */
     void closed() {
+        LauncherSettingsPage setup = featureSetup;
+        featureSetup = null;
+        if (setup != null) setup.closed();
         LauncherSettingsPage s = split;
         split = null;
         if (s != null) s.closed();

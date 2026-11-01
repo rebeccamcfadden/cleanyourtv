@@ -8,6 +8,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -16,6 +17,9 @@ import java.util.List;
  * ({@link LauncherSettingsPage.Setup}): "Set up your Home screen" with "First run · Back returns to the checklist",
  * First run's names for Account and Weather, "Optional" for an account not signed in, and the footer under the pane:
  * "Step N of M · changes save at once", Back to checklist and Next: the following step (Done on the last).
+ *
+ * <p>A feature's setup opened from the Features step (F14) is the same split with that one section, its footer reading
+ * Back to Features and Done ({@link #openFeatureSetup}).
  */
 final class FirstRunSplit implements LauncherSettingsPage.Setup {
     private static final String GROUP_FOOT = "first-run-foot";
@@ -27,24 +31,42 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
 
         /** Back to checklist, Done, or Back on the sections: the split closes. */
         void back();
+
+        /** A feature was just turned on in the Features step (F14). */
+        default void featureTurnedOn(Features.Feature f) {}
     }
 
     private final Context ctx;
     private final List<SettingsSection> sections;
     private final List<String> steps;
     private final Listener listener;
+    /** A feature's setup from the Features step: Back returns there, not to the checklist. */
+    private final boolean fromFeatures;
 
-    FirstRunSplit(Context ctx, List<SettingsSection> sections, List<String> steps, Listener listener) {
+    private FirstRunSplit(Context ctx, List<SettingsSection> sections, List<String> steps, boolean fromFeatures,
+                          Listener listener) {
         this.ctx = ctx;
         this.sections = sections;
         this.steps = steps;
+        this.fromFeatures = fromFeatures;
         this.listener = listener;
     }
 
     /** Launcher settings' page for these steps, open on id's pane. */
     static LauncherSettingsPage open(MainActivity activity, List<SettingsSection> sections, List<String> steps,
                                      String id, Listener listener) {
-        FirstRunSplit split = new FirstRunSplit(activity, sections, steps, listener);
+        return open(activity, sections, steps, id, false, listener);
+    }
+
+    /** A feature's setup, turned on in the Features step: the one section, with Back to Features and Done. */
+    static LauncherSettingsPage openFeatureSetup(MainActivity activity, SettingsSection section, Listener listener) {
+        return open(activity, Collections.singletonList(section), Collections.singletonList(section.id()),
+                section.id(), true, listener);
+    }
+
+    private static LauncherSettingsPage open(MainActivity activity, List<SettingsSection> sections, List<String> steps,
+                                             String id, boolean fromFeatures, Listener listener) {
+        FirstRunSplit split = new FirstRunSplit(activity, sections, steps, fromFeatures, listener);
         LauncherSettingsPage page = LauncherSettingsPage.setup(activity, sections, id, split);
         split.page = page;
         return page;
@@ -60,7 +82,7 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
 
     @Override
     public CharSequence hint() {
-        return ctx.getString(R.string.first_run_split_hint);
+        return ctx.getString(fromFeatures ? R.string.first_run_split_hint_features : R.string.first_run_split_hint);
     }
 
     @Override
@@ -85,7 +107,8 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL));
 
         String next = FirstRunRules.nextStep(steps, section);
-        View back = Kit.button(ctx, ctx.getString(R.string.first_run_back_to_checklist), R.drawable.ic_ui_chev_left,
+        View back = Kit.button(ctx, ctx.getString(fromFeatures ? R.string.first_run_back_to_features
+                        : R.string.first_run_back_to_checklist), R.drawable.ic_ui_chev_left,
                 Kit.SMALL, false, GROUP_FOOT, "foot-back", false, v -> listener.back());
         CharSequence nextLabel = next == null ? ctx.getString(R.string.first_run_finish)
                 : ctx.getString(R.string.first_run_next, nextName(next));
@@ -108,6 +131,11 @@ final class FirstRunSplit implements LauncherSettingsPage.Setup {
     @Override
     public void close() {
         listener.back();
+    }
+
+    @Override
+    public void featureTurnedOn(Features.Feature f) {
+        listener.featureTurnedOn(f);
     }
 
     /** The step's name on the Next button: "Stores" is short for the stores step (settings.ts paintFoot). */

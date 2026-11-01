@@ -33,39 +33,57 @@ public class FeaturesTest {
     }
 
     @Test
-    public void nothingSavedOrConfiguredRunsEverything() {
+    public void nothingSavedOrConfiguredRunsNothing() {
+        // A new install starts with every feature off; First run's Features step turns them on (2026-11-01).
         Features f = Features.resolve(null, null);
-        for (Features.Feature x : Features.Feature.values()) assertTrue(x.id, f.on(x));
-        assertEquals(6, f.onCount());
+        for (Features.Feature x : Features.Feature.values()) assertFalse(x.id, f.on(x));
+        assertEquals(0, f.onCount());
+        assertTrue(f.same(Features.ALL_OFF));
     }
 
     @Test
-    public void theConfigSwitchesOffAndTheHouseholdsChoiceWins() {
-        Features f = Features.resolve(saved("feature_weather", true), config("weather", false, "pick", false));
-        assertTrue(f.on(Features.Feature.WEATHER));
+    public void theConfigSwitchesOnAndTheHouseholdsChoiceWins() {
+        Features f = Features.resolve(saved("feature_pick", false, "feature_weather", true),
+                config("tmdb", true, "pick", true, "prices", false));
+        assertTrue(f.on(Features.Feature.TMDB));
         assertFalse(f.on(Features.Feature.PICK));
-        assertEquals(5, f.onCount());
+        assertTrue(f.on(Features.Feature.WEATHER));
+        assertFalse(f.on(Features.Feature.PRICES));
+        assertFalse(f.on(Features.Feature.THEMES));
+        assertEquals(2, f.onCount());
     }
 
     @Test
     public void phoneNotesIsOffWhileTmdbAccountIs() {
-        Features f = Features.resolve(saved("feature_tmdb", false), null);
+        Features f = Features.resolve(saved("feature_tmdb", false, "feature_notes", true), null);
         assertTrue(f.switchedOn(Features.Feature.NOTES));
         assertFalse(f.on(Features.Feature.NOTES));
         assertSame(Features.Feature.TMDB, f.blockedBy(Features.Feature.NOTES));
         assertNull(f.blockedBy(Features.Feature.WEATHER));
-        assertEquals(4, f.onCount());
+        assertEquals(0, f.onCount());
         // Back on with TMDB account, Phone notes keeps its own switch.
-        Features back = Features.resolve(saved("feature_tmdb", true), null);
+        Features back = Features.resolve(saved("feature_tmdb", true, "feature_notes", true), null);
         assertTrue(back.on(Features.Feature.NOTES));
         assertNull(back.blockedBy(Features.Feature.NOTES));
+        assertEquals(2, back.onCount());
     }
 
     @Test
     public void anythingButABooleanIsIgnored() {
-        Features f = Features.resolve(saved("feature_prices", "off", "feature_themes", 0), null);
+        Features f = Features.resolve(saved("feature_prices", "on", "feature_themes", 1),
+                config("prices", true));
         assertTrue(f.on(Features.Feature.PRICES));
-        assertTrue(f.on(Features.Feature.THEMES));
+        assertFalse(f.on(Features.Feature.THEMES));
+    }
+
+    @Test
+    public void aTvFromBeforeFeaturesKeepsThemOnAndANewInstallStartsOff() {
+        // Decided on the first start with F14: updated means it ran the launcher before, and finished First run.
+        assertTrue(Features.keepAllOn(null, false));
+        assertFalse(Features.keepAllOn(null, true));
+        // Kept after that: a fresh install updated later stays off, a kept TV stays on.
+        assertFalse(Features.keepAllOn(false, false));
+        assertTrue(Features.keepAllOn(true, true));
     }
 
     @Test
@@ -78,19 +96,21 @@ public class FeaturesTest {
 
     @Test
     public void sameComparesWhatRuns() {
-        Features a = Features.resolve(saved("feature_tmdb", false), null);
+        Features a = Features.resolve(saved("feature_tmdb", false), config("notes", true));
         // Notes switched off too: what runs is the same, since TMDB account being off already stops it.
         Features b = Features.resolve(saved("feature_tmdb", false, "feature_notes", false), null);
         assertTrue(a.same(b));
+        assertTrue(a.same(Features.ALL_OFF));
         assertFalse(a.same(Features.ALL_ON));
+        assertEquals(6, Features.ALL_ON.onCount());
     }
 
     @Test
     public void currentIsWhatWasApplied() {
-        assertTrue(Features.isOn(Features.Feature.PICK));
-        Features.apply(Features.resolve(saved("feature_pick", false), null));
         assertFalse(Features.isOn(Features.Feature.PICK));
+        Features.apply(Features.resolve(saved("feature_pick", true), null));
+        assertTrue(Features.isOn(Features.Feature.PICK));
         Features.apply(null);
-        assertSame(Features.ALL_ON, Features.current());
+        assertSame(Features.ALL_OFF, Features.current());
     }
 }

@@ -2,7 +2,9 @@
 <!-- Launcher settings › Features (F14, design_preview/src/screens/panes/features.ts). -->
 <resources>
     <string name="settings_features">Features</string>
-    <string name="features_sub">Turn off what this household doesn’t use. A feature that is off never starts: no page and nothing fetched for it.</string>
+    <string name="features_sub">Turn on what this household uses. A feature that is off never starts: no page and nothing fetched for it.</string>
+    <!-- The same pane as First run's Features step (F14): every feature starts off. -->
+    <string name="features_sub_setup">Everything starts off. Turn on what this household wants; each one you turn on is set up next.</string>
     <string name="features_note">A family install sets these; a pushed config.json can set them too (\"features\").</string>
     <!-- The section's value: "5 of 6 on". -->
     <string name="features_value">%1$d of %2$d on</string>
@@ -23,7 +25,7 @@
     <string name="feature_prices_off">Off: Rent and Buy still show where, without a price</string>
     <string name="feature_weather">Weather</string>
     <string name="feature_weather_sub">Today, tomorrow and the hourly strip on Home, from Open-Meteo</string>
-    <string name="feature_weather_off">Off: no weather on Home, in quick settings or in First run</string>
+    <string name="feature_weather_off">Off: no weather on Home or in quick settings</string>
     <string name="feature_themes">Themes</string>
     <string name="feature_themes_sub">Seasonal and Landscapes themes, downloaded backdrops and theme fonts</string>
     <string name="feature_themes_off">Off: Classic themes on their plain colour, in the system font</string>

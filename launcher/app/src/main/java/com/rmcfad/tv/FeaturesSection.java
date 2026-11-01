@@ -12,6 +12,9 @@ import android.widget.TextView;
  * launcher is rebuilt with the new switches as the page closes (Host#valueChanged moves the change count). A row whose
  * feature needs another that is off (Phone notes without TMDB account) says so instead of offering a control, and ↑/↓
  * pass it by. The switches are read from FeaturePrefs each time, so the page shows what was just chosen.
+ *
+ * <p>It is also First run's Features step (the project lead, 2026-11-01): every feature starts off, and turning one on
+ * there opens its setup at once (Host#featureTurnedOn; FirstRunPage decides what that is).
  */
 final class FeaturesSection implements SettingsSection {
     static final String ID = "features";
@@ -19,6 +22,13 @@ final class FeaturesSection implements SettingsSection {
     private LinearLayout rows;
     private Host host;
     private View first;
+    /** The row to focus first instead of the first control: the feature whose setup First run just came back from. */
+    private Features.Feature focusOn;
+
+    /** Focus starts on this feature's switch (back from its setup, after a rebuild). */
+    void focusOn(Features.Feature f) {
+        focusOn = f;
+    }
 
     @Override
     public String id() {
@@ -46,7 +56,7 @@ final class FeaturesSection implements SettingsSection {
         LinearLayout pane = SettingsKit.column(ctx);
         pane.addView(SettingsKit.eyebrow(ctx, ctx.getString(R.string.settings_features)));
         SettingsKit.add(pane, SettingsKit.title(ctx, ctx.getString(R.string.settings_features), false), 10);
-        SettingsKit.add(pane, SettingsKit.sub(ctx, ctx.getString(R.string.features_sub)), 8);
+        SettingsKit.add(pane, SettingsKit.sub(ctx, ctx.getString(host.inSetup() ? R.string.features_sub_setup : R.string.features_sub)), 8);
         rows = SettingsKit.column(ctx);
         SettingsKit.addWide(pane, rows, 22);
         paintRows(ctx);
@@ -71,7 +81,7 @@ final class FeaturesSection implements SettingsSection {
                 control = SettingsKit.segmented(ctx, group(f), new String[]{"on", "off"},
                         new CharSequence[]{ctx.getString(R.string.perf_on), ctx.getString(R.string.perf_off)},
                         on ? "on" : "off", true, value -> changed(ctx, f, "on".equals(value)));
-                if (first == null) first = SettingsKit.selectedOption(control);
+                if (first == null || f == focusOn) first = SettingsKit.selectedOption(control);
             }
             int sub = blocked == null && now.switchedOn(f) ? sub(f) : off(f);
             View row = PerformanceSection.row(ctx, label(f), sub, control);
@@ -83,6 +93,7 @@ final class FeaturesSection implements SettingsSection {
     }
 
     private void changed(Context ctx, Features.Feature f, boolean on) {
+        boolean was = FeaturePrefs.live(ctx).switchedOn(f);
         FeaturePrefs.save(ctx, f, on);
         host.valueChanged();
         // Rebuilt after the pick returns: Phone notes' row changes with TMDB account, and every row's line with it.
@@ -91,6 +102,7 @@ final class FeaturesSection implements SettingsSection {
             View seg = segOf(f);
             View again = seg == null ? null : SettingsKit.selectedOption(seg);
             if (again != null) host.shell().focus(again);
+            if (on && !was) host.featureTurnedOn(f);
         });
     }
 
@@ -120,6 +132,12 @@ final class FeaturesSection implements SettingsSection {
         }
         // Past the last row ↓ goes on to the note (nothing to focus) and stays; past the first ↑ leaves for the page.
         return key == Screen.Key.DOWN;
+    }
+
+    /** The feature's switch on its selected option, for First run to focus coming back from its setup; else null. */
+    View switchOf(Features.Feature f) {
+        View seg = segOf(f);
+        return seg == null ? null : SettingsKit.selectedOption(seg);
     }
 
     private View segOf(Features.Feature f) {

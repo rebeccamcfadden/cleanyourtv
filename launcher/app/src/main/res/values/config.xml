@@ -227,15 +227,17 @@
          pushed config.json. -->
     <string name="light_defaults" translatable="false">auto</string>
     <!-- Launcher settings › Features (F14): which features run on this TV. Off, a feature never starts: no page, no
-         network call, no server; its Launcher settings section says it is off. The household can switch them in
-         Features, and its choice wins over these. A pushed config.json can set them too, as
-         "features": {"tmdb": true, "notes": false, ...}. Phone notes needs TMDB account. -->
-    <bool name="feature_tmdb">true</bool>
-    <bool name="feature_notes">true</bool>
-    <bool name="feature_pick">true</bool>
-    <bool name="feature_prices">true</bool>
-    <bool name="feature_weather">true</bool>
-    <bool name="feature_themes">true</bool>
+         network call, no server; its Launcher settings section says it is off. A new install starts with all of them
+         off (the project lead, 2026-11-01), and First run's Features step turns them on; a TV that ran the launcher
+         before F14 keeps them all on. The household can switch them in Features, and its choice wins over these. A
+         pushed config.json can set them too, as "features": {"tmdb": true, "notes": false, ...}. Phone notes needs
+         TMDB account. -->
+    <bool name="feature_tmdb">false</bool>
+    <bool name="feature_notes">false</bool>
+    <bool name="feature_pick">false</bool>
+    <bool name="feature_prices">false</bool>
+    <bool name="feature_weather">false</bool>
+    <bool name="feature_themes">false</bool>
 
     <!-- The streaming services the household pays for, so their titles read "Included". Lowercase ids: netflix,
          prime, disney, max (HBO Max), appletvplus (Apple TV), hulu, youtube, appletv (the Apple TV Store),

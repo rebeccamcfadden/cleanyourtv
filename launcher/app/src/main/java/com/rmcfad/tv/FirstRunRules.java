@@ -16,15 +16,43 @@ import java.util.Set;
 final class FirstRunRules {
     private FirstRunRules() {}
 
-    /** The checklist's rows, in order, as SettingsSection ids. */
+    /**
+     * The checklist's rows, in order, as SettingsSection ids. Since F14 (the project lead, 2026-11-01) Features comes
+     * first and there is no other on/off: turning a feature on there opens its setup (Sign in to TMDB, Weather city,
+     * Phone notes, Theme), which are no longer rows of their own.
+     */
     static final List<String> STEPS = Collections.unmodifiableList(Arrays.asList(
-            "account", "services", "stores", "weather"));
+            "features", "services", "stores"));
 
-    /** The steps this build shows: STEPS among the sections present (Account is left out without a TMDB token). */
+    /** The steps this build shows: STEPS among the sections present. */
     static List<String> steps(Collection<String> present) {
         List<String> out = new ArrayList<>();
         for (String id : STEPS) if (present.contains(id)) out.add(id);
         return out;
+    }
+
+    /**
+     * The setup a feature turned on in the Features step opens, as a SettingsSection id (F14, design_preview's
+     * features.ts SETUP): TMDB account signs in, Weather picks the city, Phone notes pairs a phone, Themes picks one.
+     * Pick for me needs none; Prices' keys page is Builder B's F16 and opens nothing until it exists.
+     */
+    static String setupOf(Features.Feature f) {
+        switch (f) {
+            case TMDB: return "account";
+            case NOTES: return "notes";
+            case WEATHER: return "weather";
+            case THEMES: return "theme";
+            default: return null;
+        }
+    }
+
+    /**
+     * Whether the launcher must be rebuilt before the feature's setup can work: TMDB account's sign-in needs the TMDB
+     * client the launcher only makes with it on, and Phone notes' pairing its inbox. Not when the launcher already runs
+     * with it (switched off and on again since it was built).
+     */
+    static boolean setupNeedsRebuild(Features.Feature f, boolean runsNow) {
+        return !runsNow && (f == Features.Feature.TMDB || f == Features.Feature.NOTES);
     }
 
     /**
@@ -71,7 +99,7 @@ final class FirstRunRules {
     }
 
     /**
-     * Whether a row's value only repeats its pill (Weather's "Default" beside the Default pill): the checklist leaves
+     * Whether a row's value only repeats its pill (Features' "All off" beside the All off pill): the checklist leaves
      * it out while the pill shows.
      */
     static boolean repeatsPill(String value, String pill) {
