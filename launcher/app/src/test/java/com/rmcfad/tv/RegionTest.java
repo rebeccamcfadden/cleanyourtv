@@ -36,6 +36,13 @@ public class RegionTest {
     }
 
     @Test
+    public void swedenKeepsItsSettingsNamesTheUsAddsItsCountry() {
+        assertEquals("feed_read_at", Region.SE.key("feed_read_at"));
+        assertEquals("feed_read_at_us", Region.US.key("feed_read_at"));
+        assertEquals("stale_marks_us", Region.US.key("stale_marks"));
+    }
+
+    @Test
     public void currenciesAgreeWithTheProviderTable() {
         for (Region r : Region.values()) assertEquals(r.code, WatchProviders.currency(r.code), r.currency);
         assertEquals("SEK", Region.SE.currency);

@@ -41,7 +41,7 @@ final class ServiceChoices {
 
     /** Sweden keeps the key it had before there were regions ("ticked_stores"); the US's is "ticked_stores_us". */
     static String storesKey(Region region) {
-        return region == Region.SE ? KEY_STORES : KEY_STORES + "_" + region.country;
+        return region.key(KEY_STORES);
     }
 
     private static SharedPreferences prefs(Context ctx) {

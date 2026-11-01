@@ -39,4 +39,12 @@ enum Region {
         Region r = parse(code);
         return r == null ? DEFAULT : r;
     }
+
+    /**
+     * A setting kept per region: Sweden keeps {@code base}, the name it had before there were regions, so nothing
+     * saved is lost; another region adds its country ("ticked_stores_us").
+     */
+    String key(String base) {
+        return this == SE ? base : base + "_" + country;
+    }
 }
