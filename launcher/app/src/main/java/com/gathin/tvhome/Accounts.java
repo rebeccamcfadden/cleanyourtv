@@ -527,6 +527,15 @@ final class Accounts implements Household.Recorder {
         });
     }
 
+    /** TMDB's answers for an asked line with none saved (NoteImport.lookUp), on the worker; null offline. Main thread. */
+    void runLookUp(String query, java.util.function.Consumer<List<NoteMatch.Candidate>> done) {
+        TmdbSession s = session;
+        worker.execute(() -> {
+            List<NoteMatch.Candidate> top = new NoteImport(http, s, ids -> { }).lookUp(query);
+            main.post(() -> done.accept(top));
+        });
+    }
+
     /** Titles ticked in a note go to Seen, each only if it isn't there yet (synced like a change on the TV). */
     private void markSeen(List<String> ids) {
         for (String id : ids) if (!household.isSeen(id)) household.toggleSeen(id);

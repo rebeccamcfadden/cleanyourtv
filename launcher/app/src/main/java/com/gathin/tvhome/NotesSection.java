@@ -226,8 +226,8 @@ final class NotesSection implements SettingsSection {
         // focusable, they also let the pane scroll down to Last sends.
         for (int i = 0; i < s.asks.size(); i++) {
             NoteMatch.Ask ask = s.asks.get(i);
-            String label = ctx.getString(ask.top.isEmpty() ? R.string.notes_ask_nothing : R.string.notes_ask_choose,
-                    ask.query);
+            // One with no answers saved is looked up when opened (NotePicker).
+            String label = ctx.getString(R.string.notes_ask_choose, ask.query);
             View b = Kit.button(ctx, label, 0, Kit.SMALL, false, GROUP,
                     "notes-ask-" + NoteLines.key(s.list) + "-" + ask.key, false,
                     v -> host.shell().push(NotePicker.create(ctx, host.shell(), notes, s.list, ask)));

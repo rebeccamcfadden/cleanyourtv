@@ -57,10 +57,12 @@
 
     <!-- Last sends: a line not matched exactly, as a button that opens the picker. -->
     <string name="notes_ask_choose">%1$s · Choose</string>
-    <string name="notes_ask_nothing">%1$s · Not on TMDB</string>
     <!-- The picker (NotePicker). -->
     <string name="notes_pick_title">Which one did you mean?</string>
     <string name="notes_pick_title_none">Nothing close on TMDB</string>
+    <string name="notes_pick_looking">Looking on TMDB…</string>
+    <string name="notes_pick_title_offline">Couldn’t reach TMDB</string>
+    <string name="notes_pick_offline">Try again when the TV is online.</string>
     <string name="notes_pick_line">“%1$s” in the note for %2$s matched nothing exactly.</string>
     <string name="notes_pick_to_list">The one you pick goes onto %1$s.</string>
     <string name="notes_pick_to_seen">It’s ticked, so the one you pick goes to Seen.</string>

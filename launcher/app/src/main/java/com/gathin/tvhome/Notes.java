@@ -278,6 +278,30 @@ final class Notes {
         });
     }
 
+    /**
+     * Looks up TMDB's answers for an asked line that has none saved, keeps them with the send, and hands back the line
+     * with them (none if TMDB had none; null when it couldn't be reached). Main thread.
+     */
+    void lookUp(String list, NoteMatch.Ask ask, java.util.function.Consumer<NoteMatch.Ask> done) {
+        Accounts a = accounts;
+        if (a == null) {
+            done.accept(null);
+            return;
+        }
+        a.runLookUp(ask.query, top -> {
+            if (top == null) {
+                done.accept(null);
+                return;
+            }
+            if (!top.isEmpty()) {
+                book.offered(list, ask.key, top);
+                prefs.edit().putString(SENDS, book.sendsJson()).apply();
+                changed();
+            }
+            done.accept(ask.with(top));
+        });
+    }
+
     NoteWords.Pill pill() {
         return pill;
     }

@@ -103,7 +103,7 @@ final class NoteMatch {
         }
     }
 
-    /** What a line came to: its title id when matched, else TMDB's best answers to ask about. */
+    /** What a line came to: its title id when matched exactly (or null), and TMDB's best answers to ask about. */
     static final class Found {
         final String id;
         final List<Candidate> top;
@@ -260,18 +260,17 @@ final class NoteMatch {
         if (l.id != null) return new Found(l.id, null);
         if (l.kind != null) {
             List<Candidate> found = search(l.kind == Kind.MOVIE ? "movie" : "tv", l);
-            String hit = exact(l, found);
-            return hit != null ? new Found(hit, null) : new Found(null, top(l, found));
+            return new Found(exact(l, found), top(l, found));
         }
         if (l.hint != null) {
             // Under "Movies to watch" a line is most likely a movie: ask for those first, then shows.
             String first = l.hint == Kind.MOVIE ? "movie" : "tv";
             List<Candidate> a = search(first, l);
             String hit = exact(l, a);
-            if (hit != null) return new Found(hit, null);
+            if (hit != null) return new Found(hit, top(l, a));
             List<Candidate> b = search(first.equals("movie") ? "tv" : "movie", l);
             hit = exact(l, b);
-            if (hit != null) return new Found(hit, null);
+            if (hit != null) return new Found(hit, top(l, b));
             List<Candidate> both = new ArrayList<>(top(l, a));
             both.addAll(top(l, b));
             return new Found(null, both.subList(0, Math.min(ASK_TOP, both.size())));
@@ -279,8 +278,7 @@ final class NoteMatch {
         List<Candidate> found = new ArrayList<>();
         found.addAll(search("movie", l));
         found.addAll(search("tv", l));
-        String hit = exact(l, found);
-        return hit != null ? new Found(hit, null) : new Found(null, top(l, found));
+        return new Found(exact(l, found), top(l, found));
     }
 
     private List<Candidate> search(String type, NoteLines.Line l) throws IOException {

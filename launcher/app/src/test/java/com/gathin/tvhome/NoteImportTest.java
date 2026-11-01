@@ -162,6 +162,14 @@ public class NoteImportTest {
     }
 
     @Test
+    public void aLineWithNoAnswersSavedIsLookedUpWithTheExactOneFirst() {
+        List<NoteMatch.Candidate> top = new NoteImport(tmdb, SESSION, seen::addAll).lookUp("Dune");
+        assertEquals("movie:438631", top.get(0).id);
+        tmdb.offline = true;
+        assertNull("offline", new NoteImport(tmdb, SESSION, seen::addAll).lookUp("Dune"));
+    }
+
+    @Test
     public void aPickForAListThatIsGoneMakesIt() {
         NoteImport.Outcome o = new NoteImport(tmdb, SESSION, seen::addAll).pick("Grandma",
                 new NoteMatch.Ask("x", "X", false, null), "movie:438631", null);

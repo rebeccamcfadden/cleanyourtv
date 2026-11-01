@@ -187,7 +187,8 @@ keyboard first ("Inglourious Basterds"):
   back.
 - **Back** leaves the line there for later. Sending the note again keeps its answers.
 
-A line TMDB has nothing for reads "· Not on TMDB": change it in the note (add the year, or paste the title's
+A line with no answers saved (sent before this TV could ask) is looked up when you open it. If TMDB has nothing
+close, change it in the note (add the year, or paste the title's
 themoviedb.org link) and send again, since a changed line is looked up again, or choose **Stop asking**. Picking needs
 the TV signed in to TMDB; signed out, the pill says so and the line stays.
 

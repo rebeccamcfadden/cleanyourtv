@@ -121,6 +121,8 @@ public class NoteBookTest {
         assertEquals(2, s.asks.size());
         assertEquals("movie:207", s.asks.get(0).top.get(0).id);
         assertTrue(s.asks.get(1).top.isEmpty());
+        b.offered("Rebecca", "zzyzx qq", java.util.Collections.singletonList(c));
+        assertEquals("answers found later are kept", "movie:207", b.sends().get(0).asks.get(1).top.get(0).id);
         assertTrue(b.answered("Rebecca", "dead poet society"));
         assertEquals(java.util.Collections.singletonList("Zzyzx Qq"), b.sends().get(0).unmatched);
         assertEquals(1, b.unmatched());

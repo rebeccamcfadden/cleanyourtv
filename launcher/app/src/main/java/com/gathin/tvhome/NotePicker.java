@@ -18,8 +18,8 @@ import java.util.List;
  * Phone notes' picker (the project lead, 2026-11-01; no Figma design yet, see design_preview/README.md, Differences
  * from Figma): for a line of a list's last send that TMDB didn't match exactly, TMDB's best three answers as posters
  * with their title and year, and None of these. OK on a poster puts that title on the list (on Seen, for a ticked
- * line); None of these stops asking about the line; Back leaves it in Last sends for later. Drawn as the confirm
- * dialog is ({@link PaneParts#confirm}).
+ * line); None of these stops asking about the line; Back leaves it in Last sends for later. A line with no answers
+ * saved (an older TV kept only its text) is looked up first. Drawn as the confirm dialog is ({@link PaneParts#confirm}).
  */
 final class NotePicker {
     private NotePicker() {}
@@ -29,7 +29,21 @@ final class NotePicker {
     private static final int WIDTH = 860;
     private static final String GROUP = "note-pick";
 
+    private enum Mode { LOOKING, OFFLINE, READY }
+
     static Screen create(Context ctx, Shell shell, Notes notes, String list, NoteMatch.Ask ask) {
+        if (!ask.top.isEmpty()) return build(ctx, shell, notes, list, ask, Mode.READY);
+        Screen looking = build(ctx, shell, notes, list, ask, Mode.LOOKING);
+        notes.lookUp(list, ask, found -> {
+            // Only if the household is still waiting on this one.
+            if (shell.top() != looking) return;
+            shell.pop();
+            shell.push(build(ctx, shell, notes, list, found != null ? found : ask, found != null ? Mode.READY : Mode.OFFLINE));
+        });
+        return looking;
+    }
+
+    private static Screen build(Context ctx, Shell shell, Notes notes, String list, NoteMatch.Ask ask, Mode mode) {
         FrameLayout root = new FrameLayout(ctx);
         View scrim = new View(ctx);
         scrim.setBackgroundColor(Ui.SCRIM);
@@ -40,12 +54,16 @@ final class NotePicker {
         box.setBackground(Ui.round(Ui.BG_RAISED, Ui.RADIUS_XL, Ui.LINE_STRONG, Ui.LINE_W));
         box.setElevation(Ui.px(40));
 
-        String title = ctx.getString(ask.top.isEmpty() ? R.string.notes_pick_title_none : R.string.notes_pick_title);
+        String title = ctx.getString(mode == Mode.LOOKING ? R.string.notes_pick_looking
+                : mode == Mode.OFFLINE ? R.string.notes_pick_title_offline
+                : ask.top.isEmpty() ? R.string.notes_pick_title_none : R.string.notes_pick_title);
         TextView t = Ui.text(ctx, 38, Ui.TEXT_1, Ui.REGULAR);
         t.setText(title);
         box.addView(t);
         TextView b = Ui.text(ctx, Ui.T_BODY, Ui.TEXT_2, Ui.REGULAR);
-        b.setText(body(ctx, list, ask));
+        b.setText(mode == Mode.READY ? body(ctx, list, ask)
+                : ctx.getString(R.string.notes_pick_line, ask.query, list) + (mode == Mode.OFFLINE
+                ? " " + ctx.getString(R.string.notes_pick_offline) : ""));
         b.setLineSpacing(0f, 1.45f);
         box.addView(b, PaneParts.wide(16));
 

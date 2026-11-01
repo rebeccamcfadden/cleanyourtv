@@ -197,6 +197,20 @@ final class NoteImport {
         }
     }
 
+    /**
+     * TMDB's best answers for a line asked about with none saved: an older TV kept only the line's text, and a line
+     * already looked up isn't looked up again by a send. Null when TMDB can't be reached.
+     */
+    List<NoteMatch.Candidate> lookUp(String query) {
+        List<NoteLines.Line> lines = NoteLines.parse(query);
+        if (lines.isEmpty()) return Collections.emptyList();
+        try {
+            return new NoteMatch(this::fetch).find(lines.get(0)).top;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     /** The account's own lists, every page. */
     private List<TmdbAccountParse.ListInfo> accountLists() throws Stop, TmdbAccountParse.Failure {
         List<TmdbAccountParse.ListInfo> out = new ArrayList<>();

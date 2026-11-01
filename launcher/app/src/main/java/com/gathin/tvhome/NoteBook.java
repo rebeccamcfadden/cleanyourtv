@@ -129,6 +129,19 @@ final class NoteBook {
         while (sends.size() > MAX_SENDS) sends.remove(sends.size() - 1);
     }
 
+    /** TMDB's answers were found for a line of the list's last send that had none: they are kept with it. */
+    synchronized void offered(String list, String lineKey, List<NoteMatch.Candidate> top) {
+        String key = NoteLines.key(list);
+        for (int i = 0; i < sends.size(); i++) {
+            Send s = sends.get(i);
+            if (!NoteLines.key(s.list).equals(key)) continue;
+            List<NoteMatch.Ask> asks = new ArrayList<>();
+            for (NoteMatch.Ask a : s.asks) asks.add(a.key.equals(lineKey) ? a.with(top) : a);
+            sends.set(i, new Send(s.list, s.at, s.lines, s.added, asks));
+            return;
+        }
+    }
+
     /** A line of the list's last send was answered on the TV: it leaves Last sends. Returns whether it was there. */
     synchronized boolean answered(String list, String lineKey) {
         String key = NoteLines.key(list);
