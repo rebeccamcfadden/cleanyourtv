@@ -1,4 +1,4 @@
-# Phone notes: send a watch list from an iPhone to the TV
+# Phone notes: send a watch list from a phone to the TV
 
 When to use this: you keep the titles you want to watch in a note on your phone (Apple Notes or Google Keep) and want
 them on the TV's lists without typing them with the remote. Each person's note goes to their own TMDB list, which shows
@@ -24,11 +24,13 @@ it under Last sends, and OK on it shows TMDB's three best answers to pick from.
    with your TV's own address) and a **pairing code** (`K7QM-4PXT`). Phone notes is off until it is turned on here
    (or by `note_inbox` in the TV's `config.xml` or `config.json`). "Not on Wi-Fi" in place of the address means the
    TV has no address on the home network yet; if another app on the TV holds port 8765, the pane says so.
-   Beside them is a **QR code**: scan it with the iPhone camera and a setup page opens on the phone, with **Get the
-   shortcut** and **Pair this phone** (below).
+   Beside them is a **QR code**: scan it with a phone's camera and a setup page opens on the phone: on an iPhone with
+   **Get the shortcut** and **Pair this phone**, on an Android phone with the settings to copy into HTTP Shortcuts
+   (below).
 3. In your router, give the TV a fixed address (a "DHCP reservation"), so the address in the Shortcut keeps working.
 
-**New code** makes a new pairing code. Each phone then scans the QR again and taps **Pair this phone**; nothing in
+**New code** makes a new pairing code. Each iPhone then scans the QR again and taps **Pair this phone**, and each
+Android phone pastes the new `Authorization` value into its shortcut (below); nothing else in
 the shortcut changes.
 
 ## On each iPhone, once
@@ -170,6 +172,34 @@ tapped Don't Allow, turn it on in **Settings → Privacy & Security → Local Ne
 
 A second phone uses the same shortcut with its own list name in `list`.
 
+## On an Android phone
+
+Android has no Shortcuts app, so a phone uses **HTTP Shortcuts** (free and open source, on Google Play and F-Droid). It
+sends the note as plain text with the list's name in the address, which the TV accepts as it is. Not tried on a real
+Android phone yet.
+
+Scan the QR in the TV's Phone notes pane with the phone's camera and open the link: on Android the page shows these
+settings first. Type whose list this phone's notes go to; the page fills in the **URL** (`http://192.168.1.50:8765/
+notes?list=Rebecca`), the **Authorization** value (`Bearer` and the TV's code) and a one-line **script** that shows
+the TV's answer, each with a **Copy** button. Then, in HTTP Shortcuts:
+
+1. **⋮ → Global Variables → + → Static Variable**: name it `note`, tick **Allow Receiving Value from Share Dialog**,
+   save.
+2. On the main screen, **+ → Regular Shortcut**, named `Send to TV`.
+3. **Basic Request Settings**: method **POST**, URL: paste it.
+4. **Request Headers**: `Authorization` = paste the value.
+5. **Request Body / Parameters**: body type **Custom Text**, content type `text/plain`; for the body, tap **{ }** and
+   pick `note`.
+6. **Response Handling**: On Success and On Failure show nothing (the script shows the answer instead).
+7. **Scripting**: paste the script into **Run on Success** and **Run on Failure**:
+   `var m = ''; try { m = JSON.parse(response.body).message; } catch (e) {} showToast(m || 'Could not reach the TV: is this phone on the home Wi-Fi?');`
+8. **Trigger & Execution Settings** (Android 11 and later): tick the Direct Share option, so **Send to TV** shows in the
+   share sheet. Save.
+
+To send, share the note: in **Google Keep**, **⋮ → Send → Send via other apps → Send to TV** (or HTTP Shortcuts); in
+**Samsung Notes**, **Share → Text → Send to TV**. The phone shows the TV's answer, e.g. "Sent: 12 lines, 3 new".
+After **New code** on the TV, scan the QR again and paste the new `Authorization` value into the shortcut's header.
+
 ## Sending a note
 
 - **Apple Notes:** open the note, tap **Share** (or **⋯ → Send a Copy**) and pick **Send to TV**.
@@ -232,7 +262,7 @@ the TV signed in to TMDB; signed out, the pill says so and the line stays.
 | The phone says | Do this |
 |---|---|
 | "Could not connect to the server" | The phone isn't on the home Wi-Fi, the TV is off or asleep, Phone notes is off, or the TV's address changed (check the pane, then the router reservation). Right after the launcher is updated, the TV doesn't listen until Home has been opened once: press Home on the remote. Also check the URL starts with `http://` and ends in `:8765/notes`, and that **Settings → Privacy & Security → Local Network → Shortcuts** is on. |
-| "Wrong pairing code" | Scan the QR in the TV's Phone notes pane and tap **Pair this phone**. With a simple shortcut, paste the setup page's `Authorization` value into its header again. |
+| "Wrong pairing code" | Scan the QR in the TV's Phone notes pane and tap **Pair this phone**. With a simple shortcut, or on Android, paste the setup page's `Authorization` value into its header again. |
 | "Scan the QR in the TV's Launcher settings…" | This phone hasn't paired yet, or iCloud Drive is off (the shortcut keeps its settings there): turn it on, then pair. |
 | Shortcuts says it can't find "Send to TV" | **Pair this phone** runs the shortcut by name: rename it back to exactly `Send to TV`. |
 | "Too many wrong codes" | Wait five minutes. |

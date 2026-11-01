@@ -213,8 +213,11 @@ milestones: [docs/rework.md](docs/rework.md).
   Off.
 - **Checked on the TV (2026-11-01):** a note sent from this PC and from two iPhones' Shortcuts (Apple Notes) made and
   filled the lists on the project lead's account, a ticked line went to Seen and came off the list, and `NoteLines`
-  was fitted to the text Apple Notes and Google Keep really hand the share sheet. **Not verified yet:** the picker and
-  Pair this phone on the TV and an iPhone, and the TV's
+  was fitted to the text Apple Notes and Google Keep really hand the share sheet; then the picker and the pane's scroll on
+  the TV, and Get the shortcut, Pair this phone and a send on the project lead's iPhone from a fresh start. **Android
+  (F7, 2026-11-01):** the setup page shows an Android phone the settings to copy into HTTP Shortcuts (the note as
+  plain text, the list in `?list=`, which the inbox already took), and docs/phone-notes.md has the steps. **Not
+  verified yet:** a second iPhone's pairing, an Android phone, and the TV's
   address changing (the Shortcut keeps the one it was given: docs/phone-notes.md asks for a router reservation, and the
   pane reads the address afresh each time it opens). Checked on the emulator: the pane, the inbox opening and closing
   with the switch, New code, a wrong code refused, the signed-out answer, a note waiting across a restart, and the
