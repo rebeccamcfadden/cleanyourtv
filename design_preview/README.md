@@ -579,11 +579,11 @@ picks another theme.
   choice, its name and a line on the left and a small segmented control on the right: **Motion** (Full / Reduced /
   Off; Reduced drops slides, rises and focus scale-ups and keeps the fades, Home's scroll jumps and its dimming fades;
   Off stops every animation), **Card shadows** (On / Focused card only / Off), **Focus glow** (On / Off), **Backdrop
-  picture** (Photo / Plain colour: the theme's sky without the picture) and **Animated details** (On / Off; the old
-  Moving details, saved only: nothing moves yet, on the TV either). A low-RAM TV starts at the light
+  picture** (Photo / Plain colour: the theme's sky without the picture) and **Animated details** (On / Off, off to start; the old
+  Moving details: snow and rain over Seasonal pictures while Home is idle, F25). A low-RAM TV starts at the light
   end (no card shadows, Motion Reduced, no animated details; glow and picture on) until the household chooses, and the
   pane says so; config.xml or config.json `light_defaults` can set or stop that per TV. The prototype starts with
-  everything on; it applies Motion and the backdrop, and saves the card shadows and glow, which it doesn't draw.
+  everything on but animated details; it applies Motion and the backdrop, and saves the card shadows and glow, which it doesn't draw.
 - **Open on start:** Home / Last app / Live TV, only saved.
 - **Default Home:** "This launcher is Home", "The remote’s Home button opens it", and **Choose Home app** (Android's
   Home app setting).
