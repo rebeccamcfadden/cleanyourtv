@@ -7,7 +7,6 @@ import android.os.SystemClock;
 import android.view.View;
 
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.util.Random;
 
 /**
@@ -30,13 +29,14 @@ final class WeatherLayer extends View {
     private final Runnable frame = this::frame;
 
     private boolean homeVisible;
+    private boolean onTop = true;
     /** The conditions now at the Weather place, or null to go by the season (offline, or no forecast for now). */
     private Weather.Condition condition;
     private boolean running;
     private boolean pixel;
     private WeatherFall.Fall fall = WeatherFall.Fall.NONE;
     private long last;
-    private int tint;
+    private int tint = tint(DayPhase.DAY);
     private float[] x, y, vx, vy, size, alpha, sway;
 
     WeatherLayer(Context ctx) {
@@ -51,9 +51,24 @@ final class WeatherLayer extends View {
         rearm();
     }
 
-    /** The weather Home shows changed; null when it has none to go by. */
+    /** The weather Home shows changed; null when it has none to go by. A change in what falls starts or stops it. */
     void setCondition(Weather.Condition c) {
+        SeasonCalendar.Period period = SeasonCalendar.at(LocalDate.now());
+        boolean differs = WeatherFall.changes(condition, c, period);
         condition = c;
+        if (differs) rearm();
+    }
+
+    /** Whether Home is the top screen, with no dropdown, popup, dialog or page over it (Shell's onShown). */
+    void setOnTop(boolean on) {
+        if (on == onTop) return;
+        onTop = on;
+        rearm();
+    }
+
+    /** The part of the day the backdrop shows (Backdrops): the particles take its tint, even mid-fall. */
+    void setPhase(DayPhase phase) {
+        tint = tint(phase);
     }
 
     /** A key: stop at once, and start again after {@link #IDLE_MS} with no key. */
@@ -70,7 +85,7 @@ final class WeatherLayer extends View {
     private void rearm() {
         stop();
         removeCallbacks(start);
-        if (homeVisible && hasWindowFocus()) postDelayed(start, IDLE_MS);
+        if (homeVisible && onTop && hasWindowFocus()) postDelayed(start, IDLE_MS);
     }
 
     /** A translucent panel over Home (Quick settings, the TV's settings, the input picker) takes the keys: stop under it. */
@@ -86,14 +101,13 @@ final class WeatherLayer extends View {
     }
 
     private void start() {
-        if (running || !homeVisible || !isAttachedToWindow() || !hasWindowFocus() || !allowed()) return;
+        if (running || !homeVisible || !onTop || !isAttachedToWindow() || !hasWindowFocus() || !allowed()) return;
         WeatherFall.Fall f = WeatherFall.of(condition, SeasonCalendar.at(LocalDate.now()));
         if (f == WeatherFall.Fall.NONE) return;
         boolean px = Ui.theme().backdrop.startsWith("pixel:");
         if (x == null || f != fall || px != pixel) seed(f, px);
         fall = f;
         pixel = px;
-        tint = tint(ThemeStore.phase(getContext(), ZonedDateTime.now()));
         running = true;
         last = SystemClock.uptimeMillis();
         postOnAnimation(frame);

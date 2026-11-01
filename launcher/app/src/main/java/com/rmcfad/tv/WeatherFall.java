@@ -44,6 +44,11 @@ final class WeatherFall {
         }
     }
 
+    /** Whether a new reading changes what falls, so a running fall stops or a still Home starts one; the same is no change. */
+    static boolean changes(Weather.Condition before, Weather.Condition after, SeasonCalendar.Period period) {
+        return of(before, period) != of(after, period);
+    }
+
     /** The periods whose pictures can carry snow. */
     static boolean cold(SeasonCalendar.Period period) {
         switch (period) {

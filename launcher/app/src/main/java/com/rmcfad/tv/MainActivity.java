@@ -213,6 +213,7 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         backdrops = new Backdrops(this, backdrop);
         Overlays.add(root, this, theme);
         weather = new WeatherLayer(this);
+        backdrops.setOnPhase(weather::setPhase);
         root.addView(weather, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         stage = new FrameLayout(this);
@@ -227,7 +228,10 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         loadBackdrop();
 
         shell = new Shell(stage, this);
-        shell.setOnShown(() -> pill.atTop(shell.pillAtTop()));
+        shell.setOnShown(() -> {
+            pill.atTop(shell.pillAtTop());
+            weather.setOnTop(shell.top() instanceof HomePage);
+        });
         // F3: holding OK on a title card, wherever one shows, opens the title menu.
         shell.setLongOk(v -> TitleMenu.open(this, v));
         refreshNav();
