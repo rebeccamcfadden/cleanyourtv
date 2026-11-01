@@ -163,6 +163,8 @@ final class LibraryPage extends Screen {
         intro.addView(heading, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         pick = Kit.button(ctx, ctx.getString(R.string.library_pick), R.drawable.ic_ui_shuffle, Kit.PRIMARY, false,
                 null, KEY_PICK, false, v -> router.openPick(kind));
+        // F14: Pick for me switched off in Features: no button (the chips lead on to the nav instead).
+        pick.setVisibility(Features.isOn(Features.Feature.PICK) ? View.VISIBLE : View.GONE);
         intro.addView(pick, wrap());
         col.addView(intro, below(30));
 
@@ -285,7 +287,8 @@ final class LibraryPage extends Screen {
             if (wifi != null) return wifi;
         }
         List<View> items = Focus.all(grid);
-        return items.isEmpty() ? pick : items.get(0);
+        if (!items.isEmpty()) return items.get(0);
+        return pick.getVisibility() == View.VISIBLE ? pick : Focus.byKey(view, KEY_FILTERS);
     }
 
     /**
@@ -312,7 +315,7 @@ final class LibraryPage extends Screen {
         }
         // The list chips lead to Pick for me: Up from any chip, and Right from the last one (project lead,
         // 2026-10-29), so it is reached before the nav and instead of the grid.
-        if (Focus.isInside(chips, focused) && (dir == SpatialNav.Dir.UP
+        if (pick.getVisibility() == View.VISIBLE && Focus.isInside(chips, focused) && (dir == SpatialNav.Dir.UP
                 || (dir == SpatialNav.Dir.RIGHT && isLastChip(focused)))) {
             shell.focus(pick);
             box.playSoundEffect(sound(dir));

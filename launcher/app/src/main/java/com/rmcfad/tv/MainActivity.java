@@ -309,6 +309,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     /** M7: Pick for me's setup page, pushed over whichever page is showing, so Back returns to it. */
     @Override
     public void openPick(Kind kind) {
+        // F14: Pick for me switched off has no button; nothing else opens it either.
+        if (!Features.isOn(Features.Feature.PICK)) return;
         shell.push(PickSetupPage.create(this, kind));
     }
 
