@@ -46,6 +46,9 @@ LG webOS are different systems: [supported TVs](docs/supported-tvs.md).
 
 ```sh
 cd design_preview && npm install && npm run dev    # the web prototype, the spec for flows and behaviour
+```
+
+```sh
 cd launcher && ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
 ```
 
