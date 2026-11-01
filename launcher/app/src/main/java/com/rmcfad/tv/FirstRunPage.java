@@ -109,10 +109,15 @@ final class FirstRunPage extends Screen {
         if (!p.getBoolean(KEY_SHOWN, false)) p.edit().putBoolean(KEY_SHOWN, true).apply();
     }
 
-    /** First run's own sections, Launcher settings' panes for its steps: made afresh for each split. */
+    /**
+     * First run's own sections, Launcher settings' panes for its steps: made afresh for each split. A step whose feature
+     * is switched off in Features is left out (F14, Sign in to TMDB and Weather city): the checklist is for setting up
+     * what this TV runs, and Launcher settings still shows the feature as off.
+     */
     private static List<SettingsSection> stepSections(MainActivity activity) {
         List<SettingsSection> out = new ArrayList<>();
         for (SettingsSection s : SettingsSections.all(activity)) {
+            if (s instanceof FeatureOffSection && ((FeatureOffSection) s).off(activity)) continue;
             if (FirstRunRules.STEPS.contains(s.id())) out.add(s);
         }
         return out;
