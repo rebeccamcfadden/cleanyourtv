@@ -151,23 +151,29 @@ public class BackdropKeysTest {
     @Test
     public void prefetchesTheRestOfAListAndTheNextPeriod() {
         List<String> seasonal = BackdropKeys.prefetch(BackdropKeys.parse("url:seasonal/vector-2/autumn.webp"),
-                LocalDate.of(2026, 10, 1), DayPhase.DAY, DayPhase.DAY);
+                LocalDate.of(2026, 10, 1), DayPhase.DAY, DayPhase.DAY, DayPhase.DAY);
         assertEquals(Arrays.asList("seasonal/vector-2/autumn.webp", "seasonal/vector-2/halloween.webp"), seasonal);
 
         // A phased picture: now, the next part of the day, and the next period at night, when it starts.
         List<String> phased = BackdropKeys.prefetch(BackdropKeys.parse("url:seasonal/vector-3/autumn-{phase}.webp"),
-                LocalDate.of(2026, 10, 1), DayPhase.DAY, DayPhase.SUNSET);
+                LocalDate.of(2026, 10, 1), DayPhase.DAY, DayPhase.SUNSET, DayPhase.NIGHT);
         assertEquals(Arrays.asList("seasonal/vector-3/autumn-day.webp", "seasonal/vector-3/autumn-sunset.webp",
                 "seasonal/vector-3/halloween-night.webp"), phased);
+        // Always day: the next period starts on its day picture.
+        assertEquals(Arrays.asList("seasonal/vector-3/autumn-day.webp", "seasonal/vector-3/halloween-day.webp"),
+                BackdropKeys.prefetch(BackdropKeys.parse("url:seasonal/vector-3/autumn-{phase}.webp"),
+                        LocalDate.of(2026, 10, 1), DayPhase.DAY, DayPhase.DAY, DayPhase.DAY));
+        assertEquals(LocalDate.of(2026, 10, 15), BackdropKeys.nextPeriodStart(LocalDate.of(2026, 10, 1)));
 
         List<String> landscapes = BackdropKeys.prefetch(BackdropKeys.parse(
                 "url:classic/landscapes-1.webp,classic/landscapes-2.webp,classic/landscapes-3.webp,"
-                        + "classic/landscapes-4.webp"), LocalDate.of(2026, 10, 1), DayPhase.DAY, DayPhase.DAY);
+                        + "classic/landscapes-4.webp"), LocalDate.of(2026, 10, 1), DayPhase.DAY, DayPhase.DAY,
+                DayPhase.DAY);
         assertEquals(Arrays.asList("classic/landscapes-1.webp", "classic/landscapes-2.webp",
                 "classic/landscapes-3.webp", "classic/landscapes-4.webp"), landscapes);
 
         assertTrue(BackdropKeys.prefetch(BackdropKeys.parse("pixel:snow"), LocalDate.of(2026, 1, 1), DayPhase.DAY,
-                DayPhase.DAY).isEmpty());
+                DayPhase.DAY, DayPhase.DAY).isEmpty());
     }
 
     @Test

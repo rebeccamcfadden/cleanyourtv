@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -27,37 +29,68 @@ enum DayPhase {
         return name().toLowerCase(Locale.ROOT);
     }
 
-    /** The phase that comes next on an ordinary day: dawn, day, sunset, night, dawn. */
-    DayPhase following() {
-        return values()[(ordinal() + 1) % values().length];
-    }
-
-    /** The phase at a moment, at a place (NaN for none: the fixed times). */
+    /**
+     * The phase at a moment, at a place (NaN for none: the fixed times): the one started by the last edge before it. A
+     * sunset that runs past midnight, or a dawn that starts before it, belongs to its own date, so yesterday's and
+     * tomorrow's edges count too.
+     */
     static DayPhase at(ZonedDateTime now, double latitude, double longitude) {
         Instant t = now.toInstant();
-        Day d = day(now.toLocalDate(), now.getZone(), latitude, longitude);
-        if (d.always != null) return d.always;
-        if (t.isBefore(d.edges[0])) return NIGHT;
-        if (t.isBefore(d.edges[1])) return DAWN;
-        if (t.isBefore(d.edges[2])) return DAY;
-        if (t.isBefore(d.edges[3])) return SUNSET;
-        return NIGHT;
+        DayPhase phase = NIGHT;
+        for (Edge e : edges(now.toLocalDate().minusDays(1), 3, now.getZone(), latitude, longitude)) {
+            if (e.at.isAfter(t)) break;
+            phase = e.starts;
+        }
+        return phase;
     }
 
-    /** When the phase next changes after a moment; at a polar day's or night's midnight, the day's end. */
+    /** When the phase next changes after a moment (a polar day or night changes at midnight). */
     static ZonedDateTime nextChange(ZonedDateTime now, double latitude, double longitude) {
         Instant t = now.toInstant();
         ZoneId zone = now.getZone();
-        for (int i = 0; i < 3; i++) {
-            LocalDate date = now.toLocalDate().plusDays(i);
-            Day d = day(date, zone, latitude, longitude);
-            if (d.always == null) {
-                for (Instant e : d.edges) if (e.isAfter(t)) return e.atZone(zone);
-            } else {
-                return date.plusDays(1).atStartOfDay(zone);
-            }
+        for (Edge e : edges(now.toLocalDate().minusDays(1), 4, zone, latitude, longitude)) {
+            if (e.at.isAfter(t)) return e.at.atZone(zone);
         }
         return now.toLocalDate().plusDays(1).atStartOfDay(zone);
+    }
+
+    /** A moment the phase changes to another. */
+    static final class Edge {
+        final Instant at;
+        final DayPhase starts;
+
+        Edge(Instant at, DayPhase starts) {
+            this.at = at;
+            this.starts = starts;
+        }
+    }
+
+    /**
+     * The edges of a run of dates, in time order. A polar date is one edge at its midnight, and no other date's edge
+     * falls inside it: a sunset spilling past midnight into a polar day is dropped, the sun no longer sets.
+     */
+    static List<Edge> edges(LocalDate from, int days, ZoneId zone, double latitude, double longitude) {
+        List<Edge> out = new ArrayList<>();
+        List<Instant[]> polar = new ArrayList<>();
+        for (int i = 0; i < days; i++) {
+            LocalDate date = from.plusDays(i);
+            Day d = day(date, zone, latitude, longitude);
+            if (d.always != null) {
+                Instant start = date.atStartOfDay(zone).toInstant();
+                polar.add(new Instant[] {start, date.plusDays(1).atStartOfDay(zone).toInstant()});
+                out.add(new Edge(start, d.always));
+            } else {
+                for (int k = 0; k < 4; k++) out.add(new Edge(d.edges[k], values()[k]));
+            }
+        }
+        out.removeIf(e -> {
+            for (Instant[] span : polar) {
+                if (e.at.isAfter(span[0]) && e.at.isBefore(span[1])) return true;
+            }
+            return false;
+        });
+        out.sort((a, b) -> a.at.compareTo(b.at));
+        return out;
     }
 
     /** The four edges of a date (dawn starts, day starts, sunset starts, night starts), or a phase all day long. */

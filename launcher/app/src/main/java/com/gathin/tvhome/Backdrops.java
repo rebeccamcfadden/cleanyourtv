@@ -282,8 +282,15 @@ final class Backdrops {
     }
 
     private void prefetch() {
-        DayPhase next = key.phased && ThemeStore.followSun(activity) ? phase.following() : phase;
-        for (String path : BackdropKeys.prefetch(key, LocalDate.now(), phase, next)) {
+        DayPhase next = phase, startsIn = DayPhase.DAY;
+        if (key.phased) {
+            ZonedDateTime now = ZonedDateTime.now();
+            ZonedDateTime change = ThemeStore.nextPhaseChange(activity, now);
+            if (change != null) next = ThemeStore.phase(activity, change);
+            startsIn = ThemeStore.phase(activity,
+                    BackdropKeys.nextPeriodStart(LocalDate.now()).atStartOfDay(now.getZone()));
+        }
+        for (String path : BackdropKeys.prefetch(key, LocalDate.now(), phase, next, startsIn)) {
             if (path.equals(wanted) || file(path).isFile() || !QUEUED.add(path)) continue;
             File f = file(path);
             PREFETCH.execute(() -> {

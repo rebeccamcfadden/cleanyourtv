@@ -125,12 +125,16 @@ final class BackdropKeys {
 
     /** The period after the one a day is in: the first different one in the days that follow. */
     static SeasonCalendar.Period next(LocalDate day) {
+        return SeasonCalendar.at(nextPeriodStart(day));
+    }
+
+    /** The first day of the next period. */
+    static LocalDate nextPeriodStart(LocalDate day) {
         SeasonCalendar.Period now = SeasonCalendar.at(day);
         for (int i = 1; i <= 366; i++) {
-            SeasonCalendar.Period p = SeasonCalendar.at(day.plusDays(i));
-            if (p != now) return p;
+            if (SeasonCalendar.at(day.plusDays(i)) != now) return day.plusDays(i);
         }
-        return now;
+        return day.plusDays(1);
     }
 
     /**
@@ -152,10 +156,10 @@ final class BackdropKeys {
 
     /**
      * Pictures worth fetching in the background besides the one on screen: the rest of an hourly list, the next part
-     * of the day's picture of a phased theme, and the next period's picture of a Seasonal theme (at night, when a new
-     * period starts), so the changes need no download.
+     * of the day's picture of a phased theme, and the next period's picture of a Seasonal theme in the part of the day
+     * that period starts in (its first midnight), so the changes need no download.
      */
-    static List<String> prefetch(Key key, LocalDate day, DayPhase now, DayPhase next) {
+    static List<String> prefetch(Key key, LocalDate day, DayPhase now, DayPhase next, DayPhase nextPeriodStarts) {
         List<String> out = new ArrayList<>();
         if (key.kind != Kind.URL) return out;
         SeasonCalendar.Period period = SeasonCalendar.at(day);
@@ -164,7 +168,7 @@ final class BackdropKeys {
             add(out, phased(path, now));
             add(out, phased(path, next));
             String upcoming = forPeriod(path, period, nextPeriod);
-            if (upcoming != null) add(out, phased(upcoming, DayPhase.NIGHT));
+            if (upcoming != null) add(out, phased(upcoming, nextPeriodStarts));
         }
         return out;
     }

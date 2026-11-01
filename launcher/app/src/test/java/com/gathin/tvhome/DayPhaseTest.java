@@ -92,6 +92,37 @@ public class DayPhaseTest {
     }
 
     @Test
+    public void aSunsetPastMidnightKeepsGoing() {
+        // Reykjavík in midsummer: the sun sets just after midnight, so sunset runs on into the next date.
+        ZoneId iceland = ZoneId.of("Atlantic/Reykjavik");
+        double lat = 64.15, lon = -21.94;
+        ZonedDateTime late = at(2026, 6, 23, 0, 20, iceland);
+        assertEquals(DayPhase.SUNSET, DayPhase.at(late, lat, lon));
+        ZonedDateTime next = DayPhase.nextChange(late, lat, lon);
+        assertTrue(next.isAfter(late) && next.isBefore(at(2026, 6, 23, 1, 30, iceland)));
+        assertEquals(DayPhase.NIGHT, DayPhase.at(next, lat, lon));
+        // Every moment's phase holds until nextChange says otherwise.
+        ZonedDateTime t = at(2026, 6, 20, 0, 0, iceland);
+        while (t.isBefore(at(2026, 6, 26, 0, 0, iceland))) {
+            DayPhase p = DayPhase.at(t, lat, lon);
+            ZonedDateTime n = DayPhase.nextChange(t, lat, lon);
+            assertTrue(n.isAfter(t));
+            assertEquals(t.toString(), p, DayPhase.at(n.minusSeconds(1), lat, lon));
+            t = t.plusMinutes(7);
+        }
+    }
+
+    @Test
+    public void aPolarDayStartsAtItsMidnight() {
+        // Pevek: the sun stops setting on 19 May.
+        ZoneId magadan = ZoneId.of("Asia/Magadan");
+        double lat = 69.7, lon = 170.3;
+        assertEquals(DayPhase.DAY, DayPhase.at(at(2026, 5, 19, 0, 30, magadan), lat, lon));
+        ZonedDateTime evening = at(2026, 5, 18, 23, 30, magadan);
+        assertTrue(!DayPhase.nextChange(evening, lat, lon).isAfter(at(2026, 5, 19, 0, 0, magadan)));
+    }
+
+    @Test
     public void shortDayHandsDawnStraightToSunset() {
         // Just south of the polar circle in midwinter: about an hour of sun.
         ZoneId oslo = ZoneId.of("Europe/Oslo");
