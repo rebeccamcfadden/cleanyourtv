@@ -254,7 +254,7 @@ export function libraryScreen(kind: Kind): Screen {
     app.refocus();
   });
 
-  return {
+  const screen: Screen = {
     label: heading,
     el,
     defaultFocus: () =>
@@ -262,11 +262,16 @@ export function libraryScreen(kind: Kind): Screen {
         ? chipsEl.querySelector<HTMLElement>('.chip.is-selected')
         : (grid.querySelector<HTMLElement>('[data-default]') ?? grid.querySelector<HTMLElement>('[data-focus]') ?? pickBtn),
     onShow: () => {
-      // F2: back on the page after more than an hour away, what was set on it starts again.
+      // F2: back on the page after more than an hour away, what was set on it starts again, from the top, with focus
+      // on the page's default rather than a card that may now be out of view.
       if (leftAt !== null && Date.now() - leftAt > AWAY_MS) {
         for (const d of defs) filters[d.id] = 0;
         list = 'all';
         sort = 'az';
+        screen.memory?.clear();
+        screen.lastFocus = null;
+        screen.lastFocusKey = undefined;
+        page.scrollTop = 0;
       }
       leftAt = null;
       render();
@@ -298,4 +303,10 @@ export function libraryScreen(kind: Kind): Screen {
       return false;
     },
   };
+  // F2: a full-screen page pushed over this one (Pick for me, a person from the title preview) leaves it too, though
+  // onLeave is only for tabs. The stage drops a covered page, as the TV detaches it, and its window reads as hidden.
+  app.onChange(() => {
+    if (!el.isConnected) leftAt ??= Date.now();
+  });
+  return screen;
 }

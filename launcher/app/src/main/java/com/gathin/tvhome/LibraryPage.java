@@ -250,10 +250,12 @@ final class LibraryPage extends Screen {
     /**
      * Cleared while on screen (standby, or back from an app after the hour): render, and put focus on the page's
      * default, since the focused card may now be scrolled out of view and refocus() keeps a view that is still there.
+     * Focus on the nav stays where it is; a popup or dialog over the page is never on top here.
      */
     private void startedAgain() {
         render();
-        shell.focus(shell.restoreTarget(this));
+        View f = shell.focused();
+        if (f == null || Focus.isInside(box, f)) shell.focus(shell.restoreTarget(this));
     }
 
     @Override
