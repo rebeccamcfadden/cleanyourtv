@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
 import android.util.LruCache;
+import android.view.View;
 import android.widget.ImageView;
 
 import java.util.ArrayList;
@@ -83,6 +84,39 @@ final class Art {
     }
 
     /**
+     * {@link #into} for an ImageView over a fill of the placeholder's colour (a card's RingFrame content, already the
+     * view's parent): transparent until the image is ready, so that fill shows, and while the image shows the fill is
+     * taken off. Either way the area is painted once per frame, not twice.
+     */
+    static void intoFilled(ImageView v, String art, int widthPx, int heightPx) {
+        if (v.getTag(R.id.art_fill) == null && v.getParent() instanceof View) {
+            Drawable fill = ((View) v.getParent()).getBackground();
+            if (fill != null) v.setTag(R.id.art_fill, fill);
+        }
+        bind(v, TmdbApi.backdrop(art, widthPx), widthPx, heightPx, true);
+    }
+
+    /** Shows a loaded image; an intoFilled view's fill comes off under it, unless the image has transparent parts. */
+    private static void showImage(ImageView v, Bitmap b) {
+        v.setImageBitmap(b);
+        fill(v, b.hasAlpha());
+    }
+
+    /** Shows the placeholder (or nothing); an intoFilled view's fill goes back on. */
+    private static void showEmpty(ImageView v, Drawable empty) {
+        v.setImageDrawable(empty);
+        fill(v, true);
+    }
+
+    private static void fill(ImageView v, boolean on) {
+        Object fill = v.getTag(R.id.art_fill);
+        if (!(fill instanceof Drawable) || !(v.getParent() instanceof View)) return;
+        View parent = (View) v.getParent();
+        Drawable want = on ? (Drawable) fill : null;
+        if (parent.getBackground() != want) parent.setBackground(want);
+    }
+
+    /**
      * A person's portrait (a TMDB profile path), the same way, but transparent until it is ready (or for good), so
      * the initials under it show meanwhile.
      */
@@ -100,15 +134,15 @@ final class Art {
         v.setTag(R.id.art_key, key);
         Drawable empty = clear ? null : placeholder();
         if (key == null) {
-            v.setImageDrawable(empty);
+            showEmpty(v, empty);
             return;
         }
         Bitmap cached = CACHE.get(key);
         if (cached != null) {
-            v.setImageBitmap(cached);
+            showImage(v, cached);
             return;
         }
-        v.setImageDrawable(empty);
+        showEmpty(v, empty);
         List<ImageView> waiting = PENDING.get(key);
         WANTED.add(key);
         if (waiting != null) {
@@ -145,7 +179,7 @@ final class Art {
         Object shown = v.getTag(R.id.art_key);
         if (shown instanceof String) forget((String) shown, v);
         v.setTag(R.id.art_key, null);
-        v.setImageDrawable(placeholder());
+        showEmpty(v, placeholder());
     }
 
     /** Memory pressure: drop the cache. Views on screen keep their bitmaps; the rest load again when shown. */
@@ -186,7 +220,7 @@ final class Art {
         if (waiting == null) return;
         for (ImageView v : waiting) {
             // The view may have been handed another title while this loaded: only the one it still wants lands.
-            if (key.equals(v.getTag(R.id.art_key))) v.setImageBitmap(b);
+            if (key.equals(v.getTag(R.id.art_key))) showImage(v, b);
         }
     }
 

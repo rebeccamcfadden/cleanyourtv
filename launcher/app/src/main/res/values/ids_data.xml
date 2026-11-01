@@ -3,6 +3,8 @@
 <resources>
     <!-- The artwork an ImageView is waiting for, so a late decode never lands in a view that moved on. -->
     <item name="art_key" type="id" />
+    <!-- An Art.intoFilled view's parent fill, taken off while the image shows. -->
+    <item name="art_fill" type="id" />
     <!-- A Kit button's or chip's parts and state, for setOn, setSelected and setLabel. -->
     <item name="kit_label" type="id" />
     <item name="kit_icon" type="id" />

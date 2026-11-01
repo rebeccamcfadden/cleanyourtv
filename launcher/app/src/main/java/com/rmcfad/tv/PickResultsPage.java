@@ -210,7 +210,7 @@ final class PickResultsPage extends Screen {
         ImageView img = new ImageView(ctx);
         art.content().addView(img, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        Art.into(img, t.art, Ui.px(TILE_W), Ui.px(ART_H));
+        Art.intoFilled(img, t.art, Ui.px(TILE_W), Ui.px(ART_H));
         tile.addView(art, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.px(ART_H)));
 
         Offer o = data.bestOffer(t);
