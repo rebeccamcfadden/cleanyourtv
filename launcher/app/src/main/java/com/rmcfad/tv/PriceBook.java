@@ -55,6 +55,8 @@ final class PriceBook {
     /** When each title's prices were fetched, as opposed to looked up again from the disk (main thread). */
     private final Map<String, Long> savedAt = new HashMap<>();
     private final ChangeFeed.Marks marks;
+    /** The country prices are asked for: part of every price URL, so each region's answers are cached apart. */
+    private final Region region;
     /** Titles queued or being looked up (main thread). */
     private final Set<String> inFlight = new HashSet<>();
     private final Map<String, List<Runnable>> waiting = new HashMap<>();
@@ -65,9 +67,10 @@ final class PriceBook {
      * {@code onStale} runs on the main thread when the change feed marked titles stale, so the household's are asked
      * again.
      */
-    PriceBook(Context ctx, String watchmodeKey, String motnKey, Listener listener, Runnable onStale) {
+    PriceBook(Context ctx, String watchmodeKey, String motnKey, Region region, Listener listener, Runnable onStale) {
         this.listener = listener;
         this.onStale = onStale;
+        this.region = region;
         Context app = ctx.getApplicationContext();
         DiskCache disk = new DiskCache(new File(app.getCacheDir(), "prices"), DISK_MAX, System::currentTimeMillis);
         prefs = app.getSharedPreferences("prices", Context.MODE_PRIVATE);
@@ -90,11 +93,11 @@ final class PriceBook {
         CachedHttp watchmodeHttp = http(WatchmodePrices.ID, disk, PriceCachePolicy.PRICE_TTL, ledgers, zone);
         motnHttp = http(StreamingAvailabilityPrices.ID, disk, PriceCachePolicy.PRICE_TTL, ledgers, zone);
         https = new CachedHttp[]{wikidataHttp, itunesHttp, watchmodeHttp, motnHttp};
-        StreamingAvailabilityPrices motn = new StreamingAvailabilityPrices(motnKey);
+        StreamingAvailabilityPrices motn = new StreamingAvailabilityPrices(motnKey, region);
         motnHeaders = motn.headers();
         feedOn = motn.configured();
-        lookup = new PriceLookup(wikidataHttp, new WatchmodePrices(watchmodeKey), watchmodeHttp, motn, motnHttp,
-                new ItunesPrices(), itunesHttp);
+        lookup = new PriceLookup(wikidataHttp, new WatchmodePrices(watchmodeKey, region), watchmodeHttp, motn, motnHttp,
+                new ItunesPrices(region), itunesHttp);
     }
 
     private static CachedHttp http(String id, DiskCache disk, long ttl, CachedHttp.LedgerStore ledgers, ZoneId zone) {
@@ -245,7 +248,8 @@ final class PriceBook {
             String cursor = null;
             try {
                 for (int page = 0; page < ChangeFeed.MAX_PAGES; page++) {
-                    ChangeFeed.Page p = ChangeFeed.parse(motnHttp.get(ChangeFeed.url(last, now, cursor), motnHeaders));
+                    ChangeFeed.Page p = ChangeFeed.parse(motnHttp.get(ChangeFeed.url(last, now, cursor, region),
+                            motnHeaders));
                     changed.addAll(p.ids);
                     read = true;
                     cursor = p.nextCursor;

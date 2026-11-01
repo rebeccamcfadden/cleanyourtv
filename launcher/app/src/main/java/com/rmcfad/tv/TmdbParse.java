@@ -61,8 +61,8 @@ final class TmdbParse {
         return new ArrayList<>(out.values());
     }
 
-    /** A details answer (/movie/{id} or /tv/{id} with credits, ratings and videos appended). */
-    static Title details(JSONObject o, Kind kind) {
+    /** A details answer (/movie/{id} or /tv/{id}, credits, ratings and videos appended), with the region's offers. */
+    static Title details(JSONObject o, Kind kind, Region region) {
         Title.Draft d = new Title.Draft(TmdbApi.id(kind, o.optInt("id")), kind, name(o, kind));
         d.year = year(o.optString(kind == Kind.MOVIE ? "release_date" : "first_air_date", ""));
         List<Integer> genreIds = new ArrayList<>();
@@ -94,16 +94,16 @@ final class TmdbParse {
         }
         crew.addAll(crew(credits, kind));
         d.crew = dedupe(crew, CREW_MAX);
-        d.offers = OfferMerge.merge(availability(o), Collections.emptyList(), WatchProviders.SE).toOffers();
+        d.offers = OfferMerge.merge(availability(o, region), Collections.emptyList(), WatchProviders.TABLE).toOffers();
         d.detailed = true;
         return d.build();
     }
 
-    /** Where a details page (with watch/providers appended) says the title can be watched in Sweden. */
-    static ProviderAvailability availability(JSONObject details) {
+    /** Where a details page (with watch/providers appended, every country) says the title can be watched there. */
+    static ProviderAvailability availability(JSONObject details, Region region) {
         JSONObject providers = details.optJSONObject("watch/providers");
-        return providers == null ? ProviderAvailability.empty(WatchProviders.REGION)
-                : ProviderAvailability.parse(providers, WatchProviders.REGION);
+        return providers == null ? ProviderAvailability.empty(region.code)
+                : ProviderAvailability.parse(providers, region.code);
     }
 
     /** More like this: the recommendations, or the similar titles when there are none. */

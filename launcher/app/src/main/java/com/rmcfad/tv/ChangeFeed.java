@@ -39,10 +39,10 @@ final class ChangeFeed {
     }
 
     /** The changes since the last read (a week back at most), then the page after {@code cursor} (null for the first). */
-    static String url(long lastReadAt, long now, String cursor) {
+    static String url(long lastReadAt, long now, String cursor, Region region) {
         long from = Math.max(lastReadAt, now - LOOK_BACK) / 1000;
         StringBuilder b = new StringBuilder(BASE)
-                .append("?country=").append(WatchProviders.REGION.toLowerCase(java.util.Locale.ROOT))
+                .append("?country=").append(region.country)
                 .append("&change_type=updated&item_type=show&catalogs=").append(encode(CATALOGS))
                 .append("&from=").append(from);
         if (cursor != null) b.append("&cursor=").append(encode(cursor));

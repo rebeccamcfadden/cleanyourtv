@@ -72,10 +72,12 @@ final class TmdbCatalog implements Catalog {
     private final Map<String, Found> searches = lru(24);
     private final Map<String, List<Title>> genres = lru(8);
 
-    /** V2 Phase 2: each detailed title's availability in Sweden, its prices and links, and their sources. */
+    /** V2 Phase 2: each detailed title's availability in the region, its prices and links, and their sources. */
     private final Map<String, ProviderAvailability> availability = new HashMap<>();
     private final Map<String, Set<String>> priceSources = new HashMap<>();
     private final PriceBook book;
+    /** The country whose availability, stores and prices show (Family install step 2; read from the TV once wired). */
+    private final Region region = Region.DEFAULT;
     /** The titles on My list and the shown TMDB lists, kept priced in the background. */
     private final Set<String> listed = new HashSet<>();
     private boolean visible = true;
@@ -84,7 +86,7 @@ final class TmdbCatalog implements Catalog {
     /** Off until a TMDB account is signed in: see {@link Catalog#setListPricing}. */
     private boolean listPricing;
     /** The stores whose rent and buy offers show (Launcher settings, Stores for rent and buy). */
-    private Set<ServiceId> priceStores = EnumSet.copyOf(ServicePicks.STORES);
+    private Set<ServiceId> priceStores = EnumSet.copyOf(ServicePicks.stores(region));
     /** While Home shows, the household's titles are checked for prices due every few hours (memory only). */
     private final Runnable keepFresh = new Runnable() {
         @Override
@@ -97,7 +99,8 @@ final class TmdbCatalog implements Catalog {
     TmdbCatalog(Context ctx, String token) {
         client = new TmdbClient(token, ctx.getApplicationContext().getCacheDir());
         overlay = new MockOverlay(new MockCatalog());
-        book = new PriceBook(ctx, PriceKeys.watchmode(), PriceKeys.movieOfTheNight(), this::repriced, this::refreshKept);
+        book = new PriceBook(ctx, PriceKeys.watchmode(), PriceKeys.movieOfTheNight(), region, this::repriced,
+                this::refreshKept);
         pool = new ThreadPoolExecutor(THREADS, THREADS, 10, TimeUnit.SECONDS, new PriorityBlockingQueue<>(), r -> {
             Thread t = new Thread(() -> {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
@@ -237,8 +240,8 @@ final class TmdbCatalog implements Catalog {
             try {
                 String path = TmdbApi.details(id);
                 JSONObject o = client.get(path);
-                t = TmdbParse.details(o, kind);
-                a = TmdbParse.availability(o);
+                t = TmdbParse.details(o, kind, region);
+                a = TmdbParse.availability(o, region);
                 at = client.savedAt(path);
             } catch (IOException | RuntimeException e) {
                 // Offline with nothing cached, or an odd answer: the stub stays, and the screen keeps what it shows.
@@ -398,10 +401,10 @@ final class TmdbCatalog implements Catalog {
         ProviderAvailability a = availability.get(t.id);
         if (a == null) return t;
         PriceLookup.Entry e = book.get(t.id);
-        OfferMerge.Result r = OfferMerge.merge(a, e == null ? Collections.emptyList() : e.prices, WatchProviders.SE);
+        OfferMerge.Result r = OfferMerge.merge(a, e == null ? Collections.emptyList() : e.prices, WatchProviders.TABLE);
         priceSources.put(t.id, r.priceSources);
         Title.Draft d = new Title.Draft(t);
-        d.offers = ServicePicks.keep(r.toOffers(), priceStores);
+        d.offers = ServicePicks.keep(region, r.toOffers(), priceStores);
         return d.build();
     }
 
@@ -493,8 +496,8 @@ final class TmdbCatalog implements Catalog {
             boolean any = false;
             try {
                 if (movie != 0) {
-                    movies = TmdbParse.summaries(client.get(TmdbApi.discover(Kind.MOVIE, movie)).optJSONArray("results"),
-                            Kind.MOVIE);
+                    movies = TmdbParse.summaries(client.get(TmdbApi.discover(Kind.MOVIE, movie, region))
+                            .optJSONArray("results"), Kind.MOVIE);
                     any = true;
                 }
             } catch (IOException | RuntimeException ignored) {
@@ -502,8 +505,8 @@ final class TmdbCatalog implements Catalog {
             }
             try {
                 if (tv != 0) {
-                    shows = TmdbParse.summaries(client.get(TmdbApi.discover(Kind.SHOW, tv)).optJSONArray("results"),
-                            Kind.SHOW);
+                    shows = TmdbParse.summaries(client.get(TmdbApi.discover(Kind.SHOW, tv, region))
+                            .optJSONArray("results"), Kind.SHOW);
                     any = true;
                 }
             } catch (IOException | RuntimeException ignored) {

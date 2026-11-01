@@ -110,4 +110,58 @@ public class ServicePicksTest {
         assertFalse(counted.contains(ServiceId.RAKUTEN));
         assertTrue(counted.contains(ServiceId.TELE2PLAY));
         assertNull(ServicePicks.counted(null));
-    }}
+    }
+
+    @Test
+    public void eachRegionHasItsOwnLists() {
+        assertSame(ServicePicks.MAIN, ServicePicks.main(Region.SE));
+        assertSame(ServicePicks.MORE, ServicePicks.moreServices(Region.SE));
+        assertSame(ServicePicks.STORES, ServicePicks.stores(Region.SE));
+        assertEquals(Arrays.asList(ServiceId.NETFLIX, ServiceId.PRIME, ServiceId.DISNEY, ServiceId.MAX, ServiceId.HULU,
+                ServiceId.PEACOCK, ServiceId.PARAMOUNTPLUS, ServiceId.APPLETVPLUS), ServicePicks.main(Region.US));
+        assertEquals(Arrays.asList(ServiceId.APPLETV, ServiceId.AMAZONVIDEO, ServiceId.FANDANGO, ServiceId.GOOGLETV),
+                ServicePicks.stores(Region.US));
+        assertEquals(ServiceId.TUBI, ServicePicks.moreServices(Region.US).get(0));
+    }
+
+    @Test
+    public void everyListedServiceIsInTheTableAsWhatItsListSays() {
+        for (Region r : Region.values()) {
+            for (ServiceId s : ServicePicks.main(r)) {
+                WatchProviders.Entry e = WatchProviders.TABLE.of(s);
+                assertTrue(r + " " + s, e != null && (e.subscription || e.free));
+            }
+            for (ServiceId s : ServicePicks.moreServices(r)) {
+                WatchProviders.Entry e = WatchProviders.TABLE.of(s);
+                assertTrue(r + " " + s, e != null && (e.subscription || e.free) && !(e.free && e.store));
+                assertFalse(r + " " + s, ServicePicks.main(r).contains(s));
+            }
+            for (ServiceId s : ServicePicks.stores(r)) assertTrue(r + " " + s, WatchProviders.TABLE.of(s).store);
+        }
+    }
+
+    @Test
+    public void aSwedishTickShowsBehindMoreInTheUs() {
+        // A TV moved from SE to US keeps its ticks: Viaplay, not in the US lists, still has a tile.
+        List<ServiceId> more = ServicePicks.more(Region.US, set(ServiceId.VIAPLAY, ServiceId.NETFLIX));
+        assertEquals(ServicePicks.US_MORE.size() + 1, more.size());
+        assertEquals(ServiceId.VIAPLAY, more.get(more.size() - 1));
+        assertTrue(ServicePicks.moreShown(Region.US, false, set(ServiceId.VIAPLAY)));
+        assertFalse(ServicePicks.moreShown(Region.US, false, set(ServiceId.PEACOCK)));
+        assertEquals(ServicePicks.US_MAIN.size() + ServicePicks.US_MORE.size(),
+                ServicePicks.listed(Region.US, set()).size());
+    }
+
+    @Test
+    public void usStoresFilterByTheUsList() {
+        Offer fandangoRent = new Offer(ServiceId.FANDANGO, OfferType.RENT, 399, null);
+        Offer sfRent = new Offer(ServiceId.SFANYTIME, OfferType.RENT, 49, null);
+        List<Offer> offers = Arrays.asList(fandangoRent, sfRent);
+        // SF Anytime isn't a US store, so the US pane can't untick it; Fandango is, and unticked it goes.
+        assertEquals(Collections.singletonList(sfRent), ServicePicks.keep(Region.US, offers, set(ServiceId.APPLETV)));
+        assertEquals(Collections.singletonList(fandangoRent), ServicePicks.keep(Region.SE, offers, set()));
+        Set<ServiceId> counted = ServicePicks.counted(Region.US, set());
+        assertFalse(counted.contains(ServiceId.FANDANGO));
+        assertTrue(counted.contains(ServiceId.SFANYTIME));
+    }
+}
