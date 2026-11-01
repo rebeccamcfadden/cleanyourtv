@@ -37,7 +37,7 @@ final class FeaturesSection implements SettingsSection {
 
     @Override
     public CharSequence value(Context ctx) {
-        return ctx.getString(R.string.features_value, FeaturePrefs.load(ctx).onCount(), Features.Feature.values().length);
+        return ctx.getString(R.string.features_value, FeaturePrefs.live(ctx).onCount(), Features.Feature.values().length);
     }
 
     @Override
@@ -57,7 +57,7 @@ final class FeaturesSection implements SettingsSection {
     /** The rows from the saved switches; after a change, built again with focus kept on the same row. */
     private void paintRows(Context ctx) {
         rows.removeAllViews();
-        Features now = FeaturePrefs.load(ctx);
+        Features now = FeaturePrefs.live(ctx);
         first = null;
         for (Features.Feature f : Features.Feature.values()) {
             Features.Feature blocked = now.blockedBy(f);

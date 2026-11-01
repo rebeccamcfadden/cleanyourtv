@@ -23,7 +23,7 @@ final class FeatureOffSection implements SettingsSection {
 
     /** Whether the feature is off by the switches saved now. */
     boolean off(Context ctx) {
-        return !FeaturePrefs.load(ctx).on(feature);
+        return !FeaturePrefs.live(ctx).on(feature);
     }
 
     @Override
@@ -48,7 +48,7 @@ final class FeatureOffSection implements SettingsSection {
 
     @Override
     public View pane(Context ctx, Host host) {
-        Features now = FeaturePrefs.load(ctx);
+        Features now = FeaturePrefs.live(ctx);
         offPane = !now.on(feature);
         if (!offPane) return inner.pane(ctx, host);
         String name = ctx.getString(FeaturesSection.label(feature));

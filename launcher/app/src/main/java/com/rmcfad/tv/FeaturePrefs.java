@@ -13,13 +13,34 @@ import java.util.Map;
 final class FeaturePrefs {
     private FeaturePrefs() {}
 
+    /**
+     * This TV's config as last read (config.xml with a pushed config.json): read once as the launcher is built, since
+     * reading config.json means a file read (and a copy) each time. Main thread.
+     */
+    private static Map<String, Boolean> configRead;
+
+    /** The switches as the launcher is built with them: the config read again, and the household's choices. */
     static Features load(Context ctx) {
+        configRead = config(ctx);
+        return Features.resolve(saved(ctx), configRead);
+    }
+
+    /**
+     * The switches as saved now, for Launcher settings' panes and rows while the page is open (the launcher itself runs
+     * with what it was built with until the page closes): the household's choices over the config read at build time.
+     */
+    static Features live(Context ctx) {
+        if (configRead == null) configRead = config(ctx);
+        return Features.resolve(saved(ctx), configRead);
+    }
+
+    private static Map<String, Object> saved(Context ctx) {
         SharedPreferences p = prefs(ctx);
         Map<String, Object> saved = new HashMap<>();
         for (Features.Feature f : Features.Feature.values()) {
             if (p.contains(f.key())) saved.put(f.key(), p.getBoolean(f.key(), true));
         }
-        return Features.resolve(saved, config(ctx));
+        return saved;
     }
 
     /**

@@ -67,7 +67,7 @@ final class ThemeSection implements SettingsSection {
     /** The saved theme, or Midnight while Themes is off and it needs downloads (as ThemeStore.current shows it). */
     private static String shownId(Context ctx) {
         String id = ThemeStore.themeId(ctx);
-        return FeaturePrefs.load(ctx).on(Features.Feature.THEMES) || Themes.plain(id) ? id : Themes.DEFAULT_ID;
+        return FeaturePrefs.live(ctx).on(Features.Feature.THEMES) || Themes.plain(id) ? id : Themes.DEFAULT_ID;
     }
 
     /**
@@ -91,7 +91,7 @@ final class ThemeSection implements SettingsSection {
         seasonal.clear();
         // F14: with Themes off in Features, the Classic themes that need no download, in the system font, and no
         // Seasonal row or typeface choice (nothing is downloaded); read from the saved switches, as Features shows them.
-        boolean themes = FeaturePrefs.load(ctx).on(Features.Feature.THEMES);
+        boolean themes = FeaturePrefs.live(ctx).on(Features.Feature.THEMES);
         String saved = shownId(ctx);
         boolean systemFont = !themes || ThemeStore.systemFont(ctx);
         LocalDate today = LocalDate.now();
