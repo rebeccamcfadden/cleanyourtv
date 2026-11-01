@@ -184,10 +184,15 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         Config cfg = Config.load(this);
         config = cfg;
         Ui.init(this, cfg.reducedMotion());
+        // F14: which features run, before anything that starts one is built (the theme among them).
+        Features.apply(FeaturePrefs.load(this));
         theme = ThemeStore.current(this);
         systemFont = ThemeStore.systemFont(this);
         Ui.apply(theme);
         PerfChoices.apply(PerfPrefs.load(this, cfg));
+        // The Phone notes inbox lives as long as the process: it opens or closes with the switches the launcher is
+        // built with now.
+        Notes.get(this).allow(Features.isOn(Features.Feature.NOTES));
         if (!ThemeFonts.apply(this, theme)) ThemeFonts.fetch(this, theme, fontsArrived);
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
         // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
@@ -307,6 +312,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
     /** M7: Pick for me's setup page, pushed over whichever page is showing, so Back returns to it. */
     @Override
     public void openPick(Kind kind) {
+        // F14: Pick for me switched off has no button; nothing else opens it either.
+        if (!Features.isOn(Features.Feature.PICK)) return;
         shell.push(PickSetupPage.create(this, kind));
     }
 

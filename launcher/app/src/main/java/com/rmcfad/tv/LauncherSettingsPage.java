@@ -250,7 +250,7 @@ final class LauncherSettingsPage extends Screen implements SettingsSection.Host 
      * Focuses the section's first control, after showing its pane; stays on the section when there is none. Also
      * First run's Next (FirstRunSplit), which enters the next step's pane.
      */
-    void enter(String id) {
+    public void enter(String id) {
         show(id);
         if (setup != null) setup.entered(id);
         SettingsSection s = section(id);

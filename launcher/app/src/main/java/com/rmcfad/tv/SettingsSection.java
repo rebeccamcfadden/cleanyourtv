@@ -10,8 +10,8 @@ import android.view.View;
  */
 interface SettingsSection {
     /**
-     * The settings.ts section id: account, notes, services, stores, weather, apps, theme, motion, start, home, tv,
-     * about.
+     * The settings.ts section id: account, notes, services, stores, weather, apps, theme, performance, features, start,
+     * home, tv, about.
      */
     String id();
 
@@ -59,6 +59,9 @@ interface SettingsSection {
 
         /** The theme or its fonts changed: re-apply and rebuild the launcher, returning to this section. */
         void themeChanged();
+
+        /** Shows another section and enters its pane (a switched-off feature's Open Features). */
+        void enter(String id);
 
         Shell shell();
     }

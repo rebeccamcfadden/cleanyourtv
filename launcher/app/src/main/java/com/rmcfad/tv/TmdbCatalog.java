@@ -83,6 +83,12 @@ final class TmdbCatalog implements Catalog {
     private boolean closed;
     /** Off until a TMDB account is signed in: see {@link Catalog#setListPricing}. */
     private boolean listPricing;
+    /**
+     * F14: Prices switched on in Features. Off, the price book is asked only for a title's ids (its Watch links), no
+     * price source is called, nothing is repriced in the background, and offers merge no prices: TMDB's availability,
+     * Rent and Buy and where, without an amount.
+     */
+    private final boolean prices = Features.isOn(Features.Feature.PRICES);
     /** The stores whose rent and buy offers show (Launcher settings, Stores for rent and buy). */
     private Set<ServiceId> priceStores = EnumSet.copyOf(ServicePicks.STORES);
     /** While Home shows, the household's titles are checked for prices due every few hours (memory only). */
@@ -339,7 +345,7 @@ final class TmdbCatalog implements Catalog {
 
     /** The household's titles whose prices are due, in the background (PriceBook skips the fresh ones). */
     private void refreshKept() {
-        if (!visible || !started || !listPricing) return;
+        if (!prices || !visible || !started || !listPricing) return;
         for (Title t : all()) if (isKept(t)) wantPrices(t, false, null);
     }
 
@@ -348,9 +354,9 @@ final class TmdbCatalog implements Catalog {
         if (!k.detailed || !availability.containsKey(k.id)) return;
         boolean stores = false;
         for (Offer o : k.offers) stores |= o.type == OfferType.RENT || o.type == OfferType.BUY;
-        if (!preview && !stores) return;
+        if (!preview && (!stores || !prices)) return;
         String id = k.id;
-        book.want(k, preview, stores, done == null ? null : () -> done.accept(known.get(id)));
+        book.want(k, preview, stores && prices, done == null ? null : () -> done.accept(known.get(id)));
     }
 
     @Override
@@ -368,7 +374,7 @@ final class TmdbCatalog implements Catalog {
 
     @Override
     public long pricesSavedAt(Title t) {
-        return book.savedAt(t.id);
+        return prices ? book.savedAt(t.id) : 0;
     }
 
     @Override
@@ -376,7 +382,7 @@ final class TmdbCatalog implements Catalog {
         this.visible = visible;
         book.setActive(visible);
         main.removeCallbacks(keepFresh);
-        if (visible) keepFresh.run();
+        if (visible && prices) keepFresh.run();
     }
 
     /**
@@ -397,7 +403,7 @@ final class TmdbCatalog implements Catalog {
     private Title priced(Title t) {
         ProviderAvailability a = availability.get(t.id);
         if (a == null) return t;
-        PriceLookup.Entry e = book.get(t.id);
+        PriceLookup.Entry e = prices ? book.get(t.id) : null;
         OfferMerge.Result r = OfferMerge.merge(a, e == null ? Collections.emptyList() : e.prices, WatchProviders.SE);
         priceSources.put(t.id, r.priceSources);
         Title.Draft d = new Title.Draft(t);

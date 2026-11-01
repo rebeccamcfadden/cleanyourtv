@@ -4,6 +4,8 @@
     <string name="theme_section">Theme</string>
     <string name="theme_pane_title">Theme</string>
     <string name="theme_pane_sub">Colours, type and the picture behind Home. Rows, apps and data stay as they are.</string>
+    <!-- F14: Themes switched off in Features. -->
+    <string name="theme_pane_sub_plain">Colours and type. Themes is off in Features, so nothing is downloaded: each theme shows on its plain colour, in the system font.</string>
     <string name="theme_group_classic">Classic</string>
     <!-- Shown in capitals: SEASONAL · FOLLOWS THE DATE · TODAY: HALLOWEEN. -->
     <string name="theme_group_seasonal">Seasonal · follows the date · today: %1$s</string>

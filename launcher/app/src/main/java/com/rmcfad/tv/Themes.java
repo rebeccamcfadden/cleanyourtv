@@ -53,6 +53,14 @@ final class Themes {
         return CLASSIC.contains(id) || SEASONAL.contains(id);
     }
 
+    /**
+     * The themes Features' Themes switch keeps when off (F14): the Classic ones but Landscapes, which with nothing
+     * downloaded show on their plain colour (Midnight keeps its bundled landscape).
+     */
+    static boolean plain(String id) {
+        return CLASSIC.contains(id) && !"landscapes".equals(id);
+    }
+
     /** The theme for an id on a given day; Seasonal ids resolve to that day's period. */
     static Theme resolve(String id, LocalDate day) {
         if (id == null) return Theme.midnight();

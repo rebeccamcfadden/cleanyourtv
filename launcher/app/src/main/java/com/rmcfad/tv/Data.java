@@ -41,7 +41,9 @@ final class Data {
     private final Runnable accountChanged;
 
     static Data create(Context ctx, Config cfg) {
-        String token = BuildConfig.TMDB_TOKEN;
+        // F14: TMDB account switched off in Features makes this a build without a token: the mock catalogue and no
+        // account, so nothing reaches TMDB (Movies, TV Shows and Search say they need it, TmdbGate).
+        String token = Features.isOn(Features.Feature.TMDB) ? BuildConfig.TMDB_TOKEN : "";
         Catalog catalog = token.isEmpty() ? new MockCatalog() : new TmdbCatalog(ctx, token);
         catalog.setPriceStores(ServiceChoices.stores(ctx));
         // The real catalogue names services as they are branded now; the mock one keeps the prototype's names.

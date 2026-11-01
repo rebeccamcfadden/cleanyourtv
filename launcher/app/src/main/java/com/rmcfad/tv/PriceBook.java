@@ -92,7 +92,9 @@ final class PriceBook {
         https = new CachedHttp[]{wikidataHttp, itunesHttp, watchmodeHttp, motnHttp};
         StreamingAvailabilityPrices motn = new StreamingAvailabilityPrices(motnKey);
         motnHeaders = motn.headers();
-        feedOn = motn.configured();
+        // F14: with Prices off in Features no price source is asked, Movie of the Night's daily change feed included;
+        // the book still finds a title's ids for its Watch links.
+        feedOn = motn.configured() && Features.isOn(Features.Feature.PRICES);
         lookup = new PriceLookup(wikidataHttp, new WatchmodePrices(watchmodeKey), watchmodeHttp, motn, motnHttp,
                 new ItunesPrices(), itunesHttp);
     }
