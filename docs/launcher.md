@@ -86,7 +86,7 @@ closes. The sections, top to bottom:
 - **About**: the version, and the TMDB, availability, price and weather notices.
 
 To stop using this launcher as Home, choose the original one in Default Home. The original launcher must be enabled:
-if the install script disabled it, run the restore script ([Restoring your TV](../README.md#restoring-your-tv))
+if the install script disabled it, run the restore script ([Restoring your TV](restore.md#restoring-your-tv))
 first. Some TVs provide no home picker.
 
 ## Remote keys
