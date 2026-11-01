@@ -83,9 +83,9 @@ final class FeaturePrefs {
     /** Whether this TV keeps every feature on (Features#keepAllOn), decided on its first start with F14 and kept. */
     private static boolean keepAllOn(Context ctx) {
         SharedPreferences p = prefs(ctx);
-        if (p.contains(KEY_KEEP_ALL_ON)) return p.getBoolean(KEY_KEEP_ALL_ON, false);
-        boolean keep = Features.keepAllOn(null, FirstRunPage.freshInstall(ctx));
-        p.edit().putBoolean(KEY_KEEP_ALL_ON, keep).apply();
+        Boolean decided = p.contains(KEY_KEEP_ALL_ON) ? p.getBoolean(KEY_KEEP_ALL_ON, false) : null;
+        boolean keep = Features.keepAllOn(decided, decided == null && FirstRunPage.freshInstall(ctx));
+        if (decided == null) p.edit().putBoolean(KEY_KEEP_ALL_ON, keep).apply();
         return keep;
     }
 

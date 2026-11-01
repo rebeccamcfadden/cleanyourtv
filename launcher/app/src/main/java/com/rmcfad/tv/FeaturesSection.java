@@ -134,11 +134,6 @@ final class FeaturesSection implements SettingsSection {
         return key == Screen.Key.DOWN;
     }
 
-    /** The feature's switch on its selected option, for First run to focus coming back from its setup; else null. */
-    View switchOf(Features.Feature f) {
-        View seg = segOf(f);
-        return seg == null ? null : SettingsKit.selectedOption(seg);
-    }
 
     private View segOf(Features.Feature f) {
         if (rows == null) return null;

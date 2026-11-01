@@ -409,9 +409,13 @@ final class FirstRunPage extends Screen {
                     Ui.round(done ? Ui.GOOD_SOFT : Ui.SURFACE_2, 22), null,
                     Ui.round(Ui.alpha(Ui.ON_ACCENT, 0x24), 22)));
             ((TextView) row.getTag(R.id.settings_row_sub)).setText(lineOf(id));
+            // Features' pill says "All off" only while all are (a pushed config.json or an older TV may have some on).
+            TextView pillView = (TextView) row.getTag(R.id.first_run_pill);
+            boolean noPill = "features".equals(id) && FeaturePrefs.live(ctx).onCount() > 0;
+            if (noPill) pillView.setVisibility(View.GONE);
             CharSequence value = valueOf(id);
             String text = value == null ? null : value.toString();
-            CharSequence pill = ((TextView) row.getTag(R.id.first_run_pill)).getText();
+            CharSequence pill = noPill ? "" : pillView.getText();
             if (FirstRunRules.placeholder(id, text, notSignedIn)
                     || (!done && FirstRunRules.repeatsPill(text, pill.toString()))) {
                 value = "";
@@ -421,7 +425,8 @@ final class FirstRunPage extends Screen {
             v.setVisibility(value == null || value.length() == 0 ? View.GONE : View.VISIBLE);
             CharSequence name = ((TextView) row.getTag(R.id.settings_row_title)).getText();
             CharSequence state = done ? ctx.getString(R.string.first_run_finish) : pill;
-            row.setContentDescription(name + (value == null || value.length() == 0 ? "" : ", " + value) + ", " + state);
+            row.setContentDescription(name + (value == null || value.length() == 0 ? "" : ", " + value)
+                    + (state.length() == 0 ? "" : ", " + state));
         }
     }
 
@@ -585,24 +590,16 @@ final class FirstRunPage extends Screen {
     }
 
     /**
-     * Back to Features: the setup's section stops what it left running, and the step shows again with focus on the
-     * switch just turned on (after a rebuild the step never had focus to give back).
+     * Back to Features: the setup's section stops what it left running, and the step shows again, focus back on the
+     * switch just turned on (the Shell restores it; after a rebuild, FeaturesSection#focusOn).
      */
     private void closeFeatureSetup() {
         LauncherSettingsPage s = featureSetup;
-        String id = featureSetupId;
         featureSetup = null;
         featureSetupId = null;
         if (s == null) return;
         if (activity.shell().top() == s) activity.shell().pop();
         s.closed();
-        Features.Feature f = featureOf(id);
-        FeaturesSection pane = features;
-        if (f == null || pane == null) return;
-        view.post(() -> {
-            View target = pane.switchOf(f);
-            if (target != null && split != null && activity.shell().top() == split) activity.shell().focus(target);
-        });
     }
 
     /** The feature whose setup is that section, or null. */
