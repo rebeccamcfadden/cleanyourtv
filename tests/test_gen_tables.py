@@ -123,6 +123,8 @@ class ThisRepositoryTest(unittest.TestCase):
         entries = gen_tables.load(ROOT)
         projector_lists = sum(1 for _, d in entries if d["brand"] in names)
         self.assertEqual(sum(bold) + len(plain) + projector_lists, len(entries))
+        brands = len(bold) + len(plain) + len(names)
+        self.assertIn(f"{len(entries)} TV models · {brands} brands · ", readme)
 
     def test_both_tables_are_in_the_same_alphabetical_order(self):
         texts = gen_tables.render(ROOT)
