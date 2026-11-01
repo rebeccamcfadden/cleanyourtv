@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -157,6 +158,31 @@ public class DayPhaseTest {
             }
         }
         assertEquals(DayPhase.DAY, DayPhase.at(at(2026, 4, 4, 12, 0, ZoneId.of("Pacific/Auckland")), -36.85, 174.76));
+    }
+
+    @Test
+    public void theTvsZoneNeverSkipsACycleAtThePlace() {
+        // The TV in Pacific/Chatham (UTC+12:45, +13:45 in summer), the Weather place in Stockholm: counting cycles by the
+        // TV's local noon skipped one across Chatham's daylight-saving change, and Stockholm's noon read NIGHT.
+        ZoneId chatham = ZoneId.of("Pacific/Chatham");
+        ZonedDateTime stockholmNoon = Instant.parse("2026-04-04T10:00:00Z").atZone(chatham);
+        assertEquals(DayPhase.DAY, DayPhase.at(stockholmNoon, STOCKHOLM_LAT, STOCKHOLM_LON));
+        for (String tv : new String[] {"Pacific/Chatham", "Pacific/Kiritimati", "Pacific/Apia", "America/Los_Angeles"}) {
+            ZoneId zone = ZoneId.of(tv);
+            for (LocalDate d = LocalDate.of(2026, 1, 1); d.getYear() == 2026; d = d.plusDays(1)) {
+                ZonedDateTime noon = d.atTime(13, 0).atZone(SWEDEN).withZoneSameInstant(zone);
+                assertEquals(tv + " " + d, DayPhase.DAY, DayPhase.at(noon, STOCKHOLM_LAT, STOCKHOLM_LON));
+            }
+            // Across Chatham's change (5 April) and Stockholm's (29 March): every phase holds until nextChange.
+            ZonedDateTime t = at(2026, 3, 27, 0, 0, zone);
+            while (t.isBefore(at(2026, 4, 8, 0, 0, zone))) {
+                DayPhase p = DayPhase.at(t, STOCKHOLM_LAT, STOCKHOLM_LON);
+                ZonedDateTime n = DayPhase.nextChange(t, STOCKHOLM_LAT, STOCKHOLM_LON);
+                assertTrue(n.isAfter(t));
+                assertEquals(tv + " " + t, p, DayPhase.at(n.minusSeconds(1), STOCKHOLM_LAT, STOCKHOLM_LON));
+                t = t.plusMinutes(11);
+            }
+        }
     }
 
     @Test
