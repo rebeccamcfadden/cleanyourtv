@@ -218,7 +218,7 @@ export function libraryScreen(kind: Kind): Screen {
     onShow: render,
     // Back on the first chip, the row returns to its start so the label shows again.
     onFocus(el) {
-      if (el === chipsEl.querySelector('[data-focus]')) chipsEl.scrollLeft = 0;
+      if (el.dataset.key === 'list-all') chipsEl.scrollLeft = 0;
     },
     // The list chips lead to Pick for me: Up from any chip, and Right from the last one, before the nav or the grid.
     onKey(key, f) {

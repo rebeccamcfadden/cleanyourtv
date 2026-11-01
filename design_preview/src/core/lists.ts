@@ -25,7 +25,12 @@ const MEMBERS: Record<string, (t: Title, i: number) => boolean> = {
   docs: (t) => t.genres.includes('Documentary'),
   kids: (t) => t.genres.includes('Animation') || t.rating === 'PG',
 };
-const holds = (id: string) => (t: Title) => MEMBERS[id]?.(t, INDEX.get(t.id) ?? 0) ?? false;
+const holdsCache = new Map<string, (t: Title) => boolean>();
+const holds = (id: string) => {
+  let fn = holdsCache.get(id);
+  if (!fn) holdsCache.set(id, (fn = (t: Title) => MEMBERS[id]?.(t, INDEX.get(t.id) ?? 0) ?? false));
+  return fn;
+};
 
 const MY: ShownList = { id: 'my', name: 'My list', has: (t) => store.inMyList(t.id) };
 const MOCK: ShownList[] = [
@@ -36,11 +41,24 @@ const MOCK: ShownList[] = [
 /** At most this many TMDB lists get a chip (the project lead, 2026-10-31); more shown lists are still in All lists. */
 export const CHIP_CAP = 6;
 
+/** {@link lists.imported}, rebuilt only when the account's state or its Show / Hidden ticks change. */
+let importedKey = '';
+let importedCache: ShownList[] = [];
+
 export const lists = {
   /** Every shown list after My list, in the account's order: chips and those past the cap alike. */
   imported(): ShownList[] {
-    if (account.get() === 'in') return account.lists().filter((l) => l.shown).map((l) => ({ id: l.id, name: l.name, has: holds(l.id) }));
-    return account.everSignedIn() ? [] : MOCK;
+    const signedIn = account.get() === 'in';
+    const key = signedIn
+      ? 'in:' + account.lists().filter((l) => l.shown).map((l) => `${l.id}=${l.name}`).join('|')
+      : account.everSignedIn() ? 'out' : 'mock';
+    if (key !== importedKey) {
+      importedKey = key;
+      importedCache = signedIn
+        ? account.lists().filter((l) => l.shown).map((l) => ({ id: l.id, name: l.name, has: holds(l.id) }))
+        : key === 'out' ? [] : MOCK;
+    }
+    return importedCache;
   },
   /** The shown lists that get a chip: the first {@link CHIP_CAP}. */
   chipped(): ShownList[] {
