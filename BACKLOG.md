@@ -409,10 +409,12 @@ A theme changes colours, type, corners, shading, overlays and the backdrop; layo
   21 ms. The emulator can't show where that goes: every frame there spends 80–100 ms issuing draw commands,
   about 50 ms even with the backdrop, shades, hero, nav, lower rows, banners and labels all switched off, and
   turning any single one off moved it by less than the noise. The UI thread is not the cost (animation 1 ms, layout
-  and recording under 0.2 ms per frame, no layout pass on a focus change). Wanted: a `tools/trace.py` run on the real
-  TV (hwui and gfx) to see whether the GPU's fill (backdrop, shade and, when scrolled, the dim layer, each full
-  screen) or the number of frames per move (140 ms scale and state fades, the 240 ms row slide) is the cost, then
-  the fix.
+  and recording under 0.2 ms per frame, no layout pass on a focus change). An atrace on the TCL (Mali-470, Android
+  9) found the GPU is the limit, not the frames per move: the scroll fade drew the dim and the hero through
+  offscreen layers on every frame (swap 13 ms against 2 ms), which they no longer do. Left: the TV has no
+  `EGL_EXT_buffer_age`, so every frame redraws the whole screen, and from the fifth frame of a sideways move the GPU
+  falls behind (swap 1 → 10 ms, about 30% of those frames over 16.7 ms). Fewer full-screen passes (backdrop and
+  shade baked into one picture) is the next thing to try.
 - **Accessibility in the prototype:** the launcher now reports the current preview tab and nav section as selected
   and reads Pick for me's fields with their value; the prototype has no ARIA roles or states to match.
 
