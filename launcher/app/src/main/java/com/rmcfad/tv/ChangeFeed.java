@@ -16,8 +16,8 @@ import java.util.Set;
 
 /**
  * Movie of the Night's change feed (docs.movieofthenight.com, Changes): which titles' Apple TV Store or Amazon rent
- * and buy options changed in Sweden lately, read at most once a day while Home shows, a few pages at most, each page
- * one request of its budget. A kept title it names is marked stale ({@link Marks}), so its prices are asked again
+ * and buy options changed in the region lately, read at most once a day while Home shows, a few pages at most, each
+ * page one request of its budget. A kept title it names is marked stale ({@link Marks}), so its prices are asked again
  * before their 7 days are up. Pure Java with org.json, unit-tested with a recorded answer (ChangeFeedTest).
  */
 final class ChangeFeed {
@@ -25,7 +25,7 @@ final class ChangeFeed {
 
     static final String ID = StreamingAvailabilityPrices.ID;
     private static final String BASE = "https://api.movieofthenight.com/v4/changes";
-    /** The rent and buy catalogues it prices in Sweden. */
+    /** The rent and buy catalogues it prices (Apple and Amazon, in Sweden and the US alike). */
     static final String CATALOGS = "apple.rent,apple.buy,prime.rent,prime.buy";
     /** Read at most once a day, and at most this many pages (25 changes each). */
     static final long EVERY = PriceCachePolicy.DAY;

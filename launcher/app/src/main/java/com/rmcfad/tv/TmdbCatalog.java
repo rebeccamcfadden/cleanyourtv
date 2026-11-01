@@ -32,8 +32,8 @@ import java.util.function.Consumer;
  * the mock catalogue's titles on TMDB ({@link MockIds}), as stubs with a name and a year, and fills them in from the
  * disk cache or the network a couple of seconds after Home is up, never on the main thread and never holding Home
  * up. Titles met on the way (search hits, recommendations, a person's titles) join what it knows. A detailed title's
- * offers are where TMDB says it can be watched in Sweden, with the prices {@link PriceBook} finds on demand merged in
- * ({@link OfferMerge}); the imported watchlists stay mock ({@link MockOverlay}).
+ * offers are where TMDB says it can be watched in the TV's {@link Region}, with the prices {@link PriceBook} finds on
+ * demand merged in ({@link OfferMerge}); the imported watchlists stay mock ({@link MockOverlay}).
  *
  * <p>Everything it knows lives on the main thread; three low-priority threads read the cache and the network, at
  * most three requests at a time, what a screen waits for first. A request that fails is not tried again for a
@@ -76,8 +76,8 @@ final class TmdbCatalog implements Catalog {
     private final Map<String, ProviderAvailability> availability = new HashMap<>();
     private final Map<String, Set<String>> priceSources = new HashMap<>();
     private final PriceBook book;
-    /** The country whose availability, stores and prices show (Family install step 2; read from the TV once wired). */
-    private final Region region = Region.DEFAULT;
+    /** The country whose availability, stores and prices show ({@link RegionChoice}, read when Home's data is made). */
+    private final Region region;
     /** The titles on My list and the shown TMDB lists, kept priced in the background. */
     private final Set<String> listed = new HashSet<>();
     private boolean visible = true;
@@ -86,7 +86,7 @@ final class TmdbCatalog implements Catalog {
     /** Off until a TMDB account is signed in: see {@link Catalog#setListPricing}. */
     private boolean listPricing;
     /** The stores whose rent and buy offers show (Launcher settings, Stores for rent and buy). */
-    private Set<ServiceId> priceStores = EnumSet.copyOf(ServicePicks.stores(region));
+    private Set<ServiceId> priceStores;
     /** While Home shows, the household's titles are checked for prices due every few hours (memory only). */
     private final Runnable keepFresh = new Runnable() {
         @Override
@@ -96,7 +96,9 @@ final class TmdbCatalog implements Catalog {
         }
     };
 
-    TmdbCatalog(Context ctx, String token) {
+    TmdbCatalog(Context ctx, String token, Region region) {
+        this.region = region;
+        priceStores = EnumSet.copyOf(ServicePicks.stores(region));
         client = new TmdbClient(token, ctx.getApplicationContext().getCacheDir());
         overlay = new MockOverlay(new MockCatalog());
         book = new PriceBook(ctx, PriceKeys.watchmode(), PriceKeys.movieOfTheNight(), region, this::repriced,

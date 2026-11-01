@@ -20,21 +20,18 @@ import java.util.Set;
  * "Included"; a free service's FREE offers are included whether it is ticked or not (Offers.isIncludedOffer), so its
  * tick only counts it among the household's services. Unticked stores' rent and buy offers are left out ({@link
  * #keep}).
- *
- * <p>The methods without a {@link Region} use {@link Region#DEFAULT}; they go once the region setting is read on the
- * TV (Family install step 2).
  */
 final class ServicePicks {
     private ServicePicks() {}
 
     /** Sweden's grid: its first eleven tiles. */
-    static final List<ServiceId> MAIN = Collections.unmodifiableList(Arrays.asList(
+    static final List<ServiceId> SE_MAIN = Collections.unmodifiableList(Arrays.asList(
             ServiceId.NETFLIX, ServiceId.PRIME, ServiceId.DISNEY, ServiceId.MAX, ServiceId.APPLETVPLUS,
             ServiceId.VIAPLAY, ServiceId.SKYSHOWTIME, ServiceId.SVTPLAY, ServiceId.TV4PLAY, ServiceId.TELE2PLAY,
             ServiceId.TELIAPLAY));
 
     /** Sweden's, behind "More services". */
-    static final List<ServiceId> MORE = Collections.unmodifiableList(Arrays.asList(
+    static final List<ServiceId> SE_MORE = Collections.unmodifiableList(Arrays.asList(
             ServiceId.HAYU, ServiceId.MUBI, ServiceId.CRUNCHYROLL, ServiceId.BRITBOX, ServiceId.PLUTOTV, ServiceId.PLEX,
             ServiceId.CINEASTERNA));
 
@@ -43,7 +40,7 @@ final class ServicePicks {
      * Google TV is left out: Google Play doesn't sell films in Sweden. YouTube is free, and Tele2 Play and Telia Play
      * mostly stream, so their rent and buy offers always show.
      */
-    static final List<ServiceId> STORES = Collections.unmodifiableList(Arrays.asList(
+    static final List<ServiceId> SE_STORES = Collections.unmodifiableList(Arrays.asList(
             ServiceId.APPLETV, ServiceId.AMAZONVIDEO, ServiceId.VIAPLAY, ServiceId.SFANYTIME, ServiceId.RAKUTEN));
 
     /** The US grid: the big subscriptions. */
@@ -65,17 +62,17 @@ final class ServicePicks {
 
     /** The region's grid. */
     static List<ServiceId> main(Region region) {
-        return region == Region.US ? US_MAIN : MAIN;
+        return region == Region.US ? US_MAIN : SE_MAIN;
     }
 
     /** The region's services behind "More services", before any ticked one the grid doesn't name ({@link #more}). */
     static List<ServiceId> moreServices(Region region) {
-        return region == Region.US ? US_MORE : MORE;
+        return region == Region.US ? US_MORE : SE_MORE;
     }
 
     /** The region's stores for rent and buy. */
     static List<ServiceId> stores(Region region) {
-        return region == Region.US ? US_STORES : STORES;
+        return region == Region.US ? US_STORES : SE_STORES;
     }
 
     /** A tile's caption beside "Installed" or "No app". */
@@ -85,10 +82,6 @@ final class ServicePicks {
         WatchProviders.Entry e = WatchProviders.TABLE.of(id);
         if (e == null || !e.free) return Hint.NONE;
         return e.subscription ? Hint.FREE_TIER : Hint.FREE;
-    }
-
-    static List<ServiceId> more(Set<ServiceId> ticked) {
-        return more(Region.DEFAULT, ticked);
     }
 
     /**
@@ -110,10 +103,6 @@ final class ServicePicks {
         return e != null && (e.subscription || e.free) && !(e.free && e.store);
     }
 
-    static boolean moreShown(boolean opened, Set<ServiceId> ticked) {
-        return moreShown(Region.DEFAULT, opened, ticked);
-    }
-
     /** The second grid shows when opened, and stays while anything in it is ticked. */
     static boolean moreShown(Region region, boolean opened, Set<ServiceId> ticked) {
         if (opened) return true;
@@ -126,10 +115,6 @@ final class ServicePicks {
         int n = 0;
         for (ServiceId s : among) if (ticked.contains(s)) n++;
         return n;
-    }
-
-    static List<ServiceId> listed(Set<ServiceId> ticked) {
-        return listed(Region.DEFAULT, ticked);
     }
 
     /** Every service the Streaming services pane lists: the grid, then the ones behind More. */
@@ -168,10 +153,6 @@ final class ServicePicks {
         return Collections.unmodifiableSet(out);
     }
 
-    static boolean keeps(Offer o, Set<ServiceId> stores) {
-        return keeps(Region.DEFAULT, o, stores);
-    }
-
     /**
      * Whether an offer shows with these stores ticked: rent and buy offers of a store the region lists only when it
      * is ticked, everything else (subscriptions, free, free YouTube's rentals, a store the pane doesn't list) always,
@@ -180,10 +161,6 @@ final class ServicePicks {
     static boolean keeps(Region region, Offer o, Set<ServiceId> stores) {
         if (o.type != OfferType.RENT && o.type != OfferType.BUY) return true;
         return !stores(region).contains(o.service) || stores.contains(o.service);
-    }
-
-    static Set<ServiceId> counted(Set<ServiceId> ticked) {
-        return counted(Region.DEFAULT, ticked);
     }
 
     /**
@@ -195,10 +172,6 @@ final class ServicePicks {
         EnumSet<ServiceId> out = EnumSet.complementOf(EnumSet.copyOf(stores(region)));
         out.addAll(ticked);
         return Collections.unmodifiableSet(out);
-    }
-
-    static List<Offer> keep(List<Offer> offers, Set<ServiceId> stores) {
-        return keep(Region.DEFAULT, offers, stores);
     }
 
     /** The title's offers with only the ticked stores' prices; the same list when none is left out. */

@@ -28,9 +28,6 @@ import java.util.Map;
  */
 final class WatchProviders {
 
-    /** The region every Phase 2 lookup uses (docs/rework.md, Region). */
-    static final String REGION = Region.DEFAULT.code;
-
     /** The one table the launcher uses; immutable once made. */
     static final WatchProviders TABLE = new WatchProviders();
 
