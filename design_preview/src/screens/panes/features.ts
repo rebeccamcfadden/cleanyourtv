@@ -1,7 +1,9 @@
-import type { Key } from '../../core/app';
+import { app, type Key } from '../../core/app';
 import { h, type Child } from '../../core/dom';
 import { featureOn, FEATURES, setFeature, settings, type FeatureId } from '../../core/settings';
 import { button, segmented } from '../../ui/widgets';
+import { placeholder } from '../placeholder';
+import { launcherSettings, type SectionId } from '../settings';
 import type { Pane, PaneHost } from './pane';
 
 /** "6 of 6 on": the section's value. */
@@ -35,6 +37,28 @@ export function featureOffPane(id: FeatureId, section: string, openFeatures: () 
  * out like Performance. A feature switched off never starts: its pages, its settings section and its network calls
  * go. A row whose feature needs another that is off (Phone notes without TMDB account) says so and can't be changed.
  */
+/**
+ * What a feature turned on in First run's Features step opens next (F14, the project lead 2026-11-01): its own setup,
+ * in the same cut-down split, with "Back to Features". Pick for me needs none. Prices' keys come from Builder B's F16
+ * page (a phone scans a QR to enter the Watchmode and Movie of the Night keys, each checked with a test call); until it
+ * exists this opens a stub. A TV without a TMDB key would also get F16's key page before Sign in.
+ */
+const SETUP: Partial<Record<FeatureId, SectionId>> = { tmdb: 'account', weather: 'weather', notes: 'notes', themes: 'theme' };
+
+function openSetup(id: FeatureId) {
+  const section = SETUP[id];
+  if (section) {
+    app.push(launcherSettings(section, { enter: true, setup: { steps: [section], onVisit: () => {}, backLabel: 'Back to Features' } }));
+  } else if (id === 'prices') {
+    app.push(
+      placeholder(
+        'Price keys',
+        'Scan a QR with your phone to enter the Watchmode and Movie of the Night keys; each is checked with a test call. Builder B’s F16 page goes here.',
+      ),
+    );
+  }
+}
+
 export const featuresPane = (host: PaneHost): Pane => ({
   /** ↓ goes to the next row's control on its selected option; → stays within the control, as in Performance. */
   onKey(key: Key, focused: HTMLElement) {
@@ -63,7 +87,9 @@ export const featuresPane = (host: PaneHost): Pane => ({
     h('div.pane-title', 'Features'),
     h(
       'div.pane-sub',
-      'Turn off what this household doesn’t use. A feature that is off never starts: no page, no settings and nothing fetched for it.',
+      host.setup
+        ? 'Everything starts off. Turn on what this household wants; each one you turn on is set up next.'
+        : 'Turn on what this household uses. A feature that is off never starts: no page and nothing fetched for it.',
     ),
     h(
       'div.perf-rows',
@@ -79,7 +105,12 @@ export const featuresPane = (host: PaneHost): Pane => ({
                 ['off', 'Off'],
               ],
               get: () => (settings.get().features[f.id] ? 'on' : 'off'),
-              set: (v) => setFeature(f.id, v === 'on'),
+              set: (v) => {
+                const was = featureOn(f.id);
+                setFeature(f.id, v === 'on');
+                // First run (F14): a feature turned on is set up at once, and Back returns here.
+                if (host.setup && v === 'on' && !was) openSetup(f.id);
+              },
               group: `seg-feat-${f.id}`,
               small: true,
               entry: i === 0,

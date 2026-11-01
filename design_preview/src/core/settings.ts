@@ -67,7 +67,9 @@ const defaults = (): Saved => ({
   focusGlow: true,
   backdropPicture: 'photo',
   movingDetails: true,
-  features: { tmdb: true, notes: true, pick: true, prices: true, weather: true, themes: true },
+  // F14 (the project lead, 2026-11-01): a new install starts with every feature off; First run's Features step turns
+  // them on.
+  features: { tmdb: false, notes: false, pick: false, prices: false, weather: false, themes: false },
 });
 
 function load(): Saved {

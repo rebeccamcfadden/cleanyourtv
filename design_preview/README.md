@@ -438,7 +438,7 @@ on the right.
 - **Sections and values:** Account (Not signed in, amber "Getting a code…", "Waiting…", "Signing in…", "Code
   expired", or the username), Phone notes (Off, On, or amber "3 not matched"), Streaming services ("8 ticked"), Stores
   for rent and buy ("5 ticked"), Weather (the city), Home row apps (7), Theme (Midnight, or "Nature · Halloween"),
-  Performance (All on, or Custom), Features ("6 of 6 on"), Open on start (Home), Default Home (On), TV settings, About
+  Performance (All on, or Custom), Features ("0 of 6 on" on a new install), Open on start (Home), Default Home (On), TV settings, About
   (2.0.0). Values update live. A section whose feature is off in Features stays and reads Off (Account, Phone notes,
   Weather): its pane says the feature is off and how to turn it on, with **Open Features** (first focus), which goes to
   the Features section. The list stays inside title-safe and scrolls with focus when its sections don't fit.
@@ -581,12 +581,12 @@ picks another theme.
   pane says so; config.xml or config.json `light_defaults` can set or stop that per TV. The prototype starts with
   everything on; it applies Motion and the backdrop, and saves the card shadows and glow, which it doesn't draw.
 - **Features** (F14, the project lead's decision 2026-11-01; no Figma frame): one build, with each feature switched
-  on or off at run time. "Turn off what this household doesn’t use", then a row per feature laid out as Performance's,
-  each with an On / Off control; a feature that is off never starts: no page and nothing fetched for it. Its Launcher
-  settings section stays, reading Off, with a pane that says how to turn it on (the project lead, 2026-11-01).
-  First run leaves out a step whose feature is off (Sign in to TMDB, Weather city): the checklist is for setting up
-  what this TV runs, and Launcher settings still shows the feature as off. Quick settings drops its row too. A family
-  install sets the same switches in household.json, and a pushed config.json can too.
+  on or off at run time. **A new install starts with every feature off** (the project lead, 2026-11-01): First run's
+  Features step turns them on ([First run](#first-run)). "Turn on what this household uses", then a row per feature
+  laid out as Performance's, each with an On / Off control; a feature that is off never starts: no page and nothing
+  fetched for it. Its Launcher settings section stays, reading Off, with a pane that says how to turn it on. Quick
+  settings drops its row. A family install sets the same switches in household.json, and a pushed config.json can too.
+  ?features=on starts the preview with every feature on, ?features=off with none.
   - **TMDB account:** Movies, TV Shows and Search need it: while it is off, **or on but the TV isn't signed in**, they
     are an empty state alone, "Movies needs a TMDB account", with **Open Features** (off) or **Sign in** (opens
     Account), first focus. Signing in from the dev bar's Account menu shows the page at once.
@@ -615,16 +615,24 @@ picks another theme.
 ### First run
 
 V2 designs 01-setup B and r2-setup-checklist. Shown on demand from the dev bar (Jump to → First run). A page without
-the nav: "First run", "Set up your Home screen", and four rows, each with its number, title, a line under it, the
-current value and a pill: Sign in to TMDB (Optional), Streaming services ("8 ticked", "Netflix, Prime Video +6",
-Suggested), Stores for rent and buy ("Apple TV Store, Amazon Video +3", Suggested), Weather city ("Stockholm · TV
-default", Default). Below them **Start using Home** and "The same pages are in Launcher settings."; on the right a
-help pane for the focused row.
+the nav: "First run", "Set up your Home screen", and three rows, each with its number, title, a line under it, the
+current value and a pill: Features ("0 of 6 on", "All off"), Streaming services ("8 ticked", "Netflix, Prime Video
++6", Suggested), Stores for rent and buy ("Apple TV Store, Amazon Video +3", Suggested). Below them **Start using
+Home** and "The same pages are in Launcher settings."; on the right a help pane for the focused row.
 
-- **OK on a row** opens the same split and panes as Launcher settings, cut down to these four sections ("Sign in to
-  TMDB", "Streaming services", "Stores for rent and buy", "Weather city"), titled "Set up your Home screen", with
-  "First run · Back returns to the checklist" and a footer under the pane: "Step 2 of 4 · changes save at once",
-  **Back to checklist** and **Next: Stores** (the last step: **Done**). Focus starts in the pane.
+- **Features** (F14, the project lead 2026-11-01): every feature starts off, and this step is the one place in First
+  run that turns them on. Its pane is Launcher settings' Features pane, headed "Everything starts off. Turn on what
+  this household wants; each one you turn on is set up next." Turning one on opens its setup at once, in the same
+  cut-down split with **Back to Features** and **Done**: TMDB account opens Sign in to TMDB (Account), Weather the
+  city (Weather on Home), Phone notes its pairing (Phone notes), Themes the picker (Theme); Prices opens the price keys
+  page (Builder B's F16: a phone scans a QR to enter the Watchmode and Movie of the Night keys, each checked; a stub
+  here until it exists, and a TV without a TMDB key gets F16's key page before Sign in). Pick for me needs no setup.
+  Back from a setup returns to the Features step on the switch just turned on. There is no other on/off in First run:
+  Sign in to TMDB and Weather city are no longer rows of their own.
+- **OK on a row** opens the same split and panes as Launcher settings, cut down to these three sections, titled "Set up
+  your Home screen", with "First run · Back returns to the checklist" and a footer under the pane: "Step 2 of 3 ·
+  changes save at once", **Back to checklist** and **Next: Stores** (the last step: **Done**). Focus starts in the
+  pane.
 - Back from the split (or Back to checklist) returns to the checklist with every section that was opened ticked (a
   green check in place of its number, no pill) and focus on the next row not done, or Start when all are.
 - When every row is ticked the page reads "You’re all set" and the help pane for Start says "Your Home screen is set

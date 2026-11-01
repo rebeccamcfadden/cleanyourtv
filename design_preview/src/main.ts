@@ -56,6 +56,13 @@ app.overlay(importPill());
 app.longOk = titleMenu;
 // ?notes=on starts with Launcher settings › Phone notes switched on.
 if (params.get('notes') === 'on') notes.setOn(true);
+// ?features=on starts with every feature on (F14: a new install starts with them all off), and ?features=off with
+// none, whatever was saved.
+const startFeatures = params.get('features');
+if (startFeatures === 'on' || startFeatures === 'off') {
+  const on = startFeatures === 'on';
+  settings.set({ features: { tmdb: on, notes: on, pick: on, prices: on, weather: on, themes: on } });
+}
 
 // ---- Dev bar under the stage: the screen stack, the data state, quick jumps and a state reset ----
 const trail = document.getElementById('trail')!;

@@ -82,6 +82,8 @@ export interface SetupOpts {
   steps: SectionId[];
   /** A section's pane was entered: the checklist ticks its row. */
   onVisit(id: SectionId): void;
+  /** The footer's way back, when it isn't to the checklist (a feature's setup opened from the Features step). */
+  backLabel?: string;
 }
 
 /**
@@ -94,7 +96,8 @@ export interface SetupOpts {
  */
 export function launcherSettings(initial: SectionId = 'account', opts: { enter?: boolean; setup?: SetupOpts } = {}): Screen {
   const setup = opts.setup;
-  const sections = setup ? SECTIONS.filter((s) => setup.steps.includes(s.id)) : SECTIONS;
+  // First run lists its steps in the checklist's order (Features first, F14).
+  const sections = setup ? setup.steps.map((id) => SECTIONS.find((s) => s.id === id)!).filter(Boolean) : SECTIONS;
   /** F14 (the project lead, 2026-11-01): a section whose feature is off stays, says so, and points to Features. */
   const isOff = (s: Section) => !!s.feature && !featureOn(s.feature);
   let current: SectionId = sections.some((s) => s.id === initial) ? initial : sections[0].id;
@@ -169,7 +172,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
       h('span.pane-foot-note', `Step ${i + 1} of ${setup.steps.length} · changes save at once`),
       h(
         'div.pane-foot-actions',
-        button('Back to checklist', { icon: 'back', small: true, key: 'foot-back', onOk: () => app.pop() }),
+        button(setup.backLabel ?? 'Back to checklist', { icon: 'back', small: true, key: 'foot-back', onOk: () => app.pop() }),
         button(next ? `Next: ${next.id === 'stores' ? 'Stores' : (next.setupLabel ?? next.label)}` : 'Done', {
           icon: next ? 'chevRight' : 'check',
           small: true,

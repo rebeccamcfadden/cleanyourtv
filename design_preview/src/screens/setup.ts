@@ -1,9 +1,7 @@
-import { account, USERNAME } from '../core/account';
 import { app, type Screen } from '../core/app';
 import { h, replace } from '../core/dom';
 import { focusable } from '../core/focus';
-import { featureOn, settings, UNIT_LABELS } from '../core/settings';
-import { placeById } from '../data/places';
+import { FEATURES, featureOn, settings } from '../core/settings';
 import { PICK_SERVICES, SERVICES } from '../data/services';
 import { icon } from '../ui/icons';
 import { button } from '../ui/widgets';
@@ -28,17 +26,20 @@ const tickedStores = () => settings.get().stores.map((id) => SERVICES[id].name);
 
 const ALL_STEPS: Step[] = [
   {
-    id: 'account',
-    title: 'Sign in to TMDB',
-    sub: () => (account.get() === 'in' ? 'Signed in · 3 lists imported' : 'Brings My list, Seen and Favorites from your account'),
-    value: () => (account.get() === 'in' ? h('span.cl-user', h('span.avatar.avatar--s', USERNAME[0].toUpperCase()), USERNAME) : ''),
-    pill: 'Optional',
+    // F14 (the project lead, 2026-11-01): every feature starts off; this step turns them on, and each one turned on is
+    // set up at once (the Features pane opens its setup: TMDB sign-in, Weather city, Phone notes pairing, price keys).
+    id: 'features',
+    title: 'Features',
+    sub: () => `${FEATURES.filter((f) => featureOn(f.id)).length} of ${FEATURES.length} on`,
+    value: () => names(FEATURES.filter((f) => featureOn(f.id)).map((f) => f.label)) || 'All off',
+    pill: 'All off',
     pillKind: 'muted',
     help: {
-      eyebrow: 'Sign in to TMDB',
-      title: 'Your watchlists, on the TV.',
-      body: () => 'TMDB is a free film and TV database. Sign in once with your phone and My list, Seen and Favorites stay in step with your account.',
-      note: 'Skip it and your lists are kept on this TV only. You can sign in later from Launcher settings.',
+      eyebrow: 'Features',
+      title: 'Choose what this TV does.',
+      body: () =>
+        'Everything starts off. Turn on what the household wants: TMDB account (Movies, TV Shows and Search), Pick for me, Prices, Weather, Phone notes and Themes. Each one you turn on is set up next.',
+      note: 'Change them any time in Launcher settings › Features.',
     },
   },
   {
@@ -69,31 +70,16 @@ const ALL_STEPS: Step[] = [
       note: 'OK opens the same page as Launcher settings › Stores for rent and buy.',
     },
   },
-  {
-    id: 'weather',
-    title: 'Weather city',
-    sub: () => 'For the forecast on Home',
-    value: () => `${placeById(settings.get().place).name} · ${settings.get().unit === 'tv' ? 'TV default' : UNIT_LABELS[settings.get().unit]}`,
-    pill: 'Default',
-    pillKind: 'accent',
-    help: {
-      eyebrow: 'Weather city',
-      title: 'The forecast on Home.',
-      body: () => 'Home shows today’s and tomorrow’s weather, and an hourly strip below the apps. The city starts as the build’s default.',
-      note: 'Weather data by Open-Meteo.com.',
-    },
-  },
 ];
 
 /**
  * First run (V2 designs 01-setup B and r2-setup-checklist): one checklist page with every setup item and its current
  * value, a help pane for the focused row, and Start using Home always one press away. OK on a row opens the same
- * split and panes as Launcher settings, cut down to these four sections, with "Back to checklist" and "Next: …".
- * Coming back ticks the rows that were opened and puts focus on the next one not done.
- */
-export function setupScreen(): Screen {
-  // F14: a step whose feature is off isn't on the checklist (Sign in to TMDB, Weather city).
-  const STEPS = ALL_STEPS.filter((s) => (s.id !== 'account' || featureOn('tmdb')) && (s.id !== 'weather' || featureOn('weather')));
+ * split and panes as Launcher settings, cut down to these sections, with "Back to checklist" and "Next: …". Coming back
+ * ticks the rows that were opened and puts focus on the next one not done. Sign in to TMDB and Weather city are no
+ * longer rows of their own (F14): turning their feature on in the Features step opens them.
+ */export function setupScreen(): Screen {
+  const STEPS = ALL_STEPS;
   const done = new Set<SectionId>();
   const titleEl = h('h1.setup-title');
   const leadEl = h('div.setup-lead');
