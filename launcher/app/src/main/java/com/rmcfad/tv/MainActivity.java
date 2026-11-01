@@ -349,11 +349,9 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         tries.add(new Intent(Intent.ACTION_SEARCH).setPackage(youtube).putExtra(SearchManager.QUERY, query));
         tries.add(new Intent(Intent.ACTION_VIEW,
                 Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query))).setPackage(youtube));
+        // A link YouTube claims but refuses moves on to the next way in, as Watch does (tryStart).
         for (Intent i : tries) {
-            if (i.resolveActivity(getPackageManager()) != null) {
-                start(i);
-                return;
-            }
+            if (i.resolveActivity(getPackageManager()) != null && tryStart(i)) return;
         }
         shell.toast(getString(R.string.router_no_trailer));
     }
