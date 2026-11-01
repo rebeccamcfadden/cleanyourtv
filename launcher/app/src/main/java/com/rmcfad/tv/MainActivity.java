@@ -188,6 +188,8 @@ public class MainActivity extends Activity implements NavBar.Host, Shell.Pages, 
         systemFont = ThemeStore.systemFont(this);
         Ui.apply(theme);
         PerfChoices.apply(PerfPrefs.load(this, cfg));
+        // F14: which features run, before anything that starts one is built.
+        Features.apply(FeaturePrefs.load(this));
         if (!ThemeFonts.apply(this, theme)) ThemeFonts.fetch(this, theme, fontsArrived);
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
         // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
