@@ -108,7 +108,8 @@ one option for each (2026-10-30). The prototype builds these:
 - **The lists are the account's own** (2026-10-31): signed in, the TMDB lists ticked Show in Account → Choose lists
   become chips under their TMDB names, in the account's order, **at most 6** (the project lead, 2026-10-31); a list
   shown past six has no chip, but its titles are still in All lists. Before any sign-in the mock Household and Friends
-  stand in; after a sign-out only My list is left.
+  stand in; after a sign-out only My list is left. Since F14 (the project lead, 2026-11-01) Movies, TV Shows and
+  Search need a sign-in and show "needs a TMDB account" without one, so the page shows these lists only signed in.
 - **Title preview is Option C:** a popup with the art across the top, the essentials and actions on the card, and
   tabs for everything else. Options A (cinematic, scroll for the rest) and B (side panel) are parked in Figma.
 - **The title preview is a popup, not a page.** The page it was opened from stays visible, dimmed, around its
@@ -437,8 +438,10 @@ on the right.
 - **Sections and values:** Account (Not signed in, amber "Getting a code…", "Waiting…", "Signing in…", "Code
   expired", or the username), Phone notes (Off, On, or amber "3 not matched"), Streaming services ("8 ticked"), Stores
   for rent and buy ("5 ticked"), Weather (the city), Home row apps (7), Theme (Midnight, or "Nature · Halloween"),
-  Performance (All on, or Custom), Open on start (Home), Default Home (On), TV settings, About (2.0.0). Values update live. The list
-  stays inside title-safe and scrolls with focus when its sections don't fit.
+  Performance (All on, or Custom), Features ("0 of 6 on" on a new install), Open on start (Home), Default Home (On), TV settings, About
+  (2.0.0). Values update live. A section whose feature is off in Features stays and reads Off (Account, Phone notes,
+  Weather): its pane says the feature is off and how to turn it on, with **Open Features** (first focus), which goes to
+  the Features section. The list stays inside title-safe and scrolls with focus when its sections don't fit.
 - **Moving:** landing on a section shows its pane at once, as a preview. → or OK enters the pane, on its first control
   (the selected option in a segmented control), and the pane's border brightens. ← from the pane's left edge
   returns to the section. Back leaves a sub-state first (Choose lists, Change city, an app being moved), then the pane,
@@ -577,6 +580,29 @@ picks another theme.
   end (no card shadows, Motion Reduced, no animated details; glow and picture on) until the household chooses, and the
   pane says so; config.xml or config.json `light_defaults` can set or stop that per TV. The prototype starts with
   everything on; it applies Motion and the backdrop, and saves the card shadows and glow, which it doesn't draw.
+- **Features** (F14, the project lead's decision 2026-11-01; no Figma frame): one build, with each feature switched
+  on or off at run time. **A new install starts with every feature off** (the project lead, 2026-11-01): First run's
+  Features step turns them on ([First run](#first-run)). "Turn on what this household uses", then a row per feature
+  laid out as Performance's, each with an On / Off control; a feature that is off never starts: no page and nothing
+  fetched for it. Its Launcher settings section stays, reading Off, with a pane that says how to turn it on. Quick
+  settings drops its row. A family install sets the same switches in household.json, and a pushed config.json can too.
+  ?features=on starts the preview with every feature on, ?features=off with none.
+  - **TMDB account:** Movies, TV Shows and Search need it: while it is off, **or on but the TV isn't signed in**, they
+    are an empty state alone, "Movies needs a TMDB account", with **Open Features** (off) or **Sign in** (opens
+    Account), first focus. Signing in from the dev bar's Account menu shows the page at once.
+  - **Phone notes** needs TMDB account (it puts the phone's list on TMDB): while that is off its row says "Off ·
+    needs TMDB account" and ↑/↓ pass it by, and its section's pane says to turn on TMDB account first. Off, no import
+    pill, and the TV doesn't listen.
+  - **Pick for me:** off, no Pick for me button on Movies and TV Shows; the chips lead on to the nav.
+  - **Prices:** off, every offer comes without its prices: cards and the title preview still say Rent or Buy and where
+    ("Rent on Apple TV Store"), from TMDB's availability; the Stores pane stays, since it picks which stores' offers
+    count.
+  - **Weather:** off, Home has no weather or forecast.
+  - **Themes:** off, nothing is downloaded: the picker shows the Classic themes but Landscapes, each on its plain
+    colour, in the system font (Midnight keeps its bundled landscape); a saved Landscapes or Seasonal theme shows
+    Midnight until Themes is on again.
+  The section's value is "n of 6 on". ↓ goes to the next row's selected option and → stays within its control, as in
+  Performance.
 - **Open on start:** Home / Last app / Live TV, only saved.
 - **Default Home:** "This launcher is Home", "The remote’s Home button opens it", and **Choose Home app** (Android's
   Home app setting).
@@ -589,16 +615,25 @@ picks another theme.
 ### First run
 
 V2 designs 01-setup B and r2-setup-checklist. Shown on demand from the dev bar (Jump to → First run). A page without
-the nav: "First run", "Set up your Home screen", and four rows, each with its number, title, a line under it, the
-current value and a pill: Sign in to TMDB (Optional), Streaming services ("8 ticked", "Netflix, Prime Video +6",
-Suggested), Stores for rent and buy ("Apple TV Store, Amazon Video +3", Suggested), Weather city ("Stockholm · TV
-default", Default). Below them **Start using Home** and "The same pages are in Launcher settings."; on the right a
-help pane for the focused row.
+the nav: "First run", "Set up your Home screen", and three rows, each with its number, title, a line under it, the
+current value and a pill: Features ("0 of 6 on", "All off"), Streaming services ("8 ticked", "Netflix, Prime Video
++6", Suggested), Stores for rent and buy ("Apple TV Store, Amazon Video +3", Suggested). Below them **Start using
+Home** and "The same pages are in Launcher settings."; on the right a help pane for the focused row.
 
-- **OK on a row** opens the same split and panes as Launcher settings, cut down to these four sections ("Sign in to
-  TMDB", "Streaming services", "Stores for rent and buy", "Weather city"), titled "Set up your Home screen", with
-  "First run · Back returns to the checklist" and a footer under the pane: "Step 2 of 4 · changes save at once",
-  **Back to checklist** and **Next: Stores** (the last step: **Done**). Focus starts in the pane.
+- **Features** (F14, the project lead 2026-11-01): every feature starts off, and this step is the one place in First
+  run that turns them on. Its pane is Launcher settings' Features pane, headed "Everything starts off. Turn on what
+  this household wants; each one you turn on is set up next." Turning one on opens its setup at once, in the same
+  cut-down split with "First run · Back returns to Features", **Back to Features** and **Done**: TMDB account opens
+  Sign in to TMDB (Account), Weather the city (Weather on Home), Phone notes its pairing (Phone notes), Themes the
+  picker (Theme); Prices opens the price keys page (Builder B's F16: a phone scans a QR to enter the Watchmode and
+  Movie of the Night keys, each checked; a stub here until it exists, and a TV without a TMDB key gets F16's key page
+  before Sign in). Pick for me needs no setup. On the TV, TMDB account and Phone notes rebuild the launcher before
+  their setup opens. Back from a setup returns to the Features step on the switch just turned on. There is no other
+  on/off in First run: Sign in to TMDB and Weather city are no longer rows of their own.
+- **OK on a row** opens the same split and panes as Launcher settings, cut down to these three sections, titled "Set up
+  your Home screen", with "First run · Back returns to the checklist" and a footer under the pane: "Step 2 of 3 ·
+  changes save at once", **Back to checklist** and **Next: Stores** (the last step: **Done**). Focus starts in the
+  pane.
 - Back from the split (or Back to checklist) returns to the checklist with every section that was opened ticked (a
   green check in place of its number, no pill) and focus on the next row not done, or Start when all are.
 - When every row is ticked the page reads "You’re all set" and the help pane for Start says "Your Home screen is set

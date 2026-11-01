@@ -4,7 +4,7 @@ import { h, replace } from '../core/dom';
 import { focusable } from '../core/focus';
 import { net } from '../core/net';
 import { theme } from '../core/theme';
-import { settings, START_LABELS } from '../core/settings';
+import { featureOn, settings, START_LABELS, type FeatureId } from '../core/settings';
 import { placeById } from '../data/places';
 import { icon, type IconName } from '../ui/icons';
 import { button } from '../ui/widgets';
@@ -13,6 +13,7 @@ import { notesPane } from './panes/notes';
 import { notes } from '../core/notes';
 import { appsPane } from './panes/apps';
 import { aboutPane, homePane, performancePane, startPane, tvPane } from './panes/misc';
+import { featureOffPane, featuresPane, featuresValue } from './panes/features';
 import type { Pane, PaneHost } from './panes/pane';
 import { servicesPane, storesPane } from './panes/services';
 import { themePane } from './panes/theme';
@@ -26,7 +27,20 @@ function performanceValue(): string {
   const light = s.motion === 'off' && s.cardShadows === 'off' && !s.focusGlow && s.backdropPicture === 'plain' && !s.movingDetails;
   return light ? 'Light mode' : 'Custom';
 }
-export type SectionId = 'account' | 'notes' | 'services' | 'stores' | 'weather' | 'apps' | 'theme' | 'performance' | 'start' | 'home' | 'tv' | 'about';
+export type SectionId =
+  | 'account'
+  | 'notes'
+  | 'services'
+  | 'stores'
+  | 'weather'
+  | 'apps'
+  | 'theme'
+  | 'performance'
+  | 'features'
+  | 'start'
+  | 'home'
+  | 'tv'
+  | 'about';
 
 interface Section {
   id: SectionId;
@@ -36,17 +50,27 @@ interface Section {
   icon: IconName;
   /** The current value, in grey at the row's right; amber while the sign-in is under way. */
   value: () => { text: string; warn?: boolean };
+  /** F14: while this feature is off, the section reads Off and its pane says how to turn it on. */
+  feature?: FeatureId;
 }
 
 const SECTIONS: Section[] = [
-  { id: 'account', label: 'Account', setupLabel: 'Sign in to TMDB', icon: 'user', value: () => account.value() },
-  { id: 'notes', label: 'Phone notes', icon: 'phone', value: () => notes.value() },
+  { id: 'account', label: 'Account', setupLabel: 'Sign in to TMDB', icon: 'user', value: () => account.value(), feature: 'tmdb' },
+  { id: 'notes', label: 'Phone notes', icon: 'phone', value: () => notes.value(), feature: 'notes' },
   { id: 'services', label: 'Streaming services', icon: 'tv', value: () => ({ text: `${settings.get().services.length} ticked` }) },
   { id: 'stores', label: 'Stores for rent and buy', icon: 'cart', value: () => ({ text: `${settings.get().stores.length} ticked` }) },
-  { id: 'weather', label: 'Weather', setupLabel: 'Weather city', icon: 'cloud', value: () => ({ text: placeById(settings.get().place).name }) },
+  {
+    id: 'weather',
+    label: 'Weather',
+    setupLabel: 'Weather city',
+    icon: 'cloud',
+    value: () => ({ text: placeById(settings.get().place).name }),
+    feature: 'weather',
+  },
   { id: 'apps', label: 'Home row apps', icon: 'apps', value: () => ({ text: String(settings.get().homeApps.length) }) },
   { id: 'theme', label: 'Theme', icon: 'palette', value: () => ({ text: theme.label() }) },
   { id: 'performance', label: 'Performance', icon: 'gauge', value: () => ({ text: performanceValue() }) },
+  { id: 'features', label: 'Features', icon: 'list', value: () => ({ text: featuresValue() }) },
   { id: 'start', label: 'Open on start', icon: 'power', value: () => ({ text: START_LABELS[settings.get().openOnStart] }) },
   { id: 'home', label: 'Default Home', icon: 'home', value: () => ({ text: 'On' }) },
   { id: 'tv', label: 'TV settings', icon: 'settings', value: () => ({ text: '' }) },
@@ -58,6 +82,8 @@ export interface SetupOpts {
   steps: SectionId[];
   /** A section's pane was entered: the checklist ticks its row. */
   onVisit(id: SectionId): void;
+  /** The footer's way back, when it isn't to the checklist (a feature's setup opened from the Features step). */
+  backLabel?: string;
 }
 
 /**
@@ -70,8 +96,13 @@ export interface SetupOpts {
  */
 export function launcherSettings(initial: SectionId = 'account', opts: { enter?: boolean; setup?: SetupOpts } = {}): Screen {
   const setup = opts.setup;
-  const sections = setup ? SECTIONS.filter((s) => setup.steps.includes(s.id)) : SECTIONS;
+  // First run lists its steps in the checklist's order (Features first, F14).
+  const sections = setup ? setup.steps.map((id) => SECTIONS.find((s) => s.id === id)!).filter(Boolean) : SECTIONS;
+  /** F14 (the project lead, 2026-11-01): a section whose feature is off stays, says so, and points to Features. */
+  const isOff = (s: Section) => !!s.feature && !featureOn(s.feature);
   let current: SectionId = sections.some((s) => s.id === initial) ? initial : sections[0].id;
+  /** The section showing has its own pane (its feature is on). */
+  const live = () => !isOff(sections.find((s) => s.id === current)!);
   let shown: SectionId | null = null;
   let inPane = false;
 
@@ -100,6 +131,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
     apps: appsPane(host),
     theme: themePane(),
     performance: performancePane(host),
+    features: featuresPane(host),
     start: startPane(),
     home: homePane(),
     tv: tvPane(),
@@ -123,7 +155,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
 
   function paintValues() {
     sections.forEach((sec, i) => {
-      let { text, warn } = sec.value();
+      let { text, warn } = isOff(sec) ? { text: 'Off', warn: false } : sec.value();
       if (setup && sec.id === 'account' && text === 'Not signed in') text = 'Optional';
       const v = rows[i].querySelector<HTMLElement>('.sec-value')!;
       v.textContent = text;
@@ -140,7 +172,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
       h('span.pane-foot-note', `Step ${i + 1} of ${setup.steps.length} · changes save at once`),
       h(
         'div.pane-foot-actions',
-        button('Back to checklist', { icon: 'back', small: true, key: 'foot-back', onOk: () => app.pop() }),
+        button(setup.backLabel ?? 'Back to checklist', { icon: 'back', small: true, key: 'foot-back', onOk: () => app.pop() }),
         button(next ? `Next: ${next.id === 'stores' ? 'Stores' : (next.setupLabel ?? next.label)}` : 'Done', {
           icon: next ? 'chevRight' : 'check',
           small: true,
@@ -153,7 +185,8 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
   }
 
   function rerender() {
-    replace(scroll, panes[current].render());
+    const sec = sections.find((s) => s.id === current)!;
+    replace(scroll, isOff(sec) ? featureOffPane(sec.feature!, sec.label, () => (setup ? app.push(launcherSettings('features', { enter: true })) : enter('features'))) : panes[current].render());
     paintFoot();
     paintValues();
     if (inPane) app.refocus();
@@ -182,7 +215,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
     h(
       'div.set-head',
       h('h1.page-title', setup ? 'Set up your Home screen' : 'Launcher settings'),
-      h('span.set-hint', setup ? 'First run · Back returns to the checklist' : 'Back closes · changes save at once'),
+      h('span.set-hint', setup ? (setup.backLabel ? 'First run · Back returns to Features' : 'First run · Back returns to the checklist') : 'Back closes · changes save at once'),
     ),
     list,
     pane,
@@ -200,7 +233,7 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
       pane.classList.toggle('is-live', inPane);
       rows.forEach((r) => r.classList.toggle('is-active', inPane && r.dataset.section === current));
     },
-    onText: (ch) => !!panes[current].onText?.(ch),
+    onText: (ch) => live() && !!panes[current].onText?.(ch),
     onKey(key, f) {
       if (!f) return false;
       if (list.contains(f)) {
@@ -215,9 +248,9 @@ export function launcherSettings(initial: SectionId = 'account', opts: { enter?:
         }
         return false;
       }
-      if (panes[current].onKey?.(key, f)) return true;
+      if (live() && panes[current].onKey?.(key, f)) return true;
       if (key === 'back') {
-        if (!panes[current].back?.()) app.focus(rowOf(current));
+        if (!live() || !panes[current].back?.()) app.focus(rowOf(current));
         return true;
       }
       if (key === 'left') {
